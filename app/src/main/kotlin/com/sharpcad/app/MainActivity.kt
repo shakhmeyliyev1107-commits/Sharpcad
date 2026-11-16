@@ -7,12 +7,16 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -42,14 +46,16 @@ private fun Phase0Screen() {
     val kernelReport by produceState(initialValue = "OCCT: …") {
         value = withContext(Dispatchers.Default) { describeKernelProof() }
     }
+    var viewportError by remember { mutableStateOf<String?>(null) }
     Box(Modifier.fillMaxSize()) {
-        Viewport(Modifier.fillMaxSize())
+        Viewport(Modifier.fillMaxSize(), onError = { viewportError = "Viewport error: $it" })
         Text(
-            text = kernelReport,
+            text = listOfNotNull(kernelReport, viewportError).joinToString("\n\n"),
             color = Color(0xFFE6EAF0),
             fontFamily = FontFamily.Monospace,
             modifier = Modifier
                 .align(Alignment.TopStart)
+                .safeDrawingPadding()
                 .padding(16.dp)
                 .background(Color(0xCC1B1F26), RoundedCornerShape(8.dp))
                 .padding(12.dp),
@@ -67,6 +73,6 @@ private fun describeKernelProof(): String = try {
     }
 } catch (e: KernelException) {
     "Kernel error ${e.code}: ${e.message}"
-} catch (e: UnsatisfiedLinkError) {
+} catch (e: LinkageError) {
     "Native library failed to load: ${e.message}"
 }

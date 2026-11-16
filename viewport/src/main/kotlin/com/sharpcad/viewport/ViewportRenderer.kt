@@ -3,6 +3,7 @@ package com.sharpcad.viewport
 import android.view.Choreographer
 import android.view.Surface
 import android.view.SurfaceView
+import com.google.android.filament.Box
 import com.google.android.filament.Camera
 import com.google.android.filament.Engine
 import com.google.android.filament.Entity
@@ -21,7 +22,6 @@ import com.google.android.filament.android.DisplayHelper
 import com.google.android.filament.android.UiHelper
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
-import java.nio.channels.Channels
 
 /**
  * Owns the Filament engine and draws the scene into a [SurfaceView].
@@ -77,6 +77,8 @@ internal class ViewportRenderer(private val surfaceView: SurfaceView) {
             clear = true
             clearColor = BACKGROUND
         }
+        // Look down -Z from in front of the triangle so it sits well inside the clip range.
+        camera.lookAt(0.0, 0.0, 4.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0)
         view.scene = scene
         view.camera = camera
         view.isPostProcessingEnabled = false
@@ -86,7 +88,7 @@ internal class ViewportRenderer(private val surfaceView: SurfaceView) {
         indexBuffer = createTriangleIndices()
         triangle = EntityManager.get().create()
         RenderableManager.Builder(1)
-            .boundingBox(com.google.android.filament.Box(0f, 0f, 0f, 1f, 1f, 0.01f))
+            .boundingBox(Box(0f, 0f, 0f, 1f, 1f, 0.01f))
             .geometry(0, RenderableManager.PrimitiveType.TRIANGLES, vertexBuffer, indexBuffer, 0, 3)
             .material(0, material.defaultInstance)
             .culling(false)
@@ -149,21 +151,17 @@ internal class ViewportRenderer(private val surfaceView: SurfaceView) {
             camera.setProjection(
                 Camera.Projection.ORTHO,
                 -aspect * HALF_HEIGHT, aspect * HALF_HEIGHT, -HALF_HEIGHT, HALF_HEIGHT,
-                0.0, 10.0,
+                NEAR, FAR,
             )
             view.viewport = Viewport(0, 0, width, height)
         }
     }
 
     private fun loadMaterial(assetPath: String): Material {
-        val buffer = surfaceView.context.assets.openFd(assetPath).use { fd ->
-            fd.createInputStream().use { input ->
-                val bytes = ByteBuffer.allocateDirect(fd.length.toInt())
-                val channel = Channels.newChannel(input)
-                while (bytes.hasRemaining() && channel.read(bytes) >= 0) Unit
-                bytes.flip() as ByteBuffer
-            }
-        }
+        // AssetManager.open works whether or not the asset is stored compressed in the APK;
+        // openFd does not, and library modules cannot control the app's compression settings.
+        val bytes = surfaceView.context.assets.open(assetPath).use { it.readBytes() }
+        val buffer = ByteBuffer.allocateDirect(bytes.size).put(bytes).flip() as ByteBuffer
         return Material.Builder().payload(buffer, buffer.remaining()).build(engine)
     }
 
@@ -203,6 +201,8 @@ internal class ViewportRenderer(private val surfaceView: SurfaceView) {
 
     private companion object {
         const val HALF_HEIGHT = 1.0
+        const val NEAR = 0.1
+        const val FAR = 10.0
         val BACKGROUND = doubleArrayOf(0.106, 0.122, 0.149, 1.0) // #1B1F26
     }
 }

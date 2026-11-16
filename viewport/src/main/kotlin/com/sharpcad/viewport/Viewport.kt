@@ -16,15 +16,20 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
  *
  * Hosts a [SurfaceView] rendered by Filament. Frames are driven by Choreographer inside
  * [ViewportRenderer]; recomposition of this function never triggers or blocks rendering.
+ * If the renderer cannot start, [onError] is called once and the viewport stays blank.
  */
 @Composable
-fun Viewport(modifier: Modifier = Modifier) {
+fun Viewport(modifier: Modifier = Modifier, onError: (Throwable) -> Unit = {}) {
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     val surfaceView = remember { SurfaceView(context) }
-    val renderer = remember { ViewportRenderer(surfaceView) }
+    // A renderer that fails to start must not take the whole app down: report it instead.
+    val renderer = remember {
+        runCatching { ViewportRenderer(surfaceView) }.onFailure(onError).getOrNull()
+    }
 
     DisposableEffect(lifecycle, renderer) {
+        if (renderer == null) return@DisposableEffect onDispose { }
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_RESUME -> renderer.resume()
