@@ -1,0 +1,15 @@
+// Unlit, per-vertex colour. Phase 0 proof material.
+// Compiled to assets/materials/vertex_color.filamat by tools/build-materials.sh.
+material {
+    name : vertex_color,
+    requires : [ color ],
+    shadingModel : unlit,
+    culling : none
+}
+
+fragment {
+    void material(inout MaterialInputs material) {
+        prepareMaterial(material);
+        material.baseColor = getColor();
+    }
+}

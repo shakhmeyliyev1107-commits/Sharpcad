@@ -1,0 +1,10 @@
+.gradle/
+build/
+local.properties
+.cxx/
+.kotlin/
+*.iml
+.idea/
+# Prebuilt third-party binaries are produced by tools/build-occt.sh
+native/third_party/
+dist/
