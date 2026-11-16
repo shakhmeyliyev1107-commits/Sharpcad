@@ -1,0 +1,16 @@
+// Unlit single colour, used for model edges.
+material {
+    name : flat_color,
+    shadingModel : unlit,
+    culling : none,
+    parameters : [
+        { type : float3, name : color }
+    ]
+}
+
+fragment {
+    void material(inout MaterialInputs material) {
+        prepareMaterial(material);
+        material.baseColor = vec4(materialParams.color, 1.0);
+    }
+}

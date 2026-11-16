@@ -1,0 +1,30 @@
+// Headlight-shaded CAD surface: brightness follows the angle between the surface and
+// the view direction, so the shape reads clearly from any angle without scene lights.
+// Two-sided, because imported shells are not always closed. PBR arrives in Phase 4.
+// The normal comes in as custom0 (plain xyz) to avoid building tangent frames.
+material {
+    name : cad_shaded,
+    requires : [ custom0 ],
+    shadingModel : unlit,
+    culling : none,
+    variables : [ worldNormal ],
+    parameters : [
+        { type : float3, name : baseColor }
+    ]
+}
+
+vertex {
+    void materialVertex(inout MaterialVertexInputs material) {
+        material.worldNormal.xyz = getWorldFromModelNormalMatrix() * getCustom0().xyz;
+    }
+}
+
+fragment {
+    void material(inout MaterialInputs material) {
+        prepareMaterial(material);
+        vec3 n = normalize(variable_worldNormal.xyz);
+        vec3 v = normalize(getWorldCameraPosition() - getWorldPosition());
+        float facing = abs(dot(n, v));
+        material.baseColor = vec4(materialParams.baseColor * (0.28 + 0.72 * facing), 1.0);
+    }
+}

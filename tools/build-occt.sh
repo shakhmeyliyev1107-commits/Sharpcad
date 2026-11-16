@@ -26,7 +26,8 @@ if [ ! -f "$src/CMakeLists.txt" ]; then
     git clone --depth 1 --branch "$tag" https://github.com/Open-Cascade-SAS/OCCT.git "$src"
 fi
 
-# Phase 0 needs modeling only. DataExchange (STEP/IGES) is enabled in Phase 1.
+# Modeling plus DataExchange (STEP/IGES/STL/OBJ). DataExchange needs XCAF, which pulls in
+# the windowing-free parts of Visualization (TKService, TKV3d); no OpenGL toolkit is built.
 common=(
     -G Ninja
     -DCMAKE_BUILD_TYPE=Release
@@ -35,8 +36,8 @@ common=(
     -DBUILD_MODULE_ModelingData=ON
     -DBUILD_MODULE_ModelingAlgorithms=ON
     -DBUILD_MODULE_Visualization=OFF
-    -DBUILD_MODULE_ApplicationFramework=OFF
-    -DBUILD_MODULE_DataExchange=OFF
+    -DBUILD_MODULE_ApplicationFramework=ON
+    -DBUILD_MODULE_DataExchange=ON
     -DBUILD_MODULE_DETools=OFF
     -DBUILD_MODULE_Draw=OFF
     -DBUILD_DOC_Overview=OFF
@@ -44,6 +45,9 @@ common=(
     -DUSE_FREETYPE=OFF
     -DUSE_TK=OFF
     -DUSE_RAPIDJSON=OFF
+    -DUSE_XLIB=OFF
+    -DUSE_OPENGL=OFF
+    -DUSE_GLES2=OFF
     -DINSTALL_DIR_INCLUDE=include
 )
 

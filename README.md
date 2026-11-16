@@ -1,7 +1,7 @@
 # SharpCAD
 
 Touch-first parametric 3D CAD modeler for Android tablets (arm64-v8a, Android 10+).
-Status: **Phase 0** — build foundation and proofs of concept only.
+Status: **Phase 1** — viewport navigation, grid, STEP import with shaded display, static tool rails.
 
 ## Modules
 

@@ -15,6 +15,14 @@ object Kernel {
      *
      * @throws KernelException if any dimension is not a positive finite number.
      */
-    fun makeBox(dx: Double, dy: Double, dz: Double): Solid =
-        Solid(KernelNative.nativeMakeBox(dx, dy, dz))
+    fun makeBox(dx: Double, dy: Double, dz: Double): Shape =
+        Shape(KernelNative.nativeMakeBox(dx, dy, dz))
+
+    /**
+     * Reads a STEP file from the local file system into a single shape.
+     *
+     * @throws KernelException with [KernelException.IO_ERROR] if the file is missing,
+     *   is not valid STEP or contains no geometry.
+     */
+    fun importStep(path: String): Shape = Shape(KernelNative.nativeImportStep(path))
 }

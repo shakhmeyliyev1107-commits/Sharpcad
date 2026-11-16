@@ -47,6 +47,10 @@ android {
                     .joinToString(File.pathSeparator),
             )
             it.environment("LD_LIBRARY_PATH", occtHost.dir("lib").asFile.absolutePath)
+            // Android always uses UTF-8 file names; make the host JVM do the same so
+            // non-ASCII paths mean the same thing on both sides of JNI.
+            it.environment("LC_ALL", "C.UTF-8")
+            it.jvmArgs("-Dsun.jnu.encoding=UTF-8", "-Dfile.encoding=UTF-8")
         }
     }
 }

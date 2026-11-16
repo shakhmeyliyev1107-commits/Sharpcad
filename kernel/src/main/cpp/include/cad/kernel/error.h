@@ -10,6 +10,7 @@ enum class ErrorCode : int {
     InvalidArgument = 1,
     OcctFailure = 2,
     InvalidHandle = 3,
+    IoError = 4,
     Unknown = 99,
 };
 

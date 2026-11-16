@@ -13,4 +13,4 @@ dependencyResolutionManagement {
     }
 }
 rootProject.name = "SharpCAD"
-include(":app", ":viewport", ":kernel")
+include(":app", ":viewport", ":kernel", ":ui:designsystem", ":ui:workspace")
