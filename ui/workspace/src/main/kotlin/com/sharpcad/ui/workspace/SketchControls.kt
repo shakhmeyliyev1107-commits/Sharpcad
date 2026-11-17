@@ -170,7 +170,11 @@ internal fun DimensionInput(field: DimensionField, onCommit: (Double) -> Unit) {
                 fontFamily = FontFamily.Monospace,
             ),
             cursorBrush = SolidColor(SharpCadColors.Accent),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
+            // Numeric keypads often lack a minus key, so signed fields get the full keyboard.
+            keyboardOptions = KeyboardOptions(
+                keyboardType = if (field.allowNegative) KeyboardType.Text else KeyboardType.Decimal,
+                imeAction = ImeAction.Done,
+            ),
             keyboardActions = KeyboardActions(onDone = { commit() }),
             modifier = Modifier
                 .width(72.dp)

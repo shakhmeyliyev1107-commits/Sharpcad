@@ -179,4 +179,28 @@ class DocumentTest {
             file.delete()
         }
     }
+
+    @Test
+    fun moveMirrorAndPatternCreateOrMoveBodies() {
+        val base = box(1, 10.0, 10.0, 10.0)
+        ModelBuilder.build(listOf(base, MoveFeature(2, 1, dx = 50.0))).use { r ->
+            assertEquals(setOf(1L), r.bodies.keys)
+            assertEquals(50.0, r.bodies.getValue(1).boundingBox().minX, 1e-6)
+        }
+        ModelBuilder.build(listOf(base, MoveFeature(2, 1, dz = 5.0, copy = true))).use { r -> assertEquals(setOf(1L, 2L), r.bodies.keys) }
+        ModelBuilder.build(listOf(base, MirrorFeature(2, 1, WorldAxis.X))).use { r ->
+            assertEquals(-10.0, r.bodies.getValue(2).boundingBox().minX, 1e-6)
+            assertEquals(2, r.bodies.size)
+        }
+        ModelBuilder.build(listOf(base, PatternFeature(2, 1, WorldAxis.Y, count = 4, spacing = 15.0))).use { r ->
+            assertEquals(4, r.bodies.size)
+            assertEquals(45.0, r.bodies.getValue(2003).boundingBox().minY, 1e-6)
+        }
+        val ring = PatternFeature(2, 1, WorldAxis.Z, count = 4, circular = true)
+        ModelBuilder.build(listOf(MoveFeature(9, 1, dx = 20.0).let { listOf(base, it) }, listOf(ring)).flatten()).use { r ->
+            assertEquals(4, r.bodies.size)
+            assertEquals(-30.0, r.bodies.getValue(2002).boundingBox().minX, 1e-6) // half a turn around Z
+        }
+        ModelBuilder.build(listOf(base, PatternFeature(2, 1, count = 1))).use { assertTrue(it.errors.containsKey(2)) }
+    }
 }

@@ -73,6 +73,34 @@ object ModelBuilder {
             is FilletFeature -> replace(feature.body, bodies) { it.fillet(feature.radius, feature.face) }
             is ChamferFeature -> replace(feature.body, bodies) { it.chamfer(feature.distance, feature.face) }
             is PushPullFeature -> replace(feature.body, bodies) { it.pushPull(feature.face, feature.distance) }
+            is MoveFeature -> {
+                val source = bodies[feature.body] ?: throw IllegalArgumentException("Body no longer exists")
+                val b = source.boundingBox()
+                val centre = doubleArrayOf((b.minX + b.maxX) / 2, (b.minY + b.maxY) / 2, (b.minZ + b.maxZ) / 2)
+                val moved = source.moved(centre, feature.axis.vector, feature.angleDegrees * PI / 180, feature.dx, feature.dy, feature.dz)
+                if (feature.copy) bodies[feature.id] = moved else { bodies[feature.body] = moved; source.close() }
+            }
+            is MirrorFeature -> {
+                val source = bodies[feature.body] ?: throw IllegalArgumentException("Body no longer exists")
+                val mirrored = source.mirrored(doubleArrayOf(0.0, 0.0, 0.0), feature.plane.vector)
+                if (feature.keepOriginal) bodies[feature.id] = mirrored else { bodies[feature.body] = mirrored; source.close() }
+            }
+            is PatternFeature -> {
+                require(feature.count in 2..MAX_PATTERN) { "Pattern count must be 2 to $MAX_PATTERN" }
+                val source = bodies[feature.body] ?: throw IllegalArgumentException("Body no longer exists")
+                val origin = doubleArrayOf(0.0, 0.0, 0.0)
+                val a = feature.axis.vector
+                // A full circle has no repeated last copy; a partial arc ends on its last angle.
+                val full = kotlin.math.abs(feature.angleDegrees - 360.0) < 1e-9
+                val step = feature.angleDegrees / (if (full) feature.count else feature.count - 1)
+                for (k in 1 until feature.count) {
+                    bodies[feature.copyId(k)] = if (feature.circular) {
+                        source.moved(origin, a, k * step * PI / 180, 0.0, 0.0, 0.0)
+                    } else {
+                        source.moved(origin, a, 0.0, a[0] * k * feature.spacing, a[1] * k * feature.spacing, a[2] * k * feature.spacing)
+                    }
+                }
+            }
             is DeleteBodyFeature -> (bodies.remove(feature.body) ?: throw IllegalArgumentException("Body no longer exists")).close()
             is ShellFeature -> replace(feature.body, bodies) { it.shell(feature.face, feature.thickness) }
             is BooleanFeature -> {
@@ -140,6 +168,7 @@ object ModelBuilder {
     }
 
     private const val AUTO_EPSILON = 1e-6
+    private const val MAX_PATTERN = 200
     private const val TOUCH_MM = 1e-4
 
     private fun replace(id: Long, bodies: LinkedHashMap<Long, Shape>, transform: (Shape) -> Shape) {

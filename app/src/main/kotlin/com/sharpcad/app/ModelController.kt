@@ -420,6 +420,10 @@ class ModelController(
         val waiting = pendingBoolean
         val actions = listOf(
             PanelAction("Push/Pull", accent = true) { addAndEdit(PushPullFeature(document.newId(), s.bodyId, s.face, DEFAULT_DISTANCE / 2)) },
+            PanelAction("Move") { addAndEdit(com.sharpcad.document.MoveFeature(document.newId(), s.bodyId, dx = 10.0)) },
+            PanelAction("Copy") { addAndEdit(com.sharpcad.document.MoveFeature(document.newId(), s.bodyId, dx = 10.0, copy = true)) },
+            PanelAction("Mirror") { addAndEdit(com.sharpcad.document.MirrorFeature(document.newId(), s.bodyId, com.sharpcad.document.WorldAxis.X)) },
+            PanelAction("Pattern") { addAndEdit(com.sharpcad.document.PatternFeature(document.newId(), s.bodyId)) },
             PanelAction("Shell (open face)") { addAndEdit(com.sharpcad.document.ShellFeature(document.newId(), s.bodyId, s.face, 1.0)) },
             PanelAction("Fillet face") { addAndEdit(FilletFeature(document.newId(), s.bodyId, 1.0, s.face)) },
             PanelAction("Chamfer face") { addAndEdit(ChamferFeature(document.newId(), s.bodyId, 1.0, s.face)) },
@@ -458,6 +462,23 @@ class ModelController(
             is PushPullFeature -> fields += DimensionField("Distance", kotlin.math.abs(f.distance))
             is com.sharpcad.document.ShellFeature -> fields += DimensionField("Thickness", f.thickness)
             is BooleanFeature -> choices += ChoiceField("Operation", BooleanOp.entries.map { it.name.lowercase() }, f.op.name.lowercase())
+            is com.sharpcad.document.MoveFeature -> {
+                fields += DimensionField("X", f.dx, allowNegative = true)
+                fields += DimensionField("Y", f.dy, allowNegative = true)
+                fields += DimensionField("Z", f.dz, allowNegative = true)
+                fields += DimensionField("Rotate", f.angleDegrees, unit = "°", allowNegative = true)
+                choices += ChoiceField("Axis", AXES, f.axis.label)
+            }
+            is com.sharpcad.document.MirrorFeature -> {
+                choices += ChoiceField("Across", MIRROR_PLANES, mirrorLabel(f.plane))
+                choices += ChoiceField("Original", KEEP, if (f.keepOriginal) KEEP[0] else KEEP[1])
+            }
+            is com.sharpcad.document.PatternFeature -> {
+                fields += DimensionField("Count", f.count.toDouble(), unit = "")
+                fields += if (f.circular) DimensionField("Angle", f.angleDegrees, unit = "°") else DimensionField("Spacing", f.spacing, allowNegative = true)
+                choices += ChoiceField("Type", PATTERN_TYPES, if (f.circular) PATTERN_TYPES[1] else PATTERN_TYPES[0])
+                choices += ChoiceField("Axis", AXES, f.axis.label)
+            }
             is ImportFeature, is com.sharpcad.document.DeleteBodyFeature -> Unit
         }
         val flip = when (f) {
@@ -477,6 +498,21 @@ class ModelController(
     /** A typed value for field [index] of the feature being edited. */
     fun setField(index: Int, value: Double) {
         val f = editingFeature() ?: return
+        val multi: Feature? = when (f) {
+            is com.sharpcad.document.MoveFeature -> when (index) {
+                0 -> f.copy(dx = value); 1 -> f.copy(dy = value); 2 -> f.copy(dz = value); else -> f.copy(angleDegrees = value)
+            }
+            is com.sharpcad.document.PatternFeature -> when (index) {
+                0 -> f.copy(count = value.toInt().coerceIn(2, 200))
+                else -> if (f.circular) f.copy(angleDegrees = value.coerceIn(1.0, 360.0)) else f.copy(spacing = value)
+            }
+            else -> null
+        }
+        if (multi != null) {
+            note = ""
+            launchEdit { document.update(multi) }
+            return
+        }
         if (index != 0) return
         val updated = when (f) {
             is ExtrudeFeature -> f.copy(distance = if (f.distance < 0) -value else value)
@@ -505,6 +541,15 @@ class ModelController(
                 else -> operation?.let { f.copy(operation = it) }
             }
             is BooleanFeature -> BooleanOp.entries.firstOrNull { it.name.lowercase() == option }?.let { f.copy(op = it) }
+            is com.sharpcad.document.MoveFeature -> axisOf(option)?.let { f.copy(axis = it) }
+            is com.sharpcad.document.MirrorFeature -> when (index) {
+                0 -> MIRROR_PLANES.indexOf(option).takeIf { it >= 0 }?.let { f.copy(plane = com.sharpcad.document.WorldAxis.entries[it]) }
+                else -> f.copy(keepOriginal = option == KEEP[0])
+            }
+            is com.sharpcad.document.PatternFeature -> when (index) {
+                0 -> f.copy(circular = option == PATTERN_TYPES[1], axis = if (option == PATTERN_TYPES[1]) com.sharpcad.document.WorldAxis.Z else f.axis)
+                else -> axisOf(option)?.let { f.copy(axis = it) }
+            }
             else -> null
         } ?: return
         note = ""
@@ -574,6 +619,14 @@ class ModelController(
         /** A region this close behind a face still wins: sketches drawn on a face lie on it. */
         private const val REGION_PRIORITY_MM = 1e-3
         private val SIDES = listOf("One side", "Symmetric")
+        private val AXES = listOf("X", "Y", "Z")
+        /** Mirror planes, in WorldAxis order (normal X → YZ plane …). */
+        private val MIRROR_PLANES = listOf("YZ plane", "XZ plane", "XY plane")
+        private val KEEP = listOf("Keep", "Remove")
+        private val PATTERN_TYPES = listOf("Linear", "Circular")
+
+        private fun axisOf(label: String) = com.sharpcad.document.WorldAxis.entries.firstOrNull { it.label == label }
+        private fun mirrorLabel(axis: com.sharpcad.document.WorldAxis) = MIRROR_PLANES[axis.ordinal]
 
         fun planeSpec(plane: SketchPlane): PlaneSpec = when (plane.name) {
             "XZ" -> PlaneSpec.XZ

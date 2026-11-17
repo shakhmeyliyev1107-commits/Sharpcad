@@ -140,6 +140,60 @@ data class ShellFeature(override val id: Long, val body: Long, val face: Int, va
     override val label: String get() = "Shell ${formatMm(thickness)} mm"
 }
 
+/** A world axis. */
+enum class WorldAxis(val label: String, val vector: DoubleArray) {
+    X("X", doubleArrayOf(1.0, 0.0, 0.0)),
+    Y("Y", doubleArrayOf(0.0, 1.0, 0.0)),
+    Z("Z", doubleArrayOf(0.0, 0.0, 1.0)),
+}
+
+/**
+ * Moves [body] by (dx, dy, dz) after rotating it [angleDegrees] about [axis] through its
+ * own centre. With [copy] the original stays and the moved copy is a new body.
+ */
+@Serializable
+@SerialName("move")
+data class MoveFeature(
+    override val id: Long,
+    val body: Long,
+    val dx: Double = 0.0,
+    val dy: Double = 0.0,
+    val dz: Double = 0.0,
+    val axis: WorldAxis = WorldAxis.Z,
+    val angleDegrees: Double = 0.0,
+    val copy: Boolean = false,
+) : Feature {
+    override val label: String get() = if (copy) "Copy" else "Move"
+}
+
+/** Mirrors [body] across a base plane through the origin; [keepOriginal] adds a new body. */
+@Serializable
+@SerialName("mirror")
+data class MirrorFeature(override val id: Long, val body: Long, val plane: WorldAxis, val keepOriginal: Boolean = true) : Feature {
+    override val label: String get() = "Mirror"
+}
+
+/**
+ * Copies [body] [count] − 1 times: in a line along [axis] every [spacing] mm, or
+ * ([circular]) around [axis] through the origin over [angleDegrees]. Copies are new bodies.
+ */
+@Serializable
+@SerialName("pattern")
+data class PatternFeature(
+    override val id: Long,
+    val body: Long,
+    val axis: WorldAxis = WorldAxis.X,
+    val count: Int = 3,
+    val spacing: Double = 20.0,
+    val circular: Boolean = false,
+    val angleDegrees: Double = 360.0,
+) : Feature {
+    override val label: String get() = "Pattern ×$count"
+
+    /** Body id of copy [k] (1 ≤ k < count). */
+    fun copyId(k: Int): Long = id * 1000 + k
+}
+
 /** Removes [body] from the model. */
 @Serializable
 @SerialName("deleteBody")

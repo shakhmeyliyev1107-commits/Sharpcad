@@ -43,6 +43,8 @@ internal object KernelNative {
     @JvmStatic external fun nativeProject(handle: Long, toViewer: DoubleArray, up: DoubleArray, deflection: Double): Array<FloatArray>
     @JvmStatic external fun nativeShell(handle: Long, face: Int, thickness: Double): Long
     @JvmStatic external fun nativeFaceArea(handle: Long, face: Int): Double
+    @JvmStatic external fun nativeMoved(handle: Long, axisOrigin: DoubleArray, axisDirection: DoubleArray, angle: Double, dx: Double, dy: Double, dz: Double): Long
+    @JvmStatic external fun nativeMirrored(handle: Long, origin: DoubleArray, normal: DoubleArray): Long
     @JvmStatic external fun nativeFaceCount(handle: Long): Int
     @JvmStatic external fun nativeVolume(handle: Long): Double
     @JvmStatic external fun nativePick(handle: Long, origin: DoubleArray, direction: DoubleArray): DoubleArray

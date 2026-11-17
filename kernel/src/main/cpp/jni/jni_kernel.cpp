@@ -331,6 +331,29 @@ Java_com_sharpcad_kernel_KernelNative_nativeFaceArea(JNIEnv* env, jclass, jlong 
     return guard<jdouble>(env, 0.0, [&] { return shapeFromHandle(handle).faceArea(face); });
 }
 
+JNIEXPORT jlong JNICALL
+Java_com_sharpcad_kernel_KernelNative_nativeMoved(JNIEnv* env, jclass, jlong handle, jdoubleArray axisOrigin,
+                                                  jdoubleArray axisDirection, jdouble angle, jdouble dx, jdouble dy,
+                                                  jdouble dz) {
+    return guard<jlong>(env, 0, [&] {
+        double o[3], d[3];
+        toVec3(env, axisOrigin, o);
+        toVec3(env, axisDirection, d);
+        return release(shapeFromHandle(handle).moved(o, d, angle, dx, dy, dz));
+    });
+}
+
+JNIEXPORT jlong JNICALL
+Java_com_sharpcad_kernel_KernelNative_nativeMirrored(JNIEnv* env, jclass, jlong handle, jdoubleArray origin,
+                                                     jdoubleArray normal) {
+    return guard<jlong>(env, 0, [&] {
+        double o[3], n[3];
+        toVec3(env, origin, o);
+        toVec3(env, normal, n);
+        return release(shapeFromHandle(handle).mirrored(o, n));
+    });
+}
+
 JNIEXPORT jint JNICALL
 Java_com_sharpcad_kernel_KernelNative_nativeFaceCount(JNIEnv* env, jclass, jlong handle) {
     return guard<jint>(env, 0, [&] { return shapeFromHandle(handle).faceCount(); });

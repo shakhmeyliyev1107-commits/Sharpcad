@@ -269,6 +269,26 @@ TEST(Modeling, ShellOpensAFaceAndKeepsTheOuterSize) {
     expectError(ErrorCode::InvalidArgument, [&] { box->faceArea(99); });
 }
 
+TEST(Modeling, MoveRotateAndMirrorKeepTheVolume) {
+    const auto box = Shape::makeBox(10, 20, 30);
+    const double origin[3] = {0, 0, 0};
+    const double z[3] = {0, 0, 1};
+    const auto moved = box->moved(origin, z, kPi / 2, 100, 0, 0);  // 90° about Z, then +100 X
+    auto b = moved->boundingBox();
+    EXPECT_NEAR(b.min[0], 80.0, 1e-6);  // y extent 20 became -x
+    EXPECT_NEAR(b.max[0], 100.0, 1e-6);
+    EXPECT_NEAR(b.max[1], 10.0, 1e-6);
+    EXPECT_NEAR(moved->volume(), 6000.0, 1e-6);
+    const double yz[3] = {1, 0, 0};
+    const auto mirror = box->mirrored(origin, yz);
+    b = mirror->boundingBox();
+    EXPECT_NEAR(b.min[0], -10.0, 1e-6);
+    EXPECT_NEAR(b.max[0], 0.0, 1e-6);
+    EXPECT_NEAR(mirror->volume(), 6000.0, 1e-6);
+    const double zero[3] = {0, 0, 0};
+    expectError(ErrorCode::InvalidArgument, [&] { box->mirrored(origin, zero); });
+}
+
 TEST(Modeling, CompoundKeepsAllBodies) {
     const auto a = Shape::makeBox(1, 1, 1);
     const auto b = Shape::makeBox(2, 2, 2);

@@ -119,6 +119,14 @@ public:
     /// Area of face `face` in mm².
     double faceArea(int face) const;
 
+    /// Copy moved by a rigid motion: rotation `angle` radians about the axis through
+    /// `axisOrigin` along `axisDirection`, then translation (dx, dy, dz).
+    std::unique_ptr<Shape> moved(const double axisOrigin[3], const double axisDirection[3], double angle,
+                                 double dx, double dy, double dz) const;
+
+    /// Mirror image across the plane through `origin` with normal `normal`.
+    std::unique_ptr<Shape> mirrored(const double origin[3], const double normal[3]) const;
+
     int faceCount() const;
     double volume() const;
 

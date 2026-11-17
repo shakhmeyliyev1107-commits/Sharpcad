@@ -113,6 +113,13 @@ class Shape internal constructor(private var handle: Long) : AutoCloseable {
     /** Area of [face] in square millimetres. */
     fun faceArea(face: Int): Double = KernelNative.nativeFaceArea(handle, face)
 
+    /** Copy rotated by [angle] radians about an axis, then translated. */
+    fun moved(axisOrigin: DoubleArray, axisDirection: DoubleArray, angle: Double, dx: Double, dy: Double, dz: Double): Shape =
+        Shape(KernelNative.nativeMoved(handle, axisOrigin, axisDirection, angle, dx, dy, dz))
+
+    /** Mirror image across the plane through [origin] with [normal]. */
+    fun mirrored(origin: DoubleArray, normal: DoubleArray): Shape = Shape(KernelNative.nativeMirrored(handle, origin, normal))
+
     /** Smallest distance to [other] in millimetres; 0 when they touch or overlap. */
     fun distanceTo(other: Shape): Double = KernelNative.nativeDistance(handle, other.handle)
 

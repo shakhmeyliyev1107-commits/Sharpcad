@@ -20,6 +20,7 @@
 #include <BRepFilletAPI_MakeChamfer.hxx>
 #include <BRepFilletAPI_MakeFillet.hxx>
 #include <BRepExtrema_DistShapeShape.hxx>
+#include <BRepBuilderAPI_Transform.hxx>
 #include <BRepGProp.hxx>
 #include <BRepOffsetAPI_MakeThickSolid.hxx>
 #include <BRepGProp_Face.hxx>
@@ -391,6 +392,38 @@ double Shape::faceArea(int face) const {
         GProp_GProps props;
         BRepGProp::SurfaceProperties(faceAt(faces, face), props);
         return props.Mass();
+    });
+}
+
+std::unique_ptr<Shape> Shape::moved(const double axisOrigin[3], const double axisDirection[3], double angle,
+                                    double dx, double dy, double dz) const {
+    require(finite3(axisOrigin) && finite3(axisDirection) && std::isfinite(angle), "Motion must be finite");
+    require(std::isfinite(dx) && std::isfinite(dy) && std::isfinite(dz), "Motion must be finite");
+    const gp_Vec dir(axisDirection[0], axisDirection[1], axisDirection[2]);
+    require(dir.Magnitude() > kTiny, "Axis direction must not be zero");
+    return guarded("moved", [&] {
+        gp_Trsf rotation;
+        rotation.SetRotation(gp_Ax1(gp_Pnt(axisOrigin[0], axisOrigin[1], axisOrigin[2]), gp_Dir(dir)), angle);
+        gp_Trsf translation;
+        translation.SetTranslation(gp_Vec(dx, dy, dz));
+        BRepBuilderAPI_Transform algo(impl_->shape, translation * rotation, Standard_True);
+        auto impl = std::make_unique<Impl>();
+        impl->shape = algo.Shape();
+        return std::unique_ptr<Shape>(new Shape(std::move(impl)));
+    });
+}
+
+std::unique_ptr<Shape> Shape::mirrored(const double origin[3], const double normal[3]) const {
+    require(finite3(origin) && finite3(normal), "Plane must be finite");
+    const gp_Vec n(normal[0], normal[1], normal[2]);
+    require(n.Magnitude() > kTiny, "Plane normal must not be zero");
+    return guarded("mirrored", [&] {
+        gp_Trsf mirror;
+        mirror.SetMirror(gp_Ax2(gp_Pnt(origin[0], origin[1], origin[2]), gp_Dir(n)));
+        BRepBuilderAPI_Transform algo(impl_->shape, mirror, Standard_True);
+        auto impl = std::make_unique<Impl>();
+        impl->shape = algo.Shape();
+        return std::unique_ptr<Shape>(new Shape(std::move(impl)));
     });
 }
 

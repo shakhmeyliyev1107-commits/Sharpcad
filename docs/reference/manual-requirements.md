@@ -81,4 +81,5 @@ nom, belgi yoki rasm ko'chirilmaydi.
 | Shell, kesim ko'rinishi, maydon/hajm o'lchash | qilingan (qurilmada sinalmagan) |
 | Markazdan to'rtburchak, olti burchak; teng/parallel/perpendikulyar cheklovlar (dvigatelda) | qilingan |
 | Items paneli: tanlash, nomlash, yashirish/ko'rsatish, o'chirish (loyihada saqlanadi) | qilingan |
-| Qolganlari (yoy, splayn, kesish, ofset, massiv, matn, loft, sweep, o'zgaruvchilar, gizmo, cheklovlarni UI dan qo'yish) | rejalashtirilgan |
+| Transform: siljitish/aylantirish, nusxa, ko'zgu, chiziqli va doiraviy massiv (jismlar) | qilingan (qurilmada sinalmagan) |
+| Qolganlari (yoy, splayn, kesish, ofset, eskiz massivi, matn, loft, sweep, o'zgaruvchilar, gizmo, cheklovlarni UI dan qo'yish) | rejalashtirilgan |
