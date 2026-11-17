@@ -82,4 +82,5 @@ nom, belgi yoki rasm ko'chirilmaydi.
 | Markazdan to'rtburchak, olti burchak; teng/parallel/perpendikulyar cheklovlar (dvigatelda) | qilingan |
 | Items paneli: tanlash, nomlash, yashirish/ko'rsatish, o'chirish (loyihada saqlanadi) | qilingan |
 | Transform: siljitish/aylantirish, nusxa, ko'zgu, chiziqli va doiraviy massiv (jismlar) | qilingan (qurilmada sinalmagan) |
-| Qolganlari (yoy, splayn, kesish, ofset, eskiz massivi, matn, loft, sweep, o'zgaruvchilar, gizmo, cheklovlarni UI dan qo'yish) | rejalashtirilgan |
+| Yoy (vatar ustida yarim aylana), Trim (teginish bilan kesish); yoyli profillar ekstruziya/revolve qilinadi | qilingan (qurilmada sinalmagan) |
+| Qolganlari (splayn, ofset, eskiz massivi, matn, loft, sweep, o'zgaruvchilar, gizmo, cheklovlarni UI dan qo'yish) | rejalashtirilgan |

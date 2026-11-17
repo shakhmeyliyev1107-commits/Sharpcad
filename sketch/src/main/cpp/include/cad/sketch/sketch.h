@@ -25,9 +25,10 @@ private:
     ErrorCode code_;
 };
 
-enum class EntityKind : int { Line = 0, Circle = 1 };
+enum class EntityKind : int { Line = 0, Circle = 1, Arc = 2 };
 
-/// Which point of an entity is meant. Lines have Start and End, circles have Center.
+/// Which point of an entity is meant. Lines have Start and End, circles have Center,
+/// arcs have all three.
 enum class PointRole : int { Start = 0, End = 1, Center = 2 };
 
 struct PointRef {
@@ -37,10 +38,11 @@ struct PointRef {
 
 /// Geometry of one entity in sketch-plane millimetres.
 /// Line: (a, b) is the start, (c, d) the end. Circle: (a, b) is the centre, c the radius.
+/// Arc: (a, b) centre, c radius, d start angle, e end angle (radians, counter-clockwise).
 struct EntityGeometry {
     int id;
     EntityKind kind;
-    double a, b, c, d;
+    double a, b, c, d, e;
 };
 
 enum class SolveStatus : int {
@@ -68,6 +70,10 @@ public:
     // Entities. Coordinates must be finite; a circle's radius must be positive.
     int addLine(double x1, double y1, double x2, double y2);
     int addCircle(double cx, double cy, double radius);
+    /// Counter-clockwise arc from `startAngle` to `endAngle` (radians) around (cx, cy).
+    int addArc(double cx, double cy, double radius, double startAngle, double endAngle);
+    /// Moves an arc without solving (rubber-banding).
+    void setArc(int arc, double cx, double cy, double radius, double startAngle, double endAngle);
     /// Removes an entity and every constraint that refers to it.
     void removeEntity(int entity);
 

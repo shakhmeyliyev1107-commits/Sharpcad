@@ -76,6 +76,13 @@ TEST(Profile, SingleCircleGivesADisc) {
     EXPECT_NEAR(Shape::profileFromSketch(in)->extrude(0, 0, 2)->volume(), kPi * 25.0 * 2.0, 1e-3);
 }
 
+TEST(Profile, LineAndArcCloseADShape) {
+    auto in = xyPlane();
+    in.lines = {-10, 0, 10, 0};
+    in.arcs = {0, 0, 10, 0, kPi};  // upper half circle closes the diameter line
+    EXPECT_NEAR(Shape::profileFromSketch(in)->extrude(0, 0, 1)->volume(), kPi * 100.0 / 2.0, 1e-3);
+}
+
 TEST(Profile, OpenSketchIsRejected) {
     auto in = xyPlane();
     in.lines = {0, 0, 10, 0, 10, 0, 10, 10};

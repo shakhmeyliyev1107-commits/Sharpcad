@@ -336,8 +336,8 @@ class ModelController(
             val uv = plane.intersect(origin, direction) ?: continue
             val world = plane.toWorld(uv[0], uv[1])
             val distance = kotlin.math.sqrt((0 until 3).sumOf { (world[it] - origin[it]).let { d -> d * d } })
-            val (lines, circles) = sketches.geometry(plane)
-            val index = document.regionAt(planeSpec(plane), lines, circles, uv[0], uv[1])
+            val (lines, circles, arcs) = sketches.geometry(plane)
+            val index = document.regionAt(planeSpec(plane), lines, circles, uv[0], uv[1], arcs)
             if (index >= 0 && (best == null || distance < best.second)) best = (plane to index) to distance
         }
         return best
@@ -355,18 +355,18 @@ class ModelController(
             return
         }
         regionSelection = RegionSelection(plane, regions, sketches.revision)
-        val (lines, circles) = sketches.geometry(plane)
-        val mesh = document.profileRegions(planeSpec(plane), lines, circles)?.mesh
+        val (lines, circles, arcs) = sketches.geometry(plane)
+        val mesh = document.profileRegions(planeSpec(plane), lines, circles, arcs)?.mesh
         viewport.setHighlight(mesh?.let { MeshTools.facesOf(it, regions) })
     }
 
     /** Extrudes or revolves the selected regions. */
     private fun solidFromRegions(revolve: Boolean) {
         val r = regionSelection ?: return
-        val (lines, circles) = sketches.geometry(r.plane)
+        val (lines, circles, arcs) = sketches.geometry(r.plane)
         regionSelection = null
         viewport.setHighlight(null)
-        addFromProfile(Profile(planeSpec(r.plane), lines, circles, r.regions.sorted()), revolve)
+        addFromProfile(Profile(planeSpec(r.plane), lines, circles, r.regions.sorted(), arcs), revolve)
     }
 
     /** Volume and face area of the selection, filled in asynchronously. */

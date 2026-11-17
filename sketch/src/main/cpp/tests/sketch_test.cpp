@@ -215,6 +215,23 @@ TEST(SketchSolve, EqualParallelPerpendicular) {
     EXPECT_EQ(sketch.solve().status, SolveStatus::Solved);
 }
 
+TEST(SketchArc, EndpointsFollowRadiusAndConnectToLines) {
+    Sketch sketch;
+    const int arc = sketch.addArc(0, 0, 10, 0, M_PI / 2);  // quarter arc from (10,0) to (0,10)
+    const int line = sketch.addLine(10, 0, 30, 0);
+    sketch.addCoincident({arc, PointRole::Start}, {line, PointRole::Start});
+    sketch.addFixed({arc, PointRole::Center});
+    sketch.addRadius(arc, 15.0);
+    const auto result = sketch.solve();
+    ASSERT_EQ(result.status, SolveStatus::Solved);
+    const auto g = geometryOf(sketch, arc);
+    EXPECT_NEAR(g.c, 15.0, 1e-6);
+    const auto l = geometryOf(sketch, line);
+    EXPECT_NEAR(std::hypot(l.a - g.a, l.b - g.b), 15.0, 1e-6);  // line start sits on the arc
+    expectInvalid([&] { sketch.addArc(0, 0, -1, 0, 1); });
+    expectInvalid([&] { sketch.addHorizontal(arc); });
+}
+
 TEST(SketchEdit, EmptySketchSolves) {
     Sketch sketch;
     const auto result = sketch.solve();

@@ -128,6 +128,14 @@ std::unique_ptr<Shape> Shape::profileFromSketch(const SketchProfileInput& in) {
                               gp_Dir(in.xAxis[0], in.xAxis[1], in.xAxis[2]));
             edgeList.Append(BRepBuilderAPI_MakeEdge(gp_Circ(axes, r)).Edge());
         }
+        require(in.arcs.size() % 5 == 0, "Malformed arc array");
+        for (size_t i = 0; i < in.arcs.size(); i += 5) {
+            const double r = in.arcs[i + 2];
+            require(std::isfinite(r) && r > kTiny, "Arc radius must be positive");
+            const gp_Ax2 axes(planePoint(in, in.arcs[i], in.arcs[i + 1]), normal,
+                              gp_Dir(in.xAxis[0], in.xAxis[1], in.xAxis[2]));
+            edgeList.Append(BRepBuilderAPI_MakeEdge(gp_Circ(axes, r), in.arcs[i + 3], in.arcs[i + 4]).Edge());
+        }
         require(!edgeList.IsEmpty(), "Sketch is empty");
 
         TopoDS_Shape split;

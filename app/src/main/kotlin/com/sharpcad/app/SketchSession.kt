@@ -14,6 +14,7 @@ import com.sharpcad.sketch.SketchPlane
 import com.sharpcad.sketch.Snap
 import com.sharpcad.sketch.SnapKind
 import com.sharpcad.sketch.Snapper
+import com.sharpcad.sketch.Trim
 import com.sharpcad.sketch.SolveStatus
 import com.sharpcad.ui.workspace.DimensionField
 import com.sharpcad.viewport.TouchPhase
@@ -21,12 +22,17 @@ import com.sharpcad.viewport.ViewportController
 import kotlin.math.abs
 import kotlin.math.hypot
 
+/** Sketch geometry as flat arrays for the kernel (see Profile). */
+data class SketchGeometry(val lines: List<Double>, val circles: List<Double>, val arcs: List<Double>)
+
 enum class SketchTool(val label: String) {
     LINE("Line"),
     RECTANGLE("Rectangle"),
     CENTER_RECTANGLE("Center rect"),
     CIRCLE("Circle"),
     POLYGON("Hexagon"),
+    ARC("Arc"),
+    TRIM("Trim"),
 }
 
 /**
@@ -69,16 +75,18 @@ class SketchSession(private val viewport: ViewportController) {
      * Lines (x1, y1, x2, y2…) and circles (cx, cy, r…) of the sketch on [plane], in plane
      * coordinates; used to build profiles for extrude and revolve.
      */
-    fun geometry(plane: SketchPlane): Pair<List<Double>, List<Double>> {
+    fun geometry(plane: SketchPlane): SketchGeometry {
         val lines = mutableListOf<Double>()
         val circles = mutableListOf<Double>()
+        val arcs = mutableListOf<Double>()
         sketches[plane]?.entities()?.forEach { e ->
             when (e) {
                 is SketchLine -> lines += listOf(e.x1, e.y1, e.x2, e.y2)
                 is SketchCircle -> circles += listOf(e.cx, e.cy, e.radius)
+                is com.sharpcad.sketch.SketchArc -> arcs += listOf(e.cx, e.cy, e.radius, e.startAngle, e.endAngle)
             }
         }
-        return lines to circles
+        return SketchGeometry(lines, circles, arcs)
     }
 
     /** Bumped whenever sketch geometry changes, so cached profiles can be dropped. */
@@ -192,6 +200,7 @@ class SketchSession(private val viewport: ViewportController) {
 
     private fun begin(activeTool: SketchTool, x: Float, y: Float): Boolean {
         val point = planePoint(x, y) ?: return false
+        if (activeTool == SketchTool.TRIM) return trimAt(point)
         val s = sketches.getOrPut(plane) { Sketch() }
         // The size fields of the previous entity stay until a new entity is finished: a
         // two-finger orbit also starts with one finger down and must not wipe them.
@@ -201,6 +210,8 @@ class SketchSession(private val viewport: ViewportController) {
             SketchTool.RECTANGLE, SketchTool.CENTER_RECTANGLE -> List(4) { s.addLine(start.x, start.y, start.x, start.y) }
             SketchTool.POLYGON -> List(POLYGON_SIDES) { s.addLine(start.x, start.y, start.x, start.y) }
             SketchTool.CIRCLE -> listOf(s.addCircle(start.x, start.y, MIN_SIZE))
+            SketchTool.ARC -> listOf(s.addArc(start.x, start.y, MIN_SIZE, 0.0, Math.PI))
+            SketchTool.TRIM -> return false
         }
         draft = Draft(activeTool, ids, start, end = start)
         snapMarker = start.takeIf { it.kind != SnapKind.NONE }
@@ -246,6 +257,15 @@ class SketchSession(private val viewport: ViewportController) {
             }
             SketchTool.CIRCLE ->
                 s.setCircleRadius(d.ids[0], hypot(end.x - d.start.x, end.y - d.start.y).coerceAtLeast(MIN_SIZE))
+            SketchTool.ARC -> {
+                // Half circle over the dragged chord, counter-clockwise from start to end.
+                val cx = (d.start.x + end.x) / 2
+                val cy = (d.start.y + end.y) / 2
+                val r = (hypot(end.x - d.start.x, end.y - d.start.y) / 2).coerceAtLeast(MIN_SIZE)
+                val a0 = kotlin.math.atan2(d.start.y - cy, d.start.x - cx)
+                s.setArc(d.ids[0], cx, cy, r, a0, a0 + Math.PI)
+            }
+            SketchTool.TRIM -> Unit
             SketchTool.POLYGON -> {
                 // Regular polygon: start is the centre, end one vertex.
                 val r = hypot(end.x - d.start.x, end.y - d.start.y)
@@ -271,7 +291,7 @@ class SketchSession(private val viewport: ViewportController) {
         val width = abs(d.end.x - d.start.x)
         val height = abs(d.end.y - d.start.y)
         val tooSmall = when (d.tool) {
-            SketchTool.LINE, SketchTool.CIRCLE, SketchTool.POLYGON -> hypot(width, height) < MIN_SIZE * 10
+            SketchTool.LINE, SketchTool.CIRCLE, SketchTool.POLYGON, SketchTool.ARC, SketchTool.TRIM -> hypot(width, height) < MIN_SIZE * 10
             SketchTool.RECTANGLE, SketchTool.CENTER_RECTANGLE -> width < MIN_SIZE * 10 || height < MIN_SIZE * 10
         }
         if (tooSmall) {
@@ -326,6 +346,13 @@ class SketchSession(private val viewport: ViewportController) {
                 d.start.point?.let { added += s.addCoincident(PointRef(circle, PointRole.CENTER), it) }
                 dimensionTargets = listOf(DimensionTarget.Radius("Radius", circle))
             }
+            SketchTool.ARC -> {
+                val arc = d.ids[0]
+                d.start.point?.let { added += s.addCoincident(PointRef(arc, PointRole.START), it) }
+                d.end.point?.let { added += s.addCoincident(PointRef(arc, PointRole.END), it) }
+                dimensionTargets = listOf(DimensionTarget.Radius("Radius", arc))
+            }
+            SketchTool.TRIM -> Unit
         }
 
         if (s.solve().status != SolveStatus.SOLVED) {
@@ -336,6 +363,23 @@ class SketchSession(private val viewport: ViewportController) {
         } else {
             refresh()
         }
+    }
+
+    /** Trim tool: cuts the tapped piece back to its nearest intersections. */
+    private fun trimAt(point: DoubleArray): Boolean {
+        val s = sketch ?: return true
+        val tolerance = viewport.millimetresPerPixel() * SNAP_PIXELS
+        val result = Trim.trim(s.entities(), point[0], point[1], tolerance)
+        if (result == null) {
+            refresh("Tap a line, arc or circle to trim it")
+            return true
+        }
+        s.removeEntity(result.removed)
+        result.lines.forEach { s.addLine(it[0], it[1], it[2], it[3]) }
+        result.arcs.forEach { s.addArc(it[0], it[1], it[2], it[3], it[4]) }
+        clearDimensions()
+        refresh()
+        return true
     }
 
     private fun cancelDraft() {
@@ -398,8 +442,11 @@ class SketchSession(private val viewport: ViewportController) {
                     line?.let { DimensionField(target.label, hypot(it.x2 - it.x1, it.y2 - it.y1)) }
                 }
                 is DimensionTarget.Radius -> {
-                    val circle = entities.firstOrNull { it.id == target.circle } as? SketchCircle
-                    circle?.let { DimensionField(target.label, it.radius) }
+                    when (val e = entities.firstOrNull { it.id == target.circle }) {
+                        is SketchCircle -> DimensionField(target.label, e.radius)
+                        is com.sharpcad.sketch.SketchArc -> DimensionField(target.label, e.radius)
+                        else -> null
+                    }
                 }
             }
         }

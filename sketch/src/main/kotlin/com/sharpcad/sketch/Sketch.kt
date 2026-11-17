@@ -29,6 +29,21 @@ data class SketchLine(
     val y2: Double,
 ) : SketchEntity
 
+/** Counter-clockwise arc from [startAngle] to [endAngle] (radians) around ([cx], [cy]). */
+data class SketchArc(
+    override val id: Int,
+    val cx: Double,
+    val cy: Double,
+    val radius: Double,
+    val startAngle: Double,
+    val endAngle: Double,
+) : SketchEntity {
+    val startX: Double get() = cx + radius * kotlin.math.cos(startAngle)
+    val startY: Double get() = cy + radius * kotlin.math.sin(startAngle)
+    val endX: Double get() = cx + radius * kotlin.math.cos(endAngle)
+    val endY: Double get() = cy + radius * kotlin.math.sin(endAngle)
+}
+
 data class SketchCircle(
     override val id: Int,
     val cx: Double,
@@ -83,6 +98,13 @@ class Sketch : AutoCloseable {
     fun addCircle(cx: Double, cy: Double, radius: Double): Int =
         SketchNative.nativeAddCircle(handle, cx, cy, radius)
 
+    fun addArc(cx: Double, cy: Double, radius: Double, startAngle: Double, endAngle: Double): Int =
+        SketchNative.nativeAddArc(handle, cx, cy, radius, startAngle, endAngle)
+
+    /** Moves an arc without solving (used while rubber-banding a new arc). */
+    fun setArc(arc: Int, cx: Double, cy: Double, radius: Double, startAngle: Double, endAngle: Double) =
+        SketchNative.nativeSetArc(handle, arc, cx, cy, radius, startAngle, endAngle)
+
     /** Removes an entity and every constraint that refers to it. */
     fun removeEntity(entity: Int) = SketchNative.nativeRemoveEntity(handle, entity)
 
@@ -135,10 +157,10 @@ class Sketch : AutoCloseable {
         return List(raw.size / FIELDS) { i ->
             val o = i * FIELDS
             val id = raw[o].toInt()
-            if (raw[o + 1].toInt() == KIND_LINE) {
-                SketchLine(id, raw[o + 2], raw[o + 3], raw[o + 4], raw[o + 5])
-            } else {
-                SketchCircle(id, raw[o + 2], raw[o + 3], raw[o + 4])
+            when (raw[o + 1].toInt()) {
+                KIND_LINE -> SketchLine(id, raw[o + 2], raw[o + 3], raw[o + 4], raw[o + 5])
+                KIND_ARC -> SketchArc(id, raw[o + 2], raw[o + 3], raw[o + 4], raw[o + 5], raw[o + 6])
+                else -> SketchCircle(id, raw[o + 2], raw[o + 3], raw[o + 4])
             }
         }
     }
@@ -160,8 +182,9 @@ class Sketch : AutoCloseable {
     }
 
     private companion object {
-        const val FIELDS = 6
+        const val FIELDS = 7
         const val KIND_LINE = 0
+        const val KIND_ARC = 2
     }
 }
 
@@ -175,6 +198,8 @@ internal object SketchNative {
     @JvmStatic external fun nativeRelease(handle: Long)
     @JvmStatic external fun nativeAddLine(handle: Long, x1: Double, y1: Double, x2: Double, y2: Double): Int
     @JvmStatic external fun nativeAddCircle(handle: Long, cx: Double, cy: Double, radius: Double): Int
+    @JvmStatic external fun nativeAddArc(handle: Long, cx: Double, cy: Double, r: Double, a0: Double, a1: Double): Int
+    @JvmStatic external fun nativeSetArc(handle: Long, arc: Int, cx: Double, cy: Double, r: Double, a0: Double, a1: Double)
     @JvmStatic external fun nativeRemoveEntity(handle: Long, entity: Int)
     @JvmStatic external fun nativeAddCoincident(handle: Long, entityA: Int, roleA: Int, entityB: Int, roleB: Int): Int
     @JvmStatic external fun nativeAddHorizontal(handle: Long, line: Int): Int

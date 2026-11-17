@@ -15,8 +15,9 @@ enum class ConstraintKind { Coincident, Horizontal, Vertical, Distance, Radius, 
 struct Entity {
     EntityKind kind;
     bool alive = true;
-    // Line: x1, y1, x2, y2. Circle: cx, cy, r. Pointers into Impl::values (stable).
-    double* p[4] = {nullptr, nullptr, nullptr, nullptr};
+    // Line: x1, y1, x2, y2. Circle: cx, cy, r. Arc: cx, cy, sx, sy, ex, ey, a0, a1, r.
+    // Pointers into Impl::values (stable).
+    double* p[9] = {};
 };
 
 struct Constraint {
@@ -74,6 +75,11 @@ struct Sketch::Impl {
             return ref.role == PointRole::Start ? GCS::Point(e.p[0], e.p[1])
                                                 : GCS::Point(e.p[2], e.p[3]);
         }
+        if (e.kind == EntityKind::Arc) {
+            if (ref.role == PointRole::Start) return GCS::Point(e.p[2], e.p[3]);
+            if (ref.role == PointRole::End) return GCS::Point(e.p[4], e.p[5]);
+            return GCS::Point(e.p[0], e.p[1]);
+        }
         require(ref.role == PointRole::Center, "A circle has only a centre point");
         return GCS::Point(e.p[0], e.p[1]);
     }
@@ -90,6 +96,7 @@ struct Sketch::Impl {
         GCS::VEC_pD unknowns;
         std::vector<GCS::Line> lines(entities.size());
         std::vector<GCS::Circle> circles(entities.size());
+        std::vector<GCS::Arc> arcs(entities.size());
 
         for (size_t i = 0; i < entities.size(); ++i) {
             const Entity& e = entities[i];
@@ -98,6 +105,17 @@ struct Sketch::Impl {
                 lines[i].p1 = GCS::Point(e.p[0], e.p[1]);
                 lines[i].p2 = GCS::Point(e.p[2], e.p[3]);
                 unknowns.insert(unknowns.end(), {e.p[0], e.p[1], e.p[2], e.p[3]});
+            } else if (e.kind == EntityKind::Arc) {
+                GCS::Arc& a = arcs[i];
+                a.center = GCS::Point(e.p[0], e.p[1]);
+                a.start = GCS::Point(e.p[2], e.p[3]);
+                a.end = GCS::Point(e.p[4], e.p[5]);
+                a.startAngle = e.p[6];
+                a.endAngle = e.p[7];
+                a.rad = e.p[8];
+                unknowns.insert(unknowns.end(), {e.p[0], e.p[1], e.p[2], e.p[3], e.p[4], e.p[5], e.p[6], e.p[7], e.p[8]});
+                // Keeps the end points on the circle at the two angles.
+                system.addConstraintArcRules(a, -2);
             } else {
                 circles[i].center = GCS::Point(e.p[0], e.p[1]);
                 circles[i].rad = e.p[2];
@@ -127,7 +145,11 @@ struct Sketch::Impl {
                     break;
                 }
                 case ConstraintKind::Radius:
-                    system.addConstraintCircleRadius(circles[c.entity], c.value, tag);
+                    if (entities[c.entity].kind == EntityKind::Arc) {
+                        system.addConstraintArcRadius(arcs[c.entity], c.value, tag);
+                    } else {
+                        system.addConstraintCircleRadius(circles[c.entity], c.value, tag);
+                    }
                     break;
                 case ConstraintKind::EqualLength:
                     system.addConstraintEqualLength(lines[c.entity], lines[c.entity2], tag);
@@ -177,6 +199,7 @@ struct Sketch::Impl {
             bool valid = true;
             for (const Entity& e : entities) {
                 if (e.alive && e.kind == EntityKind::Circle && !(*e.p[2] > 0.0)) valid = false;
+                if (e.alive && e.kind == EntityKind::Arc && !(*e.p[8] > 0.0)) valid = false;
             }
             if (valid) return result;
         }
@@ -279,8 +302,32 @@ int Sketch::addDistance(PointRef a, PointRef b, double distance) {
     return impl_->addConstraint(c);
 }
 
+int Sketch::addArc(double cx, double cy, double radius, double a0, double a1) {
+    require(finite(cx) && finite(cy) && finite(a0) && finite(a1), "Arc values must be finite");
+    require(finite(radius) && radius > 0.0, "Radius must be positive and finite");
+    Entity e{EntityKind::Arc};
+    for (auto& slot : e.p) slot = impl_->store(0.0);
+    impl_->entities.push_back(e);
+    const int id = static_cast<int>(impl_->entities.size()) - 1;
+    setArc(id, cx, cy, radius, a0, a1);
+    return id;
+}
+
+void Sketch::setArc(int arc, double cx, double cy, double radius, double a0, double a1) {
+    require(finite(cx) && finite(cy) && finite(a0) && finite(a1), "Arc values must be finite");
+    require(finite(radius) && radius > 0.0, "Radius must be positive and finite");
+    while (a1 <= a0) a1 += 2.0 * M_PI;  // counter-clockwise, end after start
+    Entity& e = impl_->entity(arc, EntityKind::Arc);
+    *e.p[0] = cx; *e.p[1] = cy;
+    *e.p[2] = cx + radius * std::cos(a0); *e.p[3] = cy + radius * std::sin(a0);
+    *e.p[4] = cx + radius * std::cos(a1); *e.p[5] = cy + radius * std::sin(a1);
+    *e.p[6] = a0; *e.p[7] = a1; *e.p[8] = radius;
+}
+
 int Sketch::addRadius(int circle, double radius) {
-    impl_->entity(circle, EntityKind::Circle);
+    require(circle >= 0 && circle < static_cast<int>(impl_->entities.size()) && impl_->entities[circle].alive,
+            "Unknown sketch entity");
+    require(impl_->entities[circle].kind != EntityKind::Line, "Entity is not a circle or arc");
     require(finite(radius) && radius > 0.0, "Radius must be positive and finite");
     Constraint c{ConstraintKind::Radius};
     c.entity = circle;
@@ -346,8 +393,9 @@ std::vector<EntityGeometry> Sketch::geometry() const {
     for (size_t i = 0; i < impl_->entities.size(); ++i) {
         const Entity& e = impl_->entities[i];
         if (!e.alive) continue;
-        EntityGeometry g{static_cast<int>(i), e.kind, *e.p[0], *e.p[1], *e.p[2], 0.0};
+        EntityGeometry g{static_cast<int>(i), e.kind, *e.p[0], *e.p[1], *e.p[2], 0.0, 0.0};
         if (e.kind == EntityKind::Line) g.d = *e.p[3];
+        if (e.kind == EntityKind::Arc) g = {static_cast<int>(i), e.kind, *e.p[0], *e.p[1], *e.p[8], *e.p[6], *e.p[7]};
         out.push_back(g);
     }
     return out;

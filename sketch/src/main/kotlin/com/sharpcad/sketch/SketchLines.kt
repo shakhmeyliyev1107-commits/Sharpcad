@@ -14,7 +14,7 @@ object SketchLines {
      * Circles become [CIRCLE_SEGMENTS]-sided polygons.
      */
     fun segments(entities: List<SketchEntity>, plane: SketchPlane): FloatArray {
-        val count = entities.sumOf { if (it is SketchCircle) CIRCLE_SEGMENTS else 1 }
+        val count = entities.sumOf { if (it is SketchLine) 1 else CIRCLE_SEGMENTS }
         val out = FloatArray(count * 6)
         var o = 0
         fun put(u: Double, v: Double) {
@@ -28,6 +28,13 @@ object SketchLines {
                 is SketchLine -> {
                     put(entity.x1, entity.y1)
                     put(entity.x2, entity.y2)
+                }
+                is SketchArc -> for (i in 0 until CIRCLE_SEGMENTS) {
+                    val span = entity.endAngle - entity.startAngle
+                    val a0 = entity.startAngle + span * i / CIRCLE_SEGMENTS
+                    val a1 = entity.startAngle + span * (i + 1) / CIRCLE_SEGMENTS
+                    put(entity.cx + entity.radius * cos(a0), entity.cy + entity.radius * sin(a0))
+                    put(entity.cx + entity.radius * cos(a1), entity.cy + entity.radius * sin(a1))
                 }
                 is SketchCircle -> for (i in 0 until CIRCLE_SEGMENTS) {
                     val a0 = 2.0 * PI * i / CIRCLE_SEGMENTS

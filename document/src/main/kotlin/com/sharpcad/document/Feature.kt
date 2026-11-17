@@ -49,6 +49,8 @@ data class Profile(
     val lines: List<Double>,
     val circles: List<Double>,
     val regions: List<Int>? = null,
+    /** cx, cy, radius, start angle, end angle per arc (radians, counter-clockwise). */
+    val arcs: List<Double> = emptyList(),
 )
 
 /** How a feature's new solid combines with the existing body it targets. */

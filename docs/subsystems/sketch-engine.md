@@ -31,7 +31,7 @@ yordamida yechadi. Qatlamlar [[kernel-jni]] dagi bilan bir xil: sof C++
 
 Obyekt va cheklov identifikatorlari hech qachon qayta ishlatilmaydi; o'chirilgani
 "o'lik" deb belgilanadi. Cheklovlar: ustma-ust tushish, gorizontal, vertikal, masofa,
-radius, mahkamlash. Har bir `solve` da PlaneGCS tizimi modeldan qaytadan quriladi —
+radius (aylana yoki yoy), mahkamlash. Obyektlar: chiziq, aylana, yoy (soat strelkasiga qarshi, markaz + burchaklar). Har bir `solve` da PlaneGCS tizimi modeldan qaytadan quriladi —
 eskizlar kichik, ikki tasvirni sinxron saqlashdan arzonroq.
 
 Ikki chiziqli cheklovlar ham bor: teng uzunlik, parallel, perpendikulyar.
@@ -66,7 +66,7 @@ sarlavhalari `tools/fetch-sketch-deps.sh` bilan yuklanadi (git'da yo'q).
 
 ## Ilovadagi eskiz rejimi
 
-`SketchSession` asbob (chiziq, to'rtburchak, markazdan to'rtburchak, aylana, olti burchak), yopishish va avtomatik
+`SketchSession` asbob (chiziq, to'rtburchak, markazdan to'rtburchak, aylana, olti burchak, yoy, kesish), yopishish va avtomatik
 cheklovlarni bog'laydi. Bir barmoq bilan sudrash chizadi; ikki barmoq navigatsiya
 bo'lib qoladi. Chizib bo'lingach, o'lcham maydoni chiqadi va kiritilgan qiymat masofa
 yoki radius cheklovi sifatida qo'shiladi. Ziddiyat chiqsa, yangi cheklov qaytarib
@@ -84,6 +84,14 @@ ko'rinib turadi. "Clear" faqat tanlangan tekislik eskizini tozalaydi.
 
 > ⚠️ Manfiy qiymat mumkin bo'lgan maydonlar to'liq klaviaturani ochadi: ko'p raqamli
 > klaviaturalarda minus tugmasi yo'q.
+
+Yoy: vatar sudraladi, uning ustida yarim aylana chiziladi; uchlari yopishsa ustma-ust
+tushish qo'yiladi, o'lcham maydoni radius. Kesish (Trim): teginilgan bo'lak eng yaqin ikki
+kesishmagacha olib tashlanadi; hech narsani kesmagan obyekt butunlay o'chadi. Geometriya
+`sketch/src/main/kotlin/com/sharpcad/sketch/Trim.kt` da (sof Kotlin, `TrimTest`).
+
+> ⚠️ Trim obyektni o'chirib, qolgan bo'laklarni yangi obyekt sifatida qo'shadi: o'chirilgan
+> obyektning cheklovlari (o'lcham, tutashish) yo'qoladi.
 
 Boshqaruv paneli (`SketchControls`) tor ekranda bir necha qatorga o'raladi.
 

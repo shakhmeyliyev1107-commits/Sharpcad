@@ -58,6 +58,11 @@ object Snapper {
                     offer(entity.x2, entity.y2, SnapKind.ENDPOINT, PointRef(entity.id, PointRole.END))
                     offer((entity.x1 + entity.x2) / 2, (entity.y1 + entity.y2) / 2, SnapKind.MIDPOINT, null)
                 }
+                is SketchArc -> {
+                    offer(entity.startX, entity.startY, SnapKind.ENDPOINT, PointRef(entity.id, PointRole.START))
+                    offer(entity.endX, entity.endY, SnapKind.ENDPOINT, PointRef(entity.id, PointRole.END))
+                    offer(entity.cx, entity.cy, SnapKind.CENTER, PointRef(entity.id, PointRole.CENTER))
+                }
                 is SketchCircle ->
                     offer(entity.cx, entity.cy, SnapKind.CENTER, PointRef(entity.id, PointRole.CENTER))
             }

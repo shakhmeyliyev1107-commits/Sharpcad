@@ -101,6 +101,16 @@ SKETCH_JNI(jint, nativeAddCircle)(JNIEnv* env, jclass, jlong handle, jdouble cx,
     return guard<jint>(env, -1, [&] { return sketchFromHandle(handle).addCircle(cx, cy, radius); });
 }
 
+SKETCH_JNI(jint, nativeAddArc)(JNIEnv* env, jclass, jlong handle, jdouble cx, jdouble cy, jdouble r,
+                               jdouble a0, jdouble a1) {
+    return guard<jint>(env, -1, [&] { return sketchFromHandle(handle).addArc(cx, cy, r, a0, a1); });
+}
+
+SKETCH_JNI(void, nativeSetArc)(JNIEnv* env, jclass, jlong handle, jint arc, jdouble cx, jdouble cy, jdouble r,
+                               jdouble a0, jdouble a1) {
+    guardVoid(env, [&] { sketchFromHandle(handle).setArc(arc, cx, cy, r, a0, a1); });
+}
+
 SKETCH_JNI(void, nativeRemoveEntity)(JNIEnv* env, jclass, jlong handle, jint entity) {
     guardVoid(env, [&] { sketchFromHandle(handle).removeEntity(entity); });
 }
@@ -183,15 +193,15 @@ SKETCH_JNI(jintArray, nativeSolveDragging)(JNIEnv* env, jclass, jlong handle, ji
     });
 }
 
-// Six doubles per live entity: id, kind, a, b, c, d (see EntityGeometry).
+// Seven doubles per live entity: id, kind, a, b, c, d, e (see EntityGeometry).
 SKETCH_JNI(jdoubleArray, nativeGeometry)(JNIEnv* env, jclass, jlong handle) {
     return guard<jdoubleArray>(env, nullptr, [&]() -> jdoubleArray {
         const auto geometry = sketchFromHandle(handle).geometry();
         std::vector<jdouble> out;
-        out.reserve(geometry.size() * 6);
+        out.reserve(geometry.size() * 7);
         for (const auto& g : geometry) {
             out.insert(out.end(), {static_cast<jdouble>(g.id), static_cast<jdouble>(g.kind),
-                                   g.a, g.b, g.c, g.d});
+                                   g.a, g.b, g.c, g.d, g.e});
         }
         jdoubleArray array = env->NewDoubleArray(static_cast<jsize>(out.size()));
         if (array) env->SetDoubleArrayRegion(array, 0, static_cast<jsize>(out.size()), out.data());
