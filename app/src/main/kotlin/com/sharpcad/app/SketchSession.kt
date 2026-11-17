@@ -155,7 +155,8 @@ class SketchSession(private val viewport: ViewportController) {
     private fun begin(activeTool: SketchTool, x: Float, y: Float): Boolean {
         val point = planePoint(x, y) ?: return false
         val s = sketch ?: Sketch().also { sketch = it }
-        clearDimensions()
+        // The size fields of the previous entity stay until a new entity is finished: a
+        // two-finger orbit also starts with one finger down and must not wipe them.
         val start = snap(point, exclude = emptySet())
         val ids = when (activeTool) {
             SketchTool.LINE -> listOf(s.addLine(start.x, start.y, start.x, start.y))

@@ -34,11 +34,16 @@ class OrbitCameraTest {
     }
 
     @Test
-    fun fullHeightDragOrbitsHalfATurn() {
+    fun swipeAcrossTheShortSideTurnsThreeQuarters() {
         val camera = OrbitCamera()
         val before = camera.yaw
-        camera.orbit(500f, 0f, 1000)
-        assertEquals(Math.PI / 2, Math.abs(camera.yaw - before), 1e-9)
+        camera.orbit(250f, 0f, 1000) // a quarter of the short side
+        assertEquals(OrbitCamera.ORBIT_TURN_PER_SHORT_SIDE / 4, Math.abs(camera.yaw - before), 1e-9)
+    }
+
+    @Test
+    fun fullTurnNeedsLessThanTwoSwipes() {
+        assertTrue(2 * OrbitCamera.ORBIT_TURN_PER_SHORT_SIDE >= 2 * Math.PI)
     }
 
     @Test

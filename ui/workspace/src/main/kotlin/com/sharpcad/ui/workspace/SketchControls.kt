@@ -2,16 +2,15 @@ package com.sharpcad.ui.workspace
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
@@ -72,10 +71,11 @@ fun SketchControls(
         verticalArrangement = Arrangement.spacedBy(6.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Row(
-            Modifier.horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalAlignment = Alignment.CenterVertically,
+        // Wraps onto further rows on narrow screens so every tool stays reachable.
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+            itemVerticalAlignment = Alignment.CenterVertically,
         ) {
             planes.forEach { plane ->
                 Chip(plane, selected = plane == selectedPlane, enabled = planesEnabled || plane == selectedPlane) {
@@ -89,7 +89,10 @@ fun SketchControls(
             Chip("Done", accent = true) { onDone() }
         }
         if (dimensions.isNotEmpty()) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
                 dimensions.forEachIndexed { index, field ->
                     // Keyed on the value so a re-solve refreshes what the field shows.
                     androidx.compose.runtime.key(field.label, field.value) {
@@ -99,7 +102,13 @@ fun SketchControls(
             }
         }
         if (message.isNotEmpty()) {
-            Text(message, color = SharpCadColors.ContentMuted, fontSize = 11.sp, fontFamily = FontFamily.Monospace)
+            Text(
+                message,
+                color = SharpCadColors.ContentMuted,
+                fontSize = 11.sp,
+                lineHeight = 14.sp,
+                fontFamily = FontFamily.Monospace,
+            )
         }
     }
 }

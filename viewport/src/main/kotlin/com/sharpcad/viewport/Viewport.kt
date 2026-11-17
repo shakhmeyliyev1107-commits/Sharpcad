@@ -120,7 +120,7 @@ fun Viewport(
                 }
 
                 override fun onOrbit(dx: Float, dy: Float) {
-                    renderer.camera.orbit(dx, dy, renderer.height)
+                    renderer.camera.orbit(dx, dy, minOf(renderer.width, renderer.height))
                     renderer.requestRender()
                 }
 

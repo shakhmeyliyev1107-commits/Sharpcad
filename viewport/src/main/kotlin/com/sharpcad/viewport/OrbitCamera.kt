@@ -37,10 +37,15 @@ class OrbitCamera(
     val near: Double get() = max(distance * 0.02, distance - distanceToFarthestScenePoint())
     val far: Double get() = max(distance + distanceToFarthestScenePoint(), near * 2.0)
 
-    /** Rotates around the target. Positive [dx] drags the scene to the right. */
-    fun orbit(dxPixels: Float, dyPixels: Float, viewportHeight: Int) {
-        if (viewportHeight <= 0) return
-        val radiansPerPixel = PI / viewportHeight
+    /**
+     * Rotates around the target. Positive [dxPixels] drags the scene to the right.
+     *
+     * @param shortSidePixels the shorter side of the viewport: a swipe across it turns the
+     *   view by [ORBIT_TURN_PER_SHORT_SIDE], so speed feels the same in either orientation.
+     */
+    fun orbit(dxPixels: Float, dyPixels: Float, shortSidePixels: Int) {
+        if (shortSidePixels <= 0) return
+        val radiansPerPixel = ORBIT_TURN_PER_SHORT_SIDE / shortSidePixels
         yaw = wrapAngle(yaw - dxPixels * radiansPerPixel)
         pitch = (pitch + dyPixels * radiansPerPixel).coerceIn(-MAX_PITCH, MAX_PITCH)
     }
@@ -136,5 +141,8 @@ class OrbitCamera(
         const val MIN_DISTANCE = 0.5
         const val MAX_DISTANCE = 1.0e6
         const val FIT_MARGIN = 1.15
+
+        /** Three quarters of a turn per swipe across the short side of the screen. */
+        const val ORBIT_TURN_PER_SHORT_SIDE = 1.5 * PI
     }
 }
