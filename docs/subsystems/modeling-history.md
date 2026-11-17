@@ -11,7 +11,8 @@ sources:
   - code: app/src/main/kotlin/com/sharpcad/app/ModelController.kt
   - code: app/src/main/kotlin/com/sharpcad/app/MeshTools.kt
   - code: app/src/main/kotlin/com/sharpcad/app/WorkspaceState.kt
-verified_at: ad36c7d
+  - code: document/src/main/kotlin/com/sharpcad/document/MeshExport.kt
+verified_at: 19752a7
 ---
 
 # Modellashtirish va tarix
@@ -43,6 +44,12 @@ Eng yangi jismdan boshlab tekshiriladi.
 
 > ⚠️ `BuildResult` jismlarga egalik qiladi. Jismni almashtirganda eskisini yoping
 > (`replace`), aks holda native xotira oqib ketadi; boshqa joyda saqlab qolmang.
+
+## Fayllar
+
+Import: STEP va IGES (o'quvchi kengaytmadan tanlanadi). Eksport: STEP va IGES (aniq
+geometriya), STL (binar), OBJ va 3MF (mesh, 0.01 mm og'ish bilan qayta
+tessellyatsiya qilinadi, millimetrda). Mesh yozuvchilari sof Kotlin (\`MeshExport\`).
 
 ## Bekor qilish va qaytarish
 

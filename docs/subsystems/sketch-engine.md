@@ -17,7 +17,7 @@ sources:
   - code: ui/workspace/src/main/kotlin/com/sharpcad/ui/workspace/SketchControls.kt
   - code: app/build.gradle.kts
   - code: tools/fetch-sketch-deps.sh
-verified_at: ad36c7d
+verified_at: 19752a7
 ---
 
 # Eskiz dvigateli va eskiz rejimi

@@ -10,9 +10,12 @@ sources:
   - code: viewport/src/main/kotlin/com/sharpcad/viewport/NavigationGestures.kt
   - code: viewport/src/main/materials/overlay_color.mat
   - code: viewport/src/main/materials/cad_shaded.mat
+  - code: viewport/src/main/materials/cad_pbr.mat
+  - code: app/src/main/kotlin/com/sharpcad/app/MeshTools.kt
+  - code: document/src/main/kotlin/com/sharpcad/document/Materials.kt
   - code: tools/build-materials.sh
   - code: gradle/libs.versions.toml
-verified_at: ad36c7d
+verified_at: 19752a7
 ---
 
 # Ko'rinish oynasi va render
@@ -80,6 +83,25 @@ keladi.
 > ⚠️ Filament 1.80.1 Kotlin stdlib 2.4 va compileSdk 37 ni talab qiladi. Kotlin yoki
 > compileSdk'ni pasaytirish yig'ilishni buzadi; AGP 8.13 uchun ogohlantirish
 > `gradle.properties` dagi `android.suppressUnsupportedCompileSdk` bilan o'chirilgan.
+
+## Materiallar va ko'rinish rejimlari
+
+Barcha jismlar bitta mesh va bitta chizish chaqiruvida chiziladi (\`MeshTools.merge\`).
+Har bir uchning materiali (chiziqli rang, g'adir-budurlik, metallik) alohida buferda
+keladi va \`cad_pbr\` materiali GGX + Schlick bilan, sahna chiroqlarisiz, o'zgarmas
+asosiy yorug'lik, yarim shar atrofi va osmon aksi bilan soyalaydi. Unlit model bo'lgani
+uchun rang ekspozitsiyaga bog'liq emas. 105 ta tayyor material \`MaterialLibrary\` da.
+
+Ko'rinish rejimlari: qirrali soyali, faqat soyali, sim karkas — sahnadan yuza yoki
+qirra obyektlari olib tashlanadi, mesh qayta yuklanmaydi.
+
+> ⚠️ \`ByteBuffer.asIntBuffer()\` ko'rinishi buferning **joriy** pozitsiyasidan
+> boshlanadi. Unga yana \`position()\` qo'yish ofsetni ikki marta qo'shadi — ikki va undan
+> ortiq jism birlashtirilganda indekslar noto'g'ri yozilgan edi (4-bosqichda tuzatildi).
+
+> ⚠️ Filament'ning \`lit\` modeli tangens atributini va IBL/ekspozitsiyani talab qiladi;
+> shuning uchun PBR o'z \`unlit\` sheyderimizda hisoblanadi. Uni \`lit\` ga almashtirsangiz,
+> ranglar ekspozitsiya sozlanmaguncha juda qorong'i yoki oq bo'lib chiqadi.
 
 ## Ranglar
 

@@ -7,7 +7,7 @@ sources:
   - ext: https://support.shapr3d.com/hc/en-us/articles/9760033847964-Shapr3D-Manual
   - code: document/src/main/kotlin/com/sharpcad/document/ModelBuilder.kt
   - code: app/src/main/kotlin/com/sharpcad/app/ModelController.kt
-verified_at: ad36c7d
+verified_at: 19752a7
 ---
 
 # Ish oqimi talablari
@@ -71,4 +71,6 @@ nom, belgi yoki rasm ko'chirilmaydi.
 | Fillet, faska, yuzani surish, bul amallari | qilingan (qurilmada sinalmagan) |
 | Tarix paneli, bekor qilish/qaytarish | qilingan (qurilmada sinalmagan) |
 | Moslashuvchan menyu (tanlovga qarab asboblar) | qilingan, oddiy panel shaklida |
+| Import: STEP, IGES; eksport: STEP, IGES, STL, OBJ, 3MF | qilingan (qurilmada sinalmagan) |
+| PBR materiallar (100+), ko'rinish rejimlari | qilingan, materiallar saqlanmaydi |
 | Qolganlari (yoy, splayn, kesish, ofset, massiv, matn, shell, loft, sweep, kesim ko'rinishi, o'lchash, Items, o'zgaruvchilar, gizmo) | rejalashtirilgan |
