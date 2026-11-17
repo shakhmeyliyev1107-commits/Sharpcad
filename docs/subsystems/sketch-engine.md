@@ -17,7 +17,7 @@ sources:
   - code: ui/workspace/src/main/kotlin/com/sharpcad/ui/workspace/SketchControls.kt
   - code: app/build.gradle.kts
   - code: tools/fetch-sketch-deps.sh
-verified_at: dd34235
+verified_at: bac5213
 ---
 
 # Eskiz dvigateli va eskiz rejimi
@@ -81,6 +81,9 @@ yopishganda ustma-ust tushish cheklovi qo'yiladi.
 Har bir asosiy tekislik (XY, XZ, YZ) o'z eskiziga ega. Tekislik istalgan payt
 almashtiriladi: chizish tanlangan tekislik eskiziga tushadi, qolganlari saqlanadi va
 ko'rinib turadi. "Clear" faqat tanlangan tekislik eskizini tozalaydi.
+
+> ⚠️ Manfiy qiymat mumkin bo'lgan maydonlar to'liq klaviaturani ochadi: ko'p raqamli
+> klaviaturalarda minus tugmasi yo'q.
 
 Boshqaruv paneli (`SketchControls`) tor ekranda bir necha qatorga o'raladi.
 

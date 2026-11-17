@@ -9,7 +9,7 @@ sources:
   - code: app/src/main/kotlin/com/sharpcad/app/AppSettings.kt
   - code: app/src/main/kotlin/com/sharpcad/app/Benchmark.kt
   - code: ui/designsystem/src/main/kotlin/com/sharpcad/ui/designsystem/Theme.kt
-verified_at: 9ba02cc
+verified_at: bac5213
 ---
 
 # Loyihalar, sozlamalar va benchmark
