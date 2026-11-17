@@ -44,7 +44,8 @@ class WorkspaceActions(
     val onOpenSample: () -> Unit,
     val onFitView: () -> Unit,
     val onNew: () -> Unit = {},
-    val onExportStep: () -> Unit = {},
+    /** Export in a format named by its file extension: step, igs, stl, obj or 3mf. */
+    val onExport: (String) -> Unit = {},
     val onUndo: () -> Unit = {},
     val onRedo: () -> Unit = {},
 )
@@ -74,6 +75,9 @@ fun Workspace(
     canRedo: Boolean = false,
     historyActive: Boolean = false,
     onHistoryToggle: () -> Unit = {},
+    materialsActive: Boolean = false,
+    onMaterialsToggle: () -> Unit = {},
+    onDisplayMode: () -> Unit = {},
     overlay: @Composable BoxScope.() -> Unit = {},
     viewport: @Composable () -> Unit,
 ) {
@@ -85,13 +89,13 @@ fun Workspace(
                 ToolRail(
                     LeftRailGroups,
                     Modifier.align(Alignment.TopStart),
-                    actions = mapOf(SKETCH_ITEM to onSketchToggle),
-                    active = if (sketchActive) setOf(SKETCH_ITEM) else emptySet(),
+                    actions = mapOf(SKETCH_ITEM to onSketchToggle, VISUALIZATION_ITEM to onMaterialsToggle),
+                    active = setOfNotNull(SKETCH_ITEM.takeIf { sketchActive }, VISUALIZATION_ITEM.takeIf { materialsActive }),
                 )
                 ToolRail(
                     RightRailGroups,
                     Modifier.align(Alignment.TopEnd),
-                    actions = mapOf(HISTORY_ITEM to onHistoryToggle),
+                    actions = mapOf(HISTORY_ITEM to onHistoryToggle, DISPLAY_ITEM to onDisplayMode),
                     active = if (historyActive) setOf(HISTORY_ITEM) else emptySet(),
                 )
                 overlay()
@@ -126,8 +130,8 @@ private fun TopBar(projectName: String, actions: WorkspaceActions, busy: Boolean
     ) {
         TopMenu("File") { close ->
             MenuItem("New", enabled = !busy) { close(); actions.onNew() }
-            MenuItem("Import STEP…", enabled = !busy) { close(); actions.onImportStep() }
-            MenuItem("Export STEP…", enabled = !busy) { close(); actions.onExportStep() }
+            MenuItem("Import STEP / IGES…", enabled = !busy) { close(); actions.onImportStep() }
+            for ((label, ext) in EXPORTS) MenuItem("Export $label…", enabled = !busy) { close(); actions.onExport(ext) }
             MenuItem("Open sample part", enabled = !busy) { close(); actions.onOpenSample() }
         }
         TopMenu("Edit") { close ->
@@ -155,6 +159,8 @@ private fun TopBar(projectName: String, actions: WorkspaceActions, busy: Boolean
         }
     }
 }
+
+private val EXPORTS = listOf("STEP" to "step", "IGES" to "igs", "STL" to "stl", "OBJ" to "obj", "3MF" to "3mf")
 
 @Composable
 private fun TopMenu(label: String, content: @Composable (close: () -> Unit) -> Unit) {

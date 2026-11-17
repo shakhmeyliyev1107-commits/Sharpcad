@@ -7,6 +7,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.sharpcad.document.ImportFeature
+import com.sharpcad.document.MeshFormat
 import com.sharpcad.viewport.FrameStats
 import com.sharpcad.viewport.ViewportController
 import java.io.File
@@ -63,14 +64,25 @@ class WorkspaceState(
         appContext.contentResolver.openInputStream(uri) ?: throw IOException("Cannot open $uri")
     }
 
-    /** Writes every body to one STEP file at [uri] (from the system "create document" picker). */
-    fun exportStep(uri: Uri) {
+    /**
+     * Writes every body to [uri] (from the system "create document" picker) in the format
+     * named by [extension]: step, igs, stl, obj or 3mf.
+     */
+    fun export(uri: Uri, extension: String) {
         if (busy) return
         busy = true
         scope.launch {
             try {
-                val staged = File(appContext.cacheDir, "export.step")
-                if (!model.document.exportStep(staged.path)) {
+                val staged = File(appContext.cacheDir, "export.$extension")
+                val doc = model.document
+                val written = when (extension) {
+                    "igs" -> doc.exportIges(staged.path)
+                    "stl" -> doc.exportMesh(MeshFormat.STL, staged.path)
+                    "obj" -> doc.exportMesh(MeshFormat.OBJ, staged.path)
+                    "3mf" -> doc.exportMesh(MeshFormat.THREE_MF, staged.path)
+                    else -> doc.exportStep(staged.path)
+                }
+                if (!written) {
                     errorLine = "Nothing to export yet"
                     return@launch
                 }

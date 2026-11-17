@@ -36,6 +36,7 @@ class ViewportController {
     private var overlay: FloatArray? = null
     private var highlight: RenderMesh? = null
     private var overlayColor: Int = 0x5AA2FF
+    private var displayMode = DisplayMode.SHADED_EDGES
 
     /** Shows [mesh] (or clears the model when `null`) and, if [fit], frames it. */
     fun setModel(mesh: RenderMesh?, fit: Boolean = true) {
@@ -58,6 +59,12 @@ class ViewportController {
     fun setOverlayLines(segments: FloatArray?) {
         overlay = segments
         renderer?.setOverlayLines(segments)
+    }
+
+    /** Shows faces, edges or both. */
+    fun setDisplayMode(mode: DisplayMode) {
+        displayMode = mode
+        renderer?.setDisplayMode(mode)
     }
 
     /** Colour of the overlay lines as 0xRRGGBB (sketch state: blue under-defined, green fully defined). */
@@ -95,6 +102,7 @@ class ViewportController {
         r.setOverlayLines(overlay)
         r.setHighlight(highlight)
         r.setOverlayColor(overlayColor)
+        r.setDisplayMode(displayMode)
         r.fitView()
     }
 

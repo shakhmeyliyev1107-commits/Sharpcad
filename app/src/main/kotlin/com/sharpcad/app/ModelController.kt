@@ -11,6 +11,7 @@ import com.sharpcad.document.ExtrudeFeature
 import com.sharpcad.document.Feature
 import com.sharpcad.document.FilletFeature
 import com.sharpcad.document.ImportFeature
+import com.sharpcad.document.MaterialLibrary
 import com.sharpcad.document.Operation
 import com.sharpcad.document.PlaneSpec
 import com.sharpcad.document.Profile
@@ -25,6 +26,7 @@ import com.sharpcad.ui.workspace.ChoiceField
 import com.sharpcad.ui.workspace.DimensionField
 import com.sharpcad.ui.workspace.HistoryItem
 import com.sharpcad.ui.workspace.PanelAction
+import com.sharpcad.viewport.DisplayMode
 import com.sharpcad.viewport.ViewportController
 import java.util.Locale
 import kotlinx.coroutines.CoroutineScope
@@ -71,6 +73,14 @@ class ModelController(
     var note by mutableStateOf("")
         private set
 
+    /** Material preset id per body; bodies without an entry use the default material. */
+    private val materials = androidx.compose.runtime.mutableStateMapOf<Long, String>()
+    var materialsOpen by mutableStateOf(false)
+        private set
+    var materialCategory by mutableStateOf("Metal")
+    var displayMode by mutableStateOf(DisplayMode.SHADED_EDGES)
+        private set
+
     /** Waiting for the second body of a boolean. */
     private var pendingBoolean by mutableStateOf<BooleanOp?>(null)
     private var fitOnNextModel = true
@@ -108,6 +118,31 @@ class ModelController(
 
     fun toggleHistory() {
         historyOpen = !historyOpen
+    }
+
+    fun toggleMaterials() {
+        materialsOpen = !materialsOpen
+    }
+
+    fun cycleDisplayMode() {
+        displayMode = DisplayMode.entries[(displayMode.ordinal + 1) % DisplayMode.entries.size]
+        viewport.setDisplayMode(displayMode)
+        note = displayMode.label
+    }
+
+    /** Material of the selected body, or of the first body when nothing is selected. */
+    val currentMaterialId: String?
+        get() = (selection?.bodyId ?: state.bodies.firstOrNull()?.bodyId)?.let { materials[it] ?: MaterialLibrary.DEFAULT_ID }
+
+    val materialTarget: String
+        get() = selection?.let { s -> "Applies to ${state.bodies.firstOrNull { it.bodyId == s.bodyId }?.label ?: "the selected body"}" }
+            ?: "Nothing selected: applies to every body"
+
+    /** Applies a preset to the selected body, or to every body when nothing is selected. */
+    fun applyMaterial(id: String) {
+        val targets = selection?.let { listOf(it.bodyId) } ?: state.bodies.map { it.bodyId }
+        targets.forEach { materials[it] = id }
+        scope.launch { redraw(fit = false) }
     }
 
     fun edit(id: Long) {
@@ -366,13 +401,22 @@ class ModelController(
     }
 
     private suspend fun show(newState: DocumentState) {
-        val merged = withContext(Dispatchers.Default) { MeshTools.merge(newState.bodies) }
         state = newState
-        val fit = fitOnNextModel && merged != null
-        viewport.setModel(merged, fit = fit)
-        if (fit) fitOnNextModel = false
+        val drawn = redraw(fit = fitOnNextModel)
+        if (drawn) fitOnNextModel = false
         // Face indices may have changed: drop a selection whose body is gone.
         selection?.let { s -> if (newState.bodies.none { it.bodyId == s.bodyId }) clearSelection() else select(s) }
+    }
+
+    /** Re-merges the bodies with their materials and hands the mesh to the viewport. */
+    private suspend fun redraw(fit: Boolean): Boolean {
+        val bodies = state.bodies
+        val chosen = materials.toMap()
+        val merged = withContext(Dispatchers.Default) {
+            MeshTools.merge(bodies) { id -> MaterialLibrary.find(chosen[id]) }
+        }
+        viewport.setModel(merged, fit = fit && merged != null)
+        return merged != null
     }
 
     companion object {

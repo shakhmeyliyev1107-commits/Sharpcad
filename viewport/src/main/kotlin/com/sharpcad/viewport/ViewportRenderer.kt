@@ -59,6 +59,9 @@ internal class ViewportRenderer(private val surfaceView: SurfaceView) {
     private val shadedMaterial: Material
     private val flatMaterial: Material
     private val overlayMaterial: Material
+    private val pbrMaterial: Material
+    private val pbrInstance: MaterialInstance
+    private var displayMode = DisplayMode.SHADED_EDGES
     private val overlayInstance: MaterialInstance
     private val faceInstance: MaterialInstance
     private val edgeInstance: MaterialInstance
@@ -149,6 +152,8 @@ internal class ViewportRenderer(private val surfaceView: SurfaceView) {
             setParameter("color", c[0], c[1], c[2])
         }
 
+        pbrMaterial = loadMaterial("materials/cad_pbr.filamat")
+        pbrInstance = pbrMaterial.createInstance().apply { setPolygonOffset(1f, 1f) }
         overlayMaterial = loadMaterial("materials/overlay_color.filamat")
         overlayInstance = overlayMaterial.createInstance().apply {
             val c = srgbToLinear(OVERLAY_SRGB)
@@ -179,7 +184,8 @@ internal class ViewportRenderer(private val surfaceView: SurfaceView) {
         model = null
         modelBounds = null
         if (mesh != null && mesh.vertexCount > 0 && mesh.indexCount > 0) {
-            model = createModel(mesh, faceInstance, withEdges = true)
+            model = createModel(mesh, if (mesh.appearance != null) pbrInstance else faceInstance, withEdges = true)
+            applyDisplayMode()
             modelBounds = mesh.bounds.copyOf()
         }
         updateSceneRadius()
@@ -211,6 +217,21 @@ internal class ViewportRenderer(private val surfaceView: SurfaceView) {
             highlight = part
         }
         requestRender()
+    }
+
+    /** Shows faces, edges or both. */
+    fun setDisplayMode(mode: DisplayMode) {
+        displayMode = mode
+        applyDisplayMode()
+        requestRender()
+    }
+
+    private fun applyDisplayMode() {
+        val m = model ?: return
+        scene.remove(m.faces.entity)
+        m.edges?.let { scene.remove(it.entity) }
+        if (displayMode != DisplayMode.WIREFRAME) scene.addEntity(m.faces.entity)
+        if (displayMode != DisplayMode.SHADED) m.edges?.let { scene.addEntity(it.entity) }
     }
 
     /** Colour of the overlay lines, as 0xRRGGBB sRGB. */
@@ -308,6 +329,8 @@ internal class ViewportRenderer(private val surfaceView: SurfaceView) {
         engine.destroyMaterialInstance(faceInstance)
         engine.destroyMaterialInstance(edgeInstance)
         engine.destroyMaterialInstance(overlayInstance)
+        engine.destroyMaterialInstance(pbrInstance)
+        engine.destroyMaterial(pbrMaterial)
         engine.destroyMaterialInstance(highlightInstance)
         engine.destroyMaterial(overlayMaterial)
         engine.destroyMaterial(vertexColorMaterial)
@@ -389,15 +412,24 @@ internal class ViewportRenderer(private val surfaceView: SurfaceView) {
             max((b[3] - b[0]) / 2, 1e-3f), max((b[4] - b[1]) / 2, 1e-3f), max((b[5] - b[2]) / 2, 1e-3f),
         )
 
+        val appearance = mesh.appearance
         val faceVertices = VertexBuffer.Builder()
-            .bufferCount(2)
+            .bufferCount(if (appearance != null) 3 else 2)
             .vertexCount(mesh.vertexCount)
             .attribute(VertexBuffer.VertexAttribute.POSITION, 0, VertexBuffer.AttributeType.FLOAT3, 0, 12)
             .attribute(VertexBuffer.VertexAttribute.CUSTOM0, 1, VertexBuffer.AttributeType.FLOAT3, 0, 12)
+            .apply {
+                if (appearance != null) {
+                    val stride = RenderMesh.APPEARANCE_STRIDE
+                    attribute(VertexBuffer.VertexAttribute.CUSTOM1, 2, VertexBuffer.AttributeType.FLOAT4, 0, stride)
+                    attribute(VertexBuffer.VertexAttribute.CUSTOM2, 2, VertexBuffer.AttributeType.FLOAT, 16, stride)
+                }
+            }
             .build(engine)
             .apply {
                 setBufferAt(engine, 0, mesh.positions.duplicate())
                 setBufferAt(engine, 1, mesh.normals.duplicate())
+                if (appearance != null) setBufferAt(engine, 2, appearance.duplicate())
             }
         val faceIndices = IndexBuffer.Builder()
             .indexCount(mesh.indexCount)

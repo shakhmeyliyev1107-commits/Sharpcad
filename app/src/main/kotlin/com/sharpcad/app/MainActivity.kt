@@ -20,7 +20,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.sharpcad.document.Document
 import com.sharpcad.ui.designsystem.SharpCadTheme
+import com.sharpcad.document.MaterialLibrary
 import com.sharpcad.ui.workspace.HistoryPanel
+import com.sharpcad.ui.workspace.MaterialPanel
+import com.sharpcad.ui.workspace.MaterialSwatch
 import com.sharpcad.ui.workspace.ParameterPanel
 import com.sharpcad.ui.workspace.SketchControls
 import com.sharpcad.ui.workspace.Workspace
@@ -63,8 +66,10 @@ private fun WorkspaceScreen() {
     val openPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) state.importStep(uri)
     }
-    val exportPicker = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/step")) { uri ->
-        if (uri != null) state.exportStep(uri)
+    // The format chosen in the menu, remembered until the picker returns.
+    val exportFormat = remember { androidx.compose.runtime.mutableStateOf("step") }
+    val exportPicker = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/octet-stream")) { uri ->
+        if (uri != null) state.export(uri, exportFormat.value)
     }
     val actions = remember(state, openPicker, exportPicker) {
         WorkspaceActions(
@@ -72,7 +77,10 @@ private fun WorkspaceScreen() {
             onOpenSample = state::openSample,
             onFitView = state::fitView,
             onNew = state::newModel,
-            onExportStep = { exportPicker.launch("${state.projectName}.step") },
+            onExport = { ext ->
+                exportFormat.value = ext
+                exportPicker.launch("${state.projectName}.$ext")
+            },
             onUndo = model::undo,
             onRedo = model::redo,
         )
@@ -92,6 +100,9 @@ private fun WorkspaceScreen() {
         canRedo = model.state.canRedo,
         historyActive = model.historyOpen,
         onHistoryToggle = model::toggleHistory,
+        materialsActive = model.materialsOpen,
+        onMaterialsToggle = model::toggleMaterials,
+        onDisplayMode = model::cycleDisplayMode,
         overlay = {
             // Between the rails, clear of both.
             Column(
@@ -126,6 +137,20 @@ private fun WorkspaceScreen() {
                         modifier = Modifier.padding(top = 8.dp).widthIn(max = 560.dp),
                     )
                 }
+            }
+            if (model.materialsOpen) {
+                MaterialPanel(
+                    categories = MaterialLibrary.categories,
+                    selectedCategory = model.materialCategory,
+                    onCategory = { model.materialCategory = it },
+                    swatches = MaterialLibrary.presets.filter { it.category == model.materialCategory }
+                        .map { MaterialSwatch(it.id, it.name, it.color, it.metallic, it.roughness) },
+                    currentId = model.currentMaterialId,
+                    onPick = model::applyMaterial,
+                    subtitle = model.materialTarget,
+                    // Right of the left rail.
+                    modifier = Modifier.align(Alignment.TopStart).padding(start = 64.dp),
+                )
             }
             if (model.historyOpen) {
                 HistoryPanel(

@@ -1,6 +1,8 @@
 package com.sharpcad.app
 
 import com.sharpcad.document.BodyMesh
+import com.sharpcad.document.MaterialLibrary
+import com.sharpcad.document.MaterialPreset
 import com.sharpcad.kernel.Mesh
 import com.sharpcad.viewport.RenderMesh
 import java.nio.ByteBuffer
@@ -11,8 +13,11 @@ internal object MeshTools {
 
     private fun direct(bytes: Int): ByteBuffer = ByteBuffer.allocateDirect(bytes).order(ByteOrder.nativeOrder())
 
-    /** All bodies in one mesh (one draw call), or `null` when there are none. */
-    fun merge(bodies: List<BodyMesh>): RenderMesh? {
+    /**
+     * All bodies in one mesh (one draw call), or `null` when there are none. Each body's
+     * vertices carry its material from [materialOf] for the PBR shader.
+     */
+    fun merge(bodies: List<BodyMesh>, materialOf: (Long) -> MaterialPreset = { MaterialLibrary.default }): RenderMesh? {
         if (bodies.isEmpty()) return null
         val vertices = bodies.sumOf { it.mesh.vertexCount }
         val indices = bodies.sumOf { it.mesh.triangleCount * 3 }
@@ -23,6 +28,7 @@ internal object MeshTools {
         val normals = direct(vertices * 12)
         val index = direct(indices * 4)
         val edges = direct(edgeFloats * 4)
+        val appearance = direct(vertices * RenderMesh.APPEARANCE_STRIDE)
         val bounds = floatArrayOf(Float.MAX_VALUE, Float.MAX_VALUE, Float.MAX_VALUE, -Float.MAX_VALUE, -Float.MAX_VALUE, -Float.MAX_VALUE)
         var base = 0
         for (body in bodies) {
@@ -31,18 +37,30 @@ internal object MeshTools {
             normals.put(m.normals.duplicate().apply { rewind() })
             edges.put(m.edgeSegments.duplicate().apply { rewind() })
             val src = m.indices.duplicate().order(ByteOrder.nativeOrder()).asIntBuffer()
+            // The int view starts at the byte buffer's current position: no extra offset.
             val out = index.asIntBuffer()
-            out.position(index.position() / 4)
             for (i in 0 until src.capacity()) out.put(src.get(i) + base)
             index.position(index.position() + src.capacity() * 4)
+            val mat = materialOf(body.bodyId)
+            val r = linear((mat.color shr 16) and 0xFF)
+            val g = linear((mat.color shr 8) and 0xFF)
+            val b = linear(mat.color and 0xFF)
+            repeat(m.vertexCount) {
+                appearance.putFloat(r).putFloat(g).putFloat(b).putFloat(mat.roughness).putFloat(mat.metallic)
+            }
             base += m.vertexCount
             for (k in 0 until 3) {
                 bounds[k] = minOf(bounds[k], body.bounds[k].toFloat())
                 bounds[k + 3] = maxOf(bounds[k + 3], body.bounds[k + 3].toFloat())
             }
         }
-        listOf(positions, normals, index, edges).forEach { it.flip() }
-        return RenderMesh(positions, normals, index, edges, bounds)
+        listOf(positions, normals, index, edges, appearance).forEach { it.flip() }
+        return RenderMesh(positions, normals, index, edges, bounds, appearance)
+    }
+
+    private fun linear(channel: Int): Float {
+        val c = channel / 255f
+        return if (c <= 0.04045f) c / 12.92f else Math.pow(((c + 0.055f) / 1.055f).toDouble(), 2.4).toFloat()
     }
 
     /** The triangles of [mesh] whose face index is in [faces], as a separate mesh. */
