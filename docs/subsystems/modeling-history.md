@@ -12,7 +12,7 @@ sources:
   - code: app/src/main/kotlin/com/sharpcad/app/MeshTools.kt
   - code: app/src/main/kotlin/com/sharpcad/app/WorkspaceState.kt
   - code: document/src/main/kotlin/com/sharpcad/document/MeshExport.kt
-verified_at: bac5213
+verified_at: 22ed89d
 ---
 
 # Modellashtirish va tarix
