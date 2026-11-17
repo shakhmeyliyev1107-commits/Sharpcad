@@ -384,6 +384,13 @@ class SketchSession(private val viewport: ViewportController) {
                 d.start.point?.let { added += s.addCoincident(PointRef(circle, PointRole.CENTER), it) }
                 dimensionTargets = listOf(DimensionTarget.Radius("Radius", circle))
             }
+            SketchTool.OFFSET -> d.chain?.let { chain ->
+                // Keep the offset outline joined at its corners.
+                for (i in 0 until d.ids.size - 1) {
+                    added += s.addCoincident(PointRef(d.ids[i], PointRole.END), PointRef(d.ids[i + 1], PointRole.START))
+                }
+                if (chain.closed) added += s.addCoincident(PointRef(d.ids.last(), PointRole.END), PointRef(d.ids[0], PointRole.START))
+            }
             SketchTool.PATTERN -> {
                 val n = d.ids.size.toDouble()
                 dimensionTargets = listOf(
@@ -418,6 +425,17 @@ class SketchSession(private val viewport: ViewportController) {
         if (target == null) {
             refresh("Press on a line, arc or circle and drag to offset it")
             return true
+        }
+        if (target is SketchLine) {
+            val chain = com.sharpcad.sketch.ChainOffset.chain(s.entities(), target)
+            if (chain.lines.size > 1) {
+                val p = chain.points
+                val ids = List(p.size / 2 - 1) { i -> s.addLine(p[2 * i], p[2 * i + 1], p[2 * i + 2], p[2 * i + 3]) }
+                val start = Snap(point[0], point[1], SnapKind.NONE)
+                draft = Draft(SketchTool.OFFSET, ids, start, start).also { it.source = target; it.chain = chain }
+                refresh()
+                return true
+            }
         }
         val copy = when (target) {
             is SketchLine -> s.addLine(target.x1, target.y1, target.x2, target.y2)
@@ -502,6 +520,16 @@ class SketchSession(private val viewport: ViewportController) {
 
     private fun offsetTo(d: Draft, end: Snap) {
         val s = sketch ?: return
+        d.chain?.let { chain ->
+            val dist = com.sharpcad.sketch.ChainOffset.side(chain, end.x, end.y)
+            val p = com.sharpcad.sketch.ChainOffset.offset(chain, dist)
+            d.ids.forEachIndexed { i, line ->
+                s.setPoint(PointRef(line, PointRole.START), p[2 * i], p[2 * i + 1])
+                s.setPoint(PointRef(line, PointRole.END), p[2 * i + 2], p[2 * i + 3])
+            }
+            d.offset = abs(dist)
+            return
+        }
         val id = d.ids[0]
         when (val src = d.source) {
             is SketchLine -> {
@@ -694,6 +722,7 @@ class SketchSession(private val viewport: ViewportController) {
         var vertical = false
         var source: com.sharpcad.sketch.SketchEntity? = null
         var offset = 0.0
+        var chain: com.sharpcad.sketch.ChainOffset.Chain? = null
     }
 
     private sealed class DimensionTarget(val label: String) {

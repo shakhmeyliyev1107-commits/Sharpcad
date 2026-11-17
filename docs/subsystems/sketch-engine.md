@@ -91,7 +91,7 @@ kesishmagacha olib tashlanadi; hech narsani kesmagan obyekt butunlay o'chadi. Ge
 `sketch/src/main/kotlin/com/sharpcad/sketch/Trim.kt` da (sof Kotlin, `TrimTest`).
 
 Offset: obyekt ustiga bosib sudraladi; chiziq parallel, aylana/yoy konsentrik nusxa
-oladi (nusxa asl bilan bog'lanmaydi). Cheklov asboblari (Horizontal, Vertical — bitta
+oladi (nusxa asl bilan bog'lanmaydi). Bir-biriga uchma-uch ulangan chiziqlar zanjiri bir butun siljiydi: burchaklar qo'shni siljigan chiziqlar kesishmasida, yangi kontur ustma-ust tushish cheklovlari bilan bog'lanadi (`sketch/src/main/kotlin/com/sharpcad/sketch/ChainOffset.kt`). Tarmoqlanish nuqtasida zanjir to'xtaydi. Cheklov asboblari (Horizontal, Vertical — bitta
 chiziq; Equal, Parallel, Perpendicular — ikki chiziq ketma-ket) teginish bilan qo'yiladi;
 ziddiyat bo'lsa cheklov qaytarib olinadi.
 

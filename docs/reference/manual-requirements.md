@@ -88,4 +88,5 @@ nom, belgi yoki rasm ko'chirilmaydi.
 | Sweep (profil kesib o'tuvchi tekislikdagi yo'l bo'ylab) | qilingan (qurilmada sinalmagan) |
 | Eskiz chiziqli massivi (Count bilan); o'lchamlarda ifodalar va birliklar (mm, cm, m, in) | qilingan (qurilmada sinalmagan) |
 | Spline (erkin chizish, silliq egri; profilda kesmalar bilan) | qilingan (qurilmada sinalmagan) |
-| Qolganlari (haqiqiy B-spline, zanjir ofset, eskiz massivi, matn, o'zgaruvchilar, gizmo) | rejalashtirilgan |
+| Zanjir ofset (ulangan chiziqlar, burchaklar tutashtiriladi) | qilingan (qurilmada sinalmagan) |
+| Qolganlari (haqiqiy B-spline, eskiz massivi, matn, o'zgaruvchilar, gizmo) | rejalashtirilgan |
