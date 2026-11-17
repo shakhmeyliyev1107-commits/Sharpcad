@@ -10,6 +10,7 @@ repository. The rules are in [`CLAUDE.md`](CLAUDE.md).
 1. [`../CLAUDE.md`](../CLAUDE.md) -- stek, arxitektura qoidalari, nomlash
 2. [[kernel-jni]] -- geometriya yadrosi va JNI chegarasi
 3. [[viewport-rendering]] -- Filament render, kamera, imo-ishoralar
+4. [[manual-requirements]] -- nima qurilishi kerak va qaysi biri tayyor
 
 Viki ish davomida o'sadi: yangi sohaga tegilganda uning sahifasi qo'shiladi.
 
@@ -35,7 +36,7 @@ _(hali sahifa yo'q)_
 
 ## reference
 
-_(hali sahifa yo'q)_
+- [[manual-requirements]] -- qo'llanmadan olingan ish oqimi talablari va holati
 
 ## operations
 
