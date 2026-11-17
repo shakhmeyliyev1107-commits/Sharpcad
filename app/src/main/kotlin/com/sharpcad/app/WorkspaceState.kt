@@ -175,6 +175,29 @@ class WorkspaceState(
 
     fun fitView() = viewport.fitView()
 
+    /** Last benchmark report, shown until dismissed. */
+    var benchmarkReport by mutableStateOf<String?>(null)
+
+    /** Runs the benchmark in a new, unsaved model and keeps a copy of the report on disk. */
+    fun runBenchmark() {
+        if (busy) return
+        busy = true
+        saveJob?.cancel()
+        projectId = null // the benchmark model is not saved
+        projectName = "Benchmark"
+        scope.launch {
+            try {
+                val report = Benchmark(model, viewport, appContext.cacheDir).run()
+                benchmarkReport = report
+                withContext(Dispatchers.IO) { File(appContext.filesDir, "benchmark-${System.currentTimeMillis()}.txt").writeText(report) }
+            } catch (e: com.sharpcad.kernel.KernelException) {
+                errorLine = "Benchmark failed (kernel error ${e.code})"
+            } finally {
+                busy = false
+            }
+        }
+    }
+
     /**
      * Shows the model in augmented reality: writes a GLB and hands it to Google's AR
      * viewer (part of Google Play Services for AR), or to any installed 3D viewer.

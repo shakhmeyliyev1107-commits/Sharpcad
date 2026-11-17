@@ -52,6 +52,7 @@ class WorkspaceActions(
     /** Saved projects (id to name), newest first, and how to open one. */
     val recentProjects: List<Pair<String, String>> = emptyList(),
     val onOpenProject: (String) -> Unit = {},
+    val onBenchmark: () -> Unit = {},
 )
 
 /**
@@ -151,7 +152,10 @@ private fun TopBar(projectName: String, actions: WorkspaceActions, busy: Boolean
             MenuItem("Fit to screen") { close(); actions.onFitView() }
             MenuItem("View in AR", enabled = !busy) { close(); actions.onViewInAr() }
         }
-        TopMenu("Help") { _ -> MenuItem("Double-tap the view to fit", enabled = false) {} }
+        TopMenu("Help") { close ->
+            MenuItem("Run benchmark", enabled = !busy) { close(); actions.onBenchmark() }
+            MenuItem("Double-tap the view to fit", enabled = false) {}
+        }
         Text(
             text = projectName,
             color = SharpCadColors.Content,

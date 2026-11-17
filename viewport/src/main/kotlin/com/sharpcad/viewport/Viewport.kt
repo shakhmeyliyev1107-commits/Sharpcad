@@ -61,6 +61,12 @@ class ViewportController {
         renderer?.setOverlayLines(segments)
     }
 
+    /** Benchmark: spins the camera once over [frames] frames, then reports frame pacing. */
+    fun runAutoOrbit(frames: Int, onDone: (FrameStats?) -> Unit) {
+        val r = renderer
+        if (r == null) onDone(null) else r.runAutoOrbit(frames, onDone)
+    }
+
     /** Shows faces, edges or both. */
     fun setDisplayMode(mode: DisplayMode) {
         displayMode = mode

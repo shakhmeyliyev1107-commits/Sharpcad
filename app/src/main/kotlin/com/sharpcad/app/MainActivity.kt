@@ -87,6 +87,7 @@ private fun WorkspaceScreen() {
             onViewInAr = { (context as? android.app.Activity)?.let(state::viewInAr) },
             recentProjects = state.recentProjects,
             onOpenProject = state::openProject,
+            onBenchmark = state::runBenchmark,
         )
     }
 
@@ -129,6 +130,14 @@ private fun WorkspaceScreen() {
                         dimensions = sketch.dimensions,
                         onDimension = sketch::setDimension,
                         message = sketch.message,
+                    )
+                }
+                state.benchmarkReport?.let { report ->
+                    ParameterPanel(
+                        title = "Benchmark", fields = emptyList(), onField = { _, _ -> }, choices = emptyList(), onChoice = { _, _ -> },
+                        actions = listOf(com.sharpcad.ui.workspace.PanelAction("Close", accent = true) { state.benchmarkReport = null }),
+                        message = report,
+                        modifier = Modifier.padding(top = 8.dp).widthIn(max = 560.dp),
                     )
                 }
                 model.panel?.let { panel ->

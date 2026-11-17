@@ -85,10 +85,40 @@ internal class ViewportRenderer(private val surfaceView: SurfaceView) {
     private var pendingFrames = 0
     private val stats = FrameStatsRecorder()
 
+    /** Frames left in an automatic orbit (benchmark) and where its result goes. */
+    private var autoOrbitFrames = 0
+    private var autoOrbitStats: FrameStatsRecorder? = null
+    private var autoOrbitDone: ((FrameStats?) -> Unit)? = null
+
+    /** Spins the camera one full turn over [frames] frames and reports the pacing. */
+    fun runAutoOrbit(frames: Int, onDone: (FrameStats?) -> Unit) {
+        autoOrbitFrames = frames
+        autoOrbitStats = FrameStatsRecorder(reportEvery = Int.MAX_VALUE)
+        autoOrbitDone = onDone
+        requestRender()
+    }
+
     private val frameCallback = object : Choreographer.FrameCallback {
         override fun doFrame(frameTimeNanos: Long) {
             if (!running) return
             choreographer.postFrameCallback(this)
+            if (autoOrbitFrames > 0) {
+                val shortSide = minOf(width, height)
+                if (shortSide > 0) {
+                    // One full turn: 2π / frames radians per frame, expressed in pixels.
+                    val px = (2 * Math.PI / (OrbitCamera.ORBIT_TURN_PER_SHORT_SIDE / shortSide)).toFloat() / autoOrbitFrames
+                    camera.orbit(px, 0f, shortSide)
+                }
+                autoOrbitStats?.onFrame(frameTimeNanos)
+                autoOrbitFrames--
+                pendingFrames = maxOf(pendingFrames, 1)
+                if (autoOrbitFrames == 0) {
+                    val result = autoOrbitStats?.endBurst()
+                    autoOrbitStats = null
+                    autoOrbitDone?.invoke(result)
+                    autoOrbitDone = null
+                }
+            }
             val chain = swapChain
             if (pendingFrames <= 0 || chain == null || !uiHelper.isReadyToRender) {
                 stats.endBurst()?.let { onFrameStats?.invoke(it) }
@@ -591,6 +621,7 @@ internal class FrameStatsRecorder(private val reportEvery: Int = 30) {
     }
 
     private fun flush(): FrameStats {
+        if (frames == 0) return FrameStats(0f, 0f, 0, skipped)
         val result = FrameStats(
             averageMillis = sumNanos / frames / 1e6f,
             worstMillis = worstNanos / 1e6f,
