@@ -46,7 +46,9 @@ class SketchSession(private val viewport: ViewportController) {
     var isEmpty by mutableStateOf(true)
         private set
 
-    private var sketch: Sketch? = null
+    /** One sketch per base plane; drawing goes into the one for the selected [plane]. */
+    private val sketches = mutableMapOf<SketchPlane, Sketch>()
+    private val sketch: Sketch? get() = sketches[plane]
     private var draft: Draft? = null
     private var snapMarker: Snap? = null
 
@@ -73,10 +75,16 @@ class SketchSession(private val viewport: ViewportController) {
         refresh()
     }
 
-    /** Changes the sketch plane. Ignored once the sketch has geometry. */
+    /**
+     * Switches to the sketch on another plane. Sketches on the other planes are kept and
+     * stay visible; drawing continues on the selected one.
+     */
     fun selectPlane(name: String) {
-        if (!isEmpty) return
-        plane = PLANES.firstOrNull { it.name == name } ?: return
+        val picked = PLANES.firstOrNull { it.name == name } ?: return
+        if (picked == plane) return
+        cancelDraft()
+        clearDimensions()
+        plane = picked
         lookAtPlane()
         refresh()
     }
@@ -90,10 +98,10 @@ class SketchSession(private val viewport: ViewportController) {
         refresh()
     }
 
+    /** Clears the sketch on the selected plane only. */
     fun clear() {
         cancelDraft()
-        sketch?.close()
-        sketch = null
+        sketches.remove(plane)?.close()
         clearDimensions()
         refresh()
     }
@@ -130,8 +138,8 @@ class SketchSession(private val viewport: ViewportController) {
 
     fun dispose() {
         viewport.onSingleTouch = null
-        sketch?.close()
-        sketch = null
+        sketches.values.forEach { it.close() }
+        sketches.clear()
     }
 
     // ---- Drawing ------------------------------------------------------------------
@@ -154,7 +162,7 @@ class SketchSession(private val viewport: ViewportController) {
 
     private fun begin(activeTool: SketchTool, x: Float, y: Float): Boolean {
         val point = planePoint(x, y) ?: return false
-        val s = sketch ?: Sketch().also { sketch = it }
+        val s = sketches.getOrPut(plane) { Sketch() }
         // The size fields of the previous entity stay until a new entity is finished: a
         // two-finger orbit also starts with one finger down and must not wipe them.
         val start = snap(point, exclude = emptySet())
@@ -315,7 +323,10 @@ class SketchSession(private val viewport: ViewportController) {
         val entities = sketch?.entities().orEmpty()
         isEmpty = entities.isEmpty()
 
-        var segments = SketchLines.segments(entities, plane)
+        // Every plane's sketch is shown, not just the one being edited.
+        var segments = sketches.entries.fold(FloatArray(0)) { acc, (p, sk) ->
+            acc + SketchLines.segments(if (p == plane) entities else sk.entities(), p)
+        }
         snapMarker?.let { marker ->
             val size = viewport.millimetresPerPixel() * MARKER_PIXELS
             segments += SketchLines.marker(marker.x, marker.y, size, plane)

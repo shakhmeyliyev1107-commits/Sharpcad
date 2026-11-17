@@ -76,6 +76,10 @@ yopishganda ustma-ust tushish cheklovi qo'yiladi.
 > ⚠️ Asbob faol bo'lganda bir barmoqli surish o'chadi (barmoq chizadi). Surish uchun
 > asbobni o'chirish kerak; bu ma'lum cheklov, xato emas.
 
+Har bir asosiy tekislik (XY, XZ, YZ) o'z eskiziga ega. Tekislik istalgan payt
+almashtiriladi: chizish tanlangan tekislik eskiziga tushadi, qolganlari saqlanadi va
+ko'rinib turadi. "Clear" faqat tanlangan tekislik eskizini tozalaydi.
+
 Boshqaruv paneli (`SketchControls`) tor ekranda bir necha qatorga o'raladi.
 
 > ⚠️ O'lcham maydonlarini teginish boshlanganda tozalamang. Ikki barmoqli aylantirish ham

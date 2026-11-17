@@ -69,7 +69,7 @@ private fun WorkspaceScreen() {
                 SketchControls(
                     planes = SketchSession.PLANES.map { it.name },
                     selectedPlane = sketch.plane.name,
-                    planesEnabled = sketch.isEmpty,
+                    planesEnabled = true,
                     onPlane = sketch::selectPlane,
                     tools = SketchTool.entries.map { it.label },
                     selectedTool = sketch.tool?.label,
