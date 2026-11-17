@@ -32,7 +32,9 @@ target_include_directories(planegcs SYSTEM PUBLIC
     "${PLANEGCS_DEPS_ROOT}/boost")
 # Refuse to compile any Eigen code that is not under MPL-2.0.
 target_compile_definitions(planegcs PUBLIC EIGEN_MPL2_ONLY)
-target_compile_options(planegcs PRIVATE -w)
+# Always optimised: unoptimised Eigen code is an order of magnitude larger and slower,
+# which would make debug builds of the app unusable for sketching.
+target_compile_options(planegcs PRIVATE -w -O2)
 if(ANDROID)
     target_link_options(planegcs PRIVATE "-Wl,-z,max-page-size=16384")
 endif()

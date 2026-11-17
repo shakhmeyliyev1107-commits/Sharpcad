@@ -1,6 +1,7 @@
 package com.sharpcad.ui.workspace
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -45,6 +46,9 @@ import com.sharpcad.ui.designsystem.SharpCadDimens
 /** One entry on a rail. [selected] marks the active workspace. */
 internal class RailItem(val label: String, val icon: ImageVector, val selected: Boolean = false)
 
+/** Label of the rail item that toggles sketch mode. */
+internal const val SKETCH_ITEM = "Sketch"
+
 internal val LeftRailGroups: List<List<RailItem>> = listOf(
     listOf(
         RailItem("Modeling", Icons.Outlined.ViewInAr, selected = true),
@@ -54,7 +58,7 @@ internal val LeftRailGroups: List<List<RailItem>> = listOf(
     ),
     listOf(
         RailItem("Search", Icons.Outlined.Search),
-        RailItem("Sketch", Icons.Outlined.Draw),
+        RailItem(SKETCH_ITEM, Icons.Outlined.Draw),
         RailItem("Add", Icons.Outlined.Add),
         RailItem("Transform", Icons.Outlined.OpenWith),
         RailItem("Tools", Icons.Outlined.Build),
@@ -80,11 +84,17 @@ internal val RightRailGroups: List<List<RailItem>> = listOf(
 )
 
 /**
- * A floating vertical tool rail. Static in Phase 1: the buttons show the planned tools
- * but do nothing yet, so they are deliberately not clickable.
+ * A floating vertical tool rail. Most buttons only show the planned tools and are
+ * deliberately not clickable; the items in [actions] are wired up, and [active] ones are
+ * highlighted.
  */
 @Composable
-internal fun ToolRail(groups: List<List<RailItem>>, modifier: Modifier = Modifier) {
+internal fun ToolRail(
+    groups: List<List<RailItem>>,
+    modifier: Modifier = Modifier,
+    actions: Map<String, () -> Unit> = emptyMap(),
+    active: Set<String> = emptySet(),
+) {
     Column(
         modifier = modifier
             .width(SharpCadDimens.RailWidth)
@@ -102,25 +112,30 @@ internal fun ToolRail(groups: List<List<RailItem>>, modifier: Modifier = Modifie
                     color = SharpCadColors.Divider,
                 )
             }
-            group.forEach { RailButton(it) }
+            group.forEach { RailButton(it, it.selected || it.label in active, actions[it.label]) }
         }
     }
 }
 
 @Composable
-private fun RailButton(item: RailItem) {
+private fun RailButton(item: RailItem, highlighted: Boolean, onClick: (() -> Unit)?) {
     Box(
         modifier = Modifier
             .size(SharpCadDimens.RailButton)
             .clip(RoundedCornerShape(SharpCadDimens.ButtonRadius))
-            .background(if (item.selected) SharpCadColors.Accent.copy(alpha = 0.18f) else SharpCadColors.Panel.copy(alpha = 0f))
+            .background(if (highlighted) SharpCadColors.Accent.copy(alpha = 0.18f) else SharpCadColors.Panel.copy(alpha = 0f))
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
             .semantics { contentDescription = item.label },
         contentAlignment = Alignment.Center,
     ) {
         Icon(
             imageVector = item.icon,
             contentDescription = null,
-            tint = if (item.selected) SharpCadColors.Accent else SharpCadColors.ContentMuted,
+            tint = when {
+                highlighted -> SharpCadColors.Accent
+                onClick != null -> SharpCadColors.Content
+                else -> SharpCadColors.ContentMuted
+            },
             modifier = Modifier.size(SharpCadDimens.RailIcon),
         )
     }

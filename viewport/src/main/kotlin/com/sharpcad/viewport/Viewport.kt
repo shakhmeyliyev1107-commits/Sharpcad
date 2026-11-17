@@ -22,8 +22,15 @@ class ViewportController {
     /** Receives frame pacing a few times per second while the view is animating. */
     var onFrameStats: ((FrameStats) -> Unit)? = null
 
+    /**
+     * When set, receives one-finger touches before navigation does. Returning `true` from
+     * [TouchPhase.DOWN] claims that gesture for drawing; otherwise it pans as usual.
+     */
+    var onSingleTouch: ((phase: TouchPhase, x: Float, y: Float) -> Boolean)? = null
+
     private var renderer: ViewportRenderer? = null
     private var model: RenderMesh? = null
+    private var overlay: FloatArray? = null
 
     /** Shows [mesh] (or clears the model when `null`) and, if [fit], frames it. */
     fun setModel(mesh: RenderMesh?, fit: Boolean = true) {
@@ -39,10 +46,36 @@ class ViewportController {
         renderer?.fitView()
     }
 
+    /**
+     * Shows line segments on top of the scene (sketch geometry): xyz triples in model
+     * millimetres, two points per segment. `null` clears them.
+     */
+    fun setOverlayLines(segments: FloatArray?) {
+        overlay = segments
+        renderer?.setOverlayLines(segments)
+    }
+
+    /** Looks along a fixed direction (radians: [yaw] around +Z, [pitch] above XY) and fits. */
+    fun setViewDirection(yaw: Double, pitch: Double) {
+        renderer?.setViewDirection(yaw, pitch)
+    }
+
+    /**
+     * The view ray through a screen pixel: origin xyz then direction xyz, in model space.
+     * `null` until the viewport has a size.
+     */
+    fun screenRay(x: Float, y: Float): DoubleArray? =
+        renderer?.let { it.camera.ray(x, y, it.width, it.height) }
+
+    /** Model-space size of one pixel at the camera target's depth; 0 before layout. */
+    fun millimetresPerPixel(): Double =
+        renderer?.let { it.camera.millimetresPerPixel(it.height) } ?: 0.0
+
     internal fun attach(r: ViewportRenderer) {
         renderer = r
         r.onFrameStats = { stats -> onFrameStats?.invoke(stats) }
         r.setModel(model)
+        r.setOverlayLines(overlay)
         r.fitView()
     }
 
@@ -97,6 +130,9 @@ fun Viewport(
                 }
 
                 override fun onFit() = renderer.fitView()
+
+                override fun onSingleTouch(phase: TouchPhase, x: Float, y: Float): Boolean =
+                    controller.onSingleTouch?.invoke(phase, x, y) ?: false
             },
         )
         surfaceView.setOnTouchListener { _, event -> gestures.onTouchEvent(event) }

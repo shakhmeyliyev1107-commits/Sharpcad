@@ -1,0 +1,19 @@
+// Unlit single colour drawn on top of everything: sketch geometry must stay visible
+// through the model and must not flicker against the grid lines it lies on.
+material {
+    name : overlay_color,
+    shadingModel : unlit,
+    culling : none,
+    depthCulling : false,
+    depthWrite : false,
+    parameters : [
+        { type : float3, name : color }
+    ]
+}
+
+fragment {
+    void material(inout MaterialInputs material) {
+        prepareMaterial(material);
+        material.baseColor = vec4(materialParams.color, 1.0);
+    }
+}

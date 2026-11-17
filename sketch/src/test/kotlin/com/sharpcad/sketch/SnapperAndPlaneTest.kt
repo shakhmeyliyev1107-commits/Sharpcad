@@ -110,3 +110,42 @@ class SketchPlaneTest {
         assertNull(SketchPlane.XY.intersect(doubleArrayOf(0.0, 0.0, 5.0), doubleArrayOf(0.0, 0.0, 1.0)))
     }
 }
+
+class SketchLinesTest {
+    @Test
+    fun lineBecomesOneSegmentOnThePlane() {
+        val segments = SketchLines.segments(listOf(SketchLine(0, 1.0, 2.0, 3.0, 4.0)), SketchPlane.XZ)
+        assertArrayEquals(floatArrayOf(1f, 0f, 2f, 3f, 0f, 4f), segments, 0f)
+    }
+
+    @Test
+    fun circleIsAClosedPolygonOfTheRightRadius() {
+        val segments = SketchLines.segments(listOf(SketchCircle(0, 10.0, 0.0, 5.0)), SketchPlane.XY)
+        assertEquals(SketchLines.CIRCLE_SEGMENTS * 6, segments.size)
+        for (i in segments.indices step 3) {
+            val r = kotlin.math.hypot(segments[i] - 10.0, segments[i + 1].toDouble())
+            assertEquals(5.0, r, 1e-4)
+            assertEquals(0f, segments[i + 2], 0f)
+        }
+        // Each segment starts where the previous one ended, and the last closes the loop.
+        for (k in 0 until SketchLines.CIRCLE_SEGMENTS) {
+            val end = k * 6 + 3
+            val nextStart = ((k + 1) % SketchLines.CIRCLE_SEGMENTS) * 6
+            assertEquals(segments[end], segments[nextStart], 1e-4f)
+            assertEquals(segments[end + 1], segments[nextStart + 1], 1e-4f)
+        }
+    }
+
+    @Test
+    fun emptySketchHasNoSegments() {
+        assertEquals(0, SketchLines.segments(emptyList(), SketchPlane.XY).size)
+    }
+
+    @Test
+    fun markerIsTwoSegmentsCentredOnThePoint() {
+        val m = SketchLines.marker(4.0, 6.0, 1.0, SketchPlane.XY)
+        assertEquals(12, m.size)
+        assertEquals(4f, (m[0] + m[3]) / 2, 1e-6f)
+        assertEquals(6f, (m[1] + m[4]) / 2, 1e-6f)
+    }
+}

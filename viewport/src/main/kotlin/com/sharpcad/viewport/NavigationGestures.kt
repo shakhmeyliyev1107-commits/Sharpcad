@@ -8,6 +8,10 @@ import kotlin.math.hypot
 /**
  * Turns touch events into camera navigation:
  * one finger drags to pan, two fingers drag to orbit and pinch to zoom, double tap fits.
+ *
+ * A [Listener] may claim a one-finger gesture in [Listener.onSingleTouch] (to draw with
+ * it); the gesture then goes there instead of panning until the finger lifts or a second
+ * finger lands, which cancels it and hands control back to navigation.
  */
 internal class NavigationGestures(context: Context, private val listener: Listener) {
 
@@ -16,7 +20,16 @@ internal class NavigationGestures(context: Context, private val listener: Listen
         fun onOrbit(dx: Float, dy: Float)
         fun onZoom(factor: Float)
         fun onFit()
+
+        /**
+         * One-finger touch at ([x], [y]) pixels. Return `true` from [TouchPhase.DOWN] to
+         * claim the gesture; the return value is ignored for the other phases.
+         */
+        fun onSingleTouch(phase: TouchPhase, x: Float, y: Float): Boolean
     }
+
+    /** True while a one-finger gesture is routed to [Listener.onSingleTouch]. */
+    private var claimed = false
 
     private var pointers = 0
     private var lastX = 0f
@@ -27,6 +40,7 @@ internal class NavigationGestures(context: Context, private val listener: Listen
         context,
         object : GestureDetector.SimpleOnGestureListener() {
             override fun onDoubleTap(e: MotionEvent): Boolean {
+                if (claimed) return false // a drawing tool owns one-finger input
                 listener.onFit()
                 return true
             }
@@ -36,11 +50,29 @@ internal class NavigationGestures(context: Context, private val listener: Listen
     fun onTouchEvent(event: MotionEvent): Boolean {
         doubleTap.onTouchEvent(event)
         when (event.actionMasked) {
-            MotionEvent.ACTION_DOWN, MotionEvent.ACTION_POINTER_DOWN -> rebase(event, skip = -1)
+            MotionEvent.ACTION_DOWN -> {
+                claimed = listener.onSingleTouch(TouchPhase.DOWN, event.x, event.y)
+                rebase(event, skip = -1)
+            }
+            MotionEvent.ACTION_POINTER_DOWN -> {
+                if (claimed) {
+                    claimed = false
+                    listener.onSingleTouch(TouchPhase.CANCEL, event.getX(0), event.getY(0))
+                }
+                rebase(event, skip = -1)
+            }
             // The lifted pointer is still listed in the event; leave it out of the new baseline.
             MotionEvent.ACTION_POINTER_UP -> rebase(event, skip = event.actionIndex)
-            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> pointers = 0
-            MotionEvent.ACTION_MOVE -> move(event)
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                if (claimed) {
+                    claimed = false
+                    val phase = if (event.actionMasked == MotionEvent.ACTION_UP) TouchPhase.UP else TouchPhase.CANCEL
+                    listener.onSingleTouch(phase, event.x, event.y)
+                }
+                pointers = 0
+            }
+            MotionEvent.ACTION_MOVE ->
+                if (claimed) listener.onSingleTouch(TouchPhase.MOVE, event.x, event.y) else move(event)
         }
         return true
     }
@@ -106,3 +138,6 @@ internal class NavigationGestures(context: Context, private val listener: Listen
         const val MIN_SPAN = 10f
     }
 }
+
+/** Stage of a one-finger gesture handed to a drawing tool. */
+enum class TouchPhase { DOWN, MOVE, UP, CANCEL }

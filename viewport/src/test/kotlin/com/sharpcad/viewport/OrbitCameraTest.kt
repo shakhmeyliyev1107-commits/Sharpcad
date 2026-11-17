@@ -109,4 +109,50 @@ class OrbitCameraTest {
             assertTrue(camera.far >= camera.distance + 250.0)
         }
     }
+
+    @Test
+    fun centreRayPointsAtTheTarget() {
+        val camera = OrbitCamera()
+        camera.fit(10.0, -5.0, 3.0, 40.0, 1.5)
+        val ray = camera.ray(600f, 400f, 1200, 800)!!
+        // Walk `distance` along the ray: we must land on the target.
+        assertEquals(camera.targetX, ray[0] + camera.distance * ray[3], 1e-9)
+        assertEquals(camera.targetY, ray[1] + camera.distance * ray[4], 1e-9)
+        assertEquals(camera.targetZ, ray[2] + camera.distance * ray[5], 1e-9)
+    }
+
+    @Test
+    fun topViewRaysMapScreenAxesToModelXAndY() {
+        val camera = OrbitCamera()
+        camera.fit(0.0, 0.0, 0.0, 100.0, 1.0)
+        camera.setView(Math.toRadians(-90.0), Math.toRadians(90.0)) // clamped to 89 degrees
+        fun groundHit(x: Float, y: Float): Pair<Double, Double> {
+            val r = camera.ray(x, y, 1000, 1000)!!
+            val t = -r[2] / r[5]
+            return Pair(r[0] + t * r[3], r[1] + t * r[4])
+        }
+        val centre = groundHit(500f, 500f)
+        val right = groundHit(600f, 500f)
+        val up = groundHit(500f, 400f)
+        assertTrue("screen right is +X", right.first - centre.first > 0)
+        assertEquals(centre.second, right.second, 1e-6)
+        assertTrue("screen up is +Y", up.second - centre.second > 0)
+        assertEquals(centre.first, up.first, 1e-6)
+    }
+
+    @Test
+    fun pixelSizeMatchesPanDistance() {
+        val camera = OrbitCamera()
+        val x0 = camera.targetX
+        val y0 = camera.targetY
+        camera.pan(1f, 0f, 900)
+        val moved = sqrt((camera.targetX - x0).let { it * it } + (camera.targetY - y0).let { it * it })
+        assertEquals(camera.millimetresPerPixel(900), moved, 1e-9)
+        assertEquals(0.0, camera.millimetresPerPixel(0), 0.0)
+    }
+
+    @Test
+    fun rayIsNullForEmptyViewport() {
+        assertEquals(null, OrbitCamera().ray(0f, 0f, 0, 100))
+    }
 }

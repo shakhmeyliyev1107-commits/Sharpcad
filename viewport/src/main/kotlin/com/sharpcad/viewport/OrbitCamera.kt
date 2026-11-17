@@ -62,6 +62,44 @@ class OrbitCamera(
         targetZ += up * upZ
     }
 
+    /** Looks at the target from the given direction; [pitch] is clamped short of the poles. */
+    fun setView(yaw: Double, pitch: Double) {
+        if (!yaw.isFinite() || !pitch.isFinite()) return
+        this.yaw = wrapAngle(yaw)
+        this.pitch = pitch.coerceIn(-MAX_PITCH, MAX_PITCH)
+    }
+
+    /** Model-space size of one screen pixel at the target's depth. */
+    fun millimetresPerPixel(viewportHeight: Int): Double =
+        if (viewportHeight <= 0) 0.0 else 2.0 * distance * tan(verticalFov / 2.0) / viewportHeight
+
+    /**
+     * The view ray through a screen pixel, as `[originX, originY, originZ, dirX, dirY, dirZ]`
+     * in model space, or `null` for an empty viewport. The direction is not normalised.
+     */
+    fun ray(xPixels: Float, yPixels: Float, viewportWidth: Int, viewportHeight: Int): DoubleArray? {
+        if (viewportWidth <= 0 || viewportHeight <= 0) return null
+        val halfHeight = tan(verticalFov / 2.0)
+        val halfWidth = halfHeight * viewportWidth / viewportHeight
+        val sx = (2.0 * xPixels / viewportWidth - 1.0) * halfWidth
+        val sy = (1.0 - 2.0 * yPixels / viewportHeight) * halfHeight
+        // Camera basis: forward towards the target, right and up as seen on screen.
+        val fx = -cos(pitch) * cos(yaw)
+        val fy = -cos(pitch) * sin(yaw)
+        val fz = -sin(pitch)
+        val rx = -sin(yaw)
+        val ry = cos(yaw)
+        val ux = -sin(pitch) * cos(yaw)
+        val uy = -sin(pitch) * sin(yaw)
+        val uz = cos(pitch)
+        return doubleArrayOf(
+            eyeX, eyeY, eyeZ,
+            fx + sx * rx + sy * ux,
+            fy + sx * ry + sy * uy,
+            fz + sy * uz,
+        )
+    }
+
     /** Scales the view; [factor] > 1 zooms in (pinch out). */
     fun zoom(factor: Float) {
         if (!factor.isFinite() || factor <= 0f) return

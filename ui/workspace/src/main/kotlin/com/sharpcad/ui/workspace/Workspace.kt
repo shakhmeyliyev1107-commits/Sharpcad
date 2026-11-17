@@ -2,6 +2,7 @@ package com.sharpcad.ui.workspace
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -51,6 +52,9 @@ class WorkspaceActions(
  * @param projectName shown in the middle of the top bar.
  * @param status short multi-line readout shown at the bottom (model and frame figures).
  * @param busy while true the file actions are disabled.
+ * @param sketchActive highlights the Sketch rail button.
+ * @param onSketchToggle called when the Sketch rail button is tapped.
+ * @param overlay extra controls drawn over the viewport, below the top bar (sketch tools).
  */
 @Composable
 fun Workspace(
@@ -58,6 +62,9 @@ fun Workspace(
     actions: WorkspaceActions,
     status: String,
     busy: Boolean,
+    sketchActive: Boolean = false,
+    onSketchToggle: () -> Unit = {},
+    overlay: @Composable BoxScope.() -> Unit = {},
     viewport: @Composable () -> Unit,
 ) {
     Box(Modifier.fillMaxSize().background(SharpCadColors.Background)) {
@@ -65,8 +72,14 @@ fun Workspace(
         Column(Modifier.fillMaxSize().safeDrawingPadding()) {
             TopBar(projectName, actions, busy)
             Box(Modifier.fillMaxSize().padding(SharpCadDimens.Gutter)) {
-                ToolRail(LeftRailGroups, Modifier.align(Alignment.TopStart))
+                ToolRail(
+                    LeftRailGroups,
+                    Modifier.align(Alignment.TopStart),
+                    actions = mapOf(SKETCH_ITEM to onSketchToggle),
+                    active = if (sketchActive) setOf(SKETCH_ITEM) else emptySet(),
+                )
                 ToolRail(RightRailGroups, Modifier.align(Alignment.TopEnd))
+                overlay()
                 if (status.isNotEmpty()) {
                     Text(
                         text = status,

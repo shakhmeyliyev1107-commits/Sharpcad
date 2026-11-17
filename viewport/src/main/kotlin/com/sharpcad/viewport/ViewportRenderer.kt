@@ -58,11 +58,14 @@ internal class ViewportRenderer(private val surfaceView: SurfaceView) {
     private val vertexColorMaterial: Material
     private val shadedMaterial: Material
     private val flatMaterial: Material
+    private val overlayMaterial: Material
+    private val overlayInstance: MaterialInstance
     private val faceInstance: MaterialInstance
     private val edgeInstance: MaterialInstance
 
     private val grid: Lines
     private var model: Model? = null
+    private var overlay: Lines? = null
     private var modelBounds: FloatArray? = null
 
     private val uiHelper = UiHelper(UiHelper.ContextErrorPolicy.DONT_CHECK)
@@ -144,6 +147,12 @@ internal class ViewportRenderer(private val surfaceView: SurfaceView) {
             setParameter("color", c[0], c[1], c[2])
         }
 
+        overlayMaterial = loadMaterial("materials/overlay_color.filamat")
+        overlayInstance = overlayMaterial.createInstance().apply {
+            val c = srgbToLinear(OVERLAY_SRGB)
+            setParameter("color", c[0], c[1], c[2])
+        }
+
         grid = createGrid()
         scene.addEntity(grid.entity)
         fitView()
@@ -166,6 +175,27 @@ internal class ViewportRenderer(private val surfaceView: SurfaceView) {
         }
         updateSceneRadius()
         requestRender()
+    }
+
+    /**
+     * Replaces the overlay lines (sketch geometry), drawn on top of everything.
+     * [segments] holds xyz triples, two points per line segment; `null` or empty clears it.
+     */
+    fun setOverlayLines(segments: FloatArray?) {
+        if (destroyed) return
+        overlay?.let { destroyLines(it) }
+        overlay = null
+        if (segments != null && segments.size >= 6) {
+            require(segments.size % 6 == 0) { "Overlay segments must be pairs of xyz points" }
+            overlay = createOverlay(segments)
+        }
+        requestRender()
+    }
+
+    /** Points the camera along a fixed direction (radians) and frames the scene. */
+    fun setViewDirection(yaw: Double, pitch: Double) {
+        camera.setView(yaw, pitch)
+        fitView()
     }
 
     /** Frames the model, or the grid when there is no model. */
@@ -238,6 +268,8 @@ internal class ViewportRenderer(private val surfaceView: SurfaceView) {
         uiHelper.detach()
         model?.let { destroyModel(it) }
         model = null
+        overlay?.let { destroyLines(it) }
+        overlay = null
         scene.remove(grid.entity)
         engine.destroyEntity(grid.entity)
         engine.destroyVertexBuffer(grid.vertices)
@@ -245,6 +277,8 @@ internal class ViewportRenderer(private val surfaceView: SurfaceView) {
         EntityManager.get().destroy(grid.entity)
         engine.destroyMaterialInstance(faceInstance)
         engine.destroyMaterialInstance(edgeInstance)
+        engine.destroyMaterialInstance(overlayInstance)
+        engine.destroyMaterial(overlayMaterial)
         engine.destroyMaterial(vertexColorMaterial)
         engine.destroyMaterial(shadedMaterial)
         engine.destroyMaterial(flatMaterial)
@@ -371,14 +405,53 @@ internal class ViewportRenderer(private val surfaceView: SurfaceView) {
         return Model(faces, Lines(edgeEntity, edgeVertices, edgeIndices))
     }
 
-    private fun destroyModel(m: Model) {
-        for (part in listOfNotNull(m.faces, m.edges)) {
-            scene.remove(part.entity)
-            engine.destroyEntity(part.entity)
-            engine.destroyVertexBuffer(part.vertices)
-            engine.destroyIndexBuffer(part.indices)
-            EntityManager.get().destroy(part.entity)
+    private fun createOverlay(segments: FloatArray): Lines {
+        val count = segments.size / 3
+        val data = ByteBuffer.allocateDirect(segments.size * 4).order(ByteOrder.nativeOrder())
+        data.asFloatBuffer().put(segments)
+        var minX = Float.MAX_VALUE; var minY = Float.MAX_VALUE; var minZ = Float.MAX_VALUE
+        var maxX = -Float.MAX_VALUE; var maxY = -Float.MAX_VALUE; var maxZ = -Float.MAX_VALUE
+        for (i in segments.indices step 3) {
+            minX = minOf(minX, segments[i]); maxX = maxOf(maxX, segments[i])
+            minY = minOf(minY, segments[i + 1]); maxY = maxOf(maxY, segments[i + 1])
+            minZ = minOf(minZ, segments[i + 2]); maxZ = maxOf(maxZ, segments[i + 2])
         }
+        val vertices = VertexBuffer.Builder()
+            .bufferCount(1)
+            .vertexCount(count)
+            .attribute(VertexBuffer.VertexAttribute.POSITION, 0, VertexBuffer.AttributeType.FLOAT3, 0, 12)
+            .build(engine)
+            .apply { setBufferAt(engine, 0, data) }
+        val indices = sequentialIndices(count)
+        val entity = EntityManager.get().create()
+        RenderableManager.Builder(1)
+            .boundingBox(
+                Box(
+                    (minX + maxX) / 2, (minY + maxY) / 2, (minZ + maxZ) / 2,
+                    max((maxX - minX) / 2, 1e-3f), max((maxY - minY) / 2, 1e-3f), max((maxZ - minZ) / 2, 1e-3f),
+                ),
+            )
+            .geometry(0, RenderableManager.PrimitiveType.LINES, vertices, indices, 0, count)
+            .material(0, overlayInstance)
+            .priority(7) // drawn last, on top of the model
+            .culling(false)
+            .castShadows(false)
+            .receiveShadows(false)
+            .build(engine, entity)
+        scene.addEntity(entity)
+        return Lines(entity, vertices, indices)
+    }
+
+    private fun destroyModel(m: Model) {
+        for (part in listOfNotNull(m.faces, m.edges)) destroyLines(part)
+    }
+
+    private fun destroyLines(part: Lines) {
+        scene.remove(part.entity)
+        engine.destroyEntity(part.entity)
+        engine.destroyVertexBuffer(part.vertices)
+        engine.destroyIndexBuffer(part.indices)
+        EntityManager.get().destroy(part.entity)
     }
 
     /** Index buffer 0, 1, 2, … for non-indexed line lists (Filament always needs indices). */
@@ -405,6 +478,7 @@ internal class ViewportRenderer(private val surfaceView: SurfaceView) {
         const val BACKGROUND_SRGB = 0x1B1F26
         const val FACE_SRGB = 0xB9C4D6
         const val EDGE_SRGB = 0x11151B
+        const val OVERLAY_SRGB = 0x5AA2FF
 
         /** A few extra frames after each request so the last state always reaches the screen. */
         const val FRAMES_PER_REQUEST = 3

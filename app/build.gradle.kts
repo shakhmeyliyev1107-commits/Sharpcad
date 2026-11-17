@@ -7,6 +7,9 @@ plugins {
 android {
     namespace = "com.sharpcad.app"
     compileSdk = libs.versions.compileSdk.get().toInt()
+    // Needed here too: the app module strips debug symbols from every packaged .so, and
+    // without the version it looks for an NDK that is not installed and strips nothing.
+    ndkVersion = libs.versions.ndk.get()
 
     defaultConfig {
         applicationId = "com.sharpcad.app"
@@ -18,7 +21,12 @@ android {
     }
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
+            // Test builds only: signed with the debug key so they install without a
+            // release keystore. Replace before any store upload.
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
     compileOptions {
