@@ -72,7 +72,7 @@ private fun WorkspaceScreen() {
     val exportPicker = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/octet-stream")) { uri ->
         if (uri != null) state.export(uri, exportFormat.value)
     }
-    val actions = remember(state, openPicker, exportPicker) {
+    val actions = remember(state, openPicker, exportPicker, state.recentProjects) {
         WorkspaceActions(
             onImportStep = { openPicker.launch(arrayOf("*/*")) },
             onOpenSample = state::openSample,
@@ -85,11 +85,13 @@ private fun WorkspaceScreen() {
             onUndo = model::undo,
             onRedo = model::redo,
             onViewInAr = { (context as? android.app.Activity)?.let(state::viewInAr) },
+            recentProjects = state.recentProjects,
+            onOpenProject = state::openProject,
         )
     }
 
-    // Start with something to look at.
-    LaunchedEffect(Unit) { state.openSample() }
+    // Reopen the last project; the sample part on first launch.
+    LaunchedEffect(Unit) { state.start() }
 
     Box(Modifier.fillMaxSize()) {
     Workspace(

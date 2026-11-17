@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 val occtHost = rootProject.layout.projectDirectory.dir("native/third_party/occt/host")
@@ -34,6 +35,7 @@ kotlin {
 dependencies {
     api(project(":kernel"))
     api(libs.coroutines.core)
+    implementation(libs.serialization.json)
     testImplementation(libs.junit)
 }
 

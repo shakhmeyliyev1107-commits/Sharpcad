@@ -30,6 +30,13 @@ class WorkspaceState(
     val model: ModelController,
 ) {
     private val appContext = context.applicationContext
+    private val store = com.sharpcad.document.ProjectStore(File(appContext.filesDir, "projects"))
+    private var projectId: String? = null
+    private var saveJob: kotlinx.coroutines.Job? = null
+
+    /** Saved projects, newest first: (id, name). */
+    var recentProjects by mutableStateOf<List<Pair<String, String>>>(emptyList())
+        private set
 
     var projectName by mutableStateOf("Untitled")
         private set
@@ -50,12 +57,61 @@ class WorkspaceState(
 
     init {
         viewport.onFrameStats = ::onFrameStats
+        model.onChanged = ::scheduleSave
+    }
+
+    /** Opens the most recent project, or the sample part on first launch. */
+    fun start() {
+        scope.launch {
+            val recent = withContext(Dispatchers.IO) { store.list() }
+            recentProjects = recent.map { it.id to it.name }
+            val last = recent.firstOrNull()
+            if (last != null) openProject(last.id) else openSample()
+        }
+    }
+
+    fun openProject(id: String) {
+        if (busy) return
+        scope.launch {
+            val data = withContext(Dispatchers.IO) { store.load(id) }
+            if (data == null) {
+                errorLine = "Could not open the project"
+                return@launch
+            }
+            saveJob?.cancel()
+            projectId = id
+            projectName = data.name
+            errorLine = ""
+            model.restoreMaterials(data.materials)
+            model.reset(data.features)
+        }
     }
 
     fun newModel() {
+        saveJob?.cancel()
+        projectId = store.newId()
         projectName = "Untitled"
         errorLine = ""
+        model.restoreMaterials(emptyMap())
         model.reset(emptyList())
+    }
+
+    /** Saves shortly after the last change, so a burst of edits is written once. */
+    private fun scheduleSave() {
+        val id = projectId ?: return
+        saveJob?.cancel()
+        saveJob = scope.launch {
+            kotlinx.coroutines.delay(SAVE_DELAY_MS)
+            val data = com.sharpcad.document.ProjectData(name = projectName, features = model.state.features, materials = model.materialsSnapshot())
+            try {
+                withContext(Dispatchers.IO) { store.save(id, data) }
+                recentProjects = withContext(Dispatchers.IO) { store.list() }.map { it.id to it.name }
+            } catch (e: IOException) {
+                errorLine = "Autosave failed: ${e.message}"
+            } catch (e: IllegalStateException) {
+                errorLine = "Autosave failed: ${e.message}"
+            }
+        }
     }
 
     fun openSample() = load(SAMPLE_NAME) { appContext.assets.open("samples/$SAMPLE_NAME") }
@@ -168,8 +224,11 @@ class WorkspaceState(
                     open().use { input -> file.outputStream().use { input.copyTo(it) } }
                     file
                 }
+                saveJob?.cancel()
+                projectId = store.newId()
                 projectName = name.substringBeforeLast('.')
                 frameLine = ""
+                model.restoreMaterials(emptyMap())
                 model.reset(listOf(ImportFeature(1, stored.path, name.substringBeforeLast('.'))))
             } catch (e: IOException) {
                 errorLine = "Could not open $name: ${e.message}"
@@ -197,6 +256,7 @@ class WorkspaceState(
     }
 
     private companion object {
+        const val SAVE_DELAY_MS = 800L
         const val SAMPLE_NAME = "bracket.step"
     }
 }

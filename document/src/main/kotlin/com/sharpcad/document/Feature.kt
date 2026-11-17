@@ -1,12 +1,17 @@
 package com.sharpcad.document
 
 import com.sharpcad.kernel.BooleanOp
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 import com.sharpcad.kernel.PlaneFrame
 
 /**
  * A sketch plane, stored as plain values so features can be compared and saved.
  * Points on it are `origin + u * xAxis + v * yAxis` (model millimetres).
  */
+@Serializable
+@SerialName("plane")
 data class PlaneSpec(
     val name: String,
     val origin: List<Double>,
@@ -37,6 +42,8 @@ data class PlaneSpec(
  * @property circles cx, cy, radius per circle.
  * @property regions indices of the closed regions to use, or `null` for all of them.
  */
+@Serializable
+@SerialName("profile")
 data class Profile(
     val plane: PlaneSpec,
     val lines: List<Double>,
@@ -63,17 +70,22 @@ enum class RevolveAxis(val label: String) { U("Horizontal axis"), V("Vertical ax
  *
  * A body is identified by the [id] of the feature that created it.
  */
+@Serializable
 sealed interface Feature {
     val id: Long
     val label: String
 }
 
 /** A STEP or IGES file copied into app storage (format from the extension). Creates a body. */
+@Serializable
+@SerialName("import")
 data class ImportFeature(override val id: Long, val path: String, val name: String) : Feature {
     override val label: String get() = "Import $name"
 }
 
 /** Extrudes [profile] along the plane normal by [distance] (negative goes the other way). */
+@Serializable
+@SerialName("extrude")
 data class ExtrudeFeature(
     override val id: Long,
     val profile: Profile,
@@ -87,6 +99,8 @@ data class ExtrudeFeature(
 }
 
 /** Revolves [profile] around one of its plane axes by [angleDegrees]. */
+@Serializable
+@SerialName("revolve")
 data class RevolveFeature(
     override val id: Long,
     val profile: Profile,
@@ -99,21 +113,29 @@ data class RevolveFeature(
 }
 
 /** Rounds the edges of [face] of [body], or all its edges when [face] is -1. */
+@Serializable
+@SerialName("fillet")
 data class FilletFeature(override val id: Long, val body: Long, val radius: Double, val face: Int = -1) : Feature {
     override val label: String get() = "Fillet ${formatMm(radius)} mm"
 }
 
 /** Bevels the edges of [face] of [body], or all its edges when [face] is -1. */
+@Serializable
+@SerialName("chamfer")
 data class ChamferFeature(override val id: Long, val body: Long, val distance: Double, val face: Int = -1) : Feature {
     override val label: String get() = "Chamfer ${formatMm(distance)} mm"
 }
 
 /** Moves flat [face] of [body] along its normal. */
+@Serializable
+@SerialName("pushPull")
 data class PushPullFeature(override val id: Long, val body: Long, val face: Int, val distance: Double) : Feature {
     override val label: String get() = "Push/Pull ${formatMm(distance)} mm"
 }
 
 /** Combines [tool] into [target]; the tool body is consumed. */
+@Serializable
+@SerialName("boolean")
 data class BooleanFeature(override val id: Long, val target: Long, val tool: Long, val op: BooleanOp) : Feature {
     override val label: String
         get() = when (op) {

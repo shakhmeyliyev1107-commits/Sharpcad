@@ -156,6 +156,18 @@ class ModelController(
         get() = selection?.let { s -> "Applies to ${state.bodies.firstOrNull { it.bodyId == s.bodyId }?.label ?: "the selected body"}" }
             ?: "Nothing selected: applies to every body"
 
+    /** Called after every rebuild or appearance change (autosave). */
+    var onChanged: (() -> Unit)? = null
+
+    fun materialsSnapshot(): Map<Long, String> = materials.toMap()
+
+    /** Replaces all material assignments (opening a project). */
+    fun restoreMaterials(saved: Map<Long, String>) {
+        materials.clear()
+        materials.putAll(saved)
+        scope.launch { redraw(fit = false) }
+    }
+
     /** Material of a body for exports and rendering. */
     fun materialOf(bodyId: Long) = MaterialLibrary.find(materials[bodyId])
 
@@ -164,6 +176,7 @@ class ModelController(
         val targets = selection?.let { listOf(it.bodyId) } ?: state.bodies.map { it.bodyId }
         targets.forEach { materials[it] = id }
         scope.launch { redraw(fit = false) }
+        onChanged?.invoke()
     }
 
     fun edit(id: Long) {
@@ -425,6 +438,7 @@ class ModelController(
         state = newState
         val drawn = redraw(fit = fitOnNextModel)
         if (drawn) fitOnNextModel = false
+        onChanged?.invoke()
         // Face indices may have changed: drop a selection whose body is gone.
         selection?.let { s -> if (newState.bodies.none { it.bodyId == s.bodyId }) clearSelection() else select(s) }
     }

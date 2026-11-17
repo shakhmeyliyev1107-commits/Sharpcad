@@ -49,6 +49,9 @@ class WorkspaceActions(
     val onUndo: () -> Unit = {},
     val onRedo: () -> Unit = {},
     val onViewInAr: () -> Unit = {},
+    /** Saved projects (id to name), newest first, and how to open one. */
+    val recentProjects: List<Pair<String, String>> = emptyList(),
+    val onOpenProject: (String) -> Unit = {},
 )
 
 /**
@@ -132,6 +135,9 @@ private fun TopBar(projectName: String, actions: WorkspaceActions, busy: Boolean
     ) {
         TopMenu("File") { close ->
             MenuItem("New", enabled = !busy) { close(); actions.onNew() }
+            actions.recentProjects.take(6).forEach { (id, name) ->
+                MenuItem("Open: $name", enabled = !busy) { close(); actions.onOpenProject(id) }
+            }
             MenuItem("Import STEP / IGES…", enabled = !busy) { close(); actions.onImportStep() }
             for ((label, ext) in EXPORTS) MenuItem("Export $label…", enabled = !busy) { close(); actions.onExport(ext) }
             MenuItem("Open sample part", enabled = !busy) { close(); actions.onOpenSample() }
