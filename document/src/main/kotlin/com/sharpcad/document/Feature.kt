@@ -140,6 +140,13 @@ data class ShellFeature(override val id: Long, val body: Long, val face: Int, va
     override val label: String get() = "Shell ${formatMm(thickness)} mm"
 }
 
+/** Removes [body] from the model. */
+@Serializable
+@SerialName("deleteBody")
+data class DeleteBodyFeature(override val id: Long, val body: Long) : Feature {
+    override val label: String get() = "Delete body"
+}
+
 /** Combines [tool] into [target]; the tool body is consumed. */
 @Serializable
 @SerialName("boolean")

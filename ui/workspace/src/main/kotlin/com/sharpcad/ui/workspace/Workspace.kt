@@ -86,6 +86,8 @@ fun Workspace(
     onDrawings: () -> Unit = {},
     onAppearance: () -> Unit = {},
     onSection: () -> Unit = {},
+    onItems: () -> Unit = {},
+    itemsActive: Boolean = false,
     sectionActive: Boolean = false,
     appearanceActive: Boolean = false,
     /** Left-handed layout: tools on the right, settings on the left. */
@@ -105,11 +107,11 @@ fun Workspace(
                     showLabels = showLabels,
                     actions = mapOf(
                         SKETCH_ITEM to onSketchToggle, VISUALIZATION_ITEM to onMaterialsToggle,
-                        DRAWINGS_ITEM to onDrawings, SECTION_ITEM to onSection,
+                        DRAWINGS_ITEM to onDrawings, SECTION_ITEM to onSection, ITEMS_ITEM to onItems,
                     ),
                     active = setOfNotNull(
                         SKETCH_ITEM.takeIf { sketchActive }, VISUALIZATION_ITEM.takeIf { materialsActive },
-                        SECTION_ITEM.takeIf { sectionActive },
+                        SECTION_ITEM.takeIf { sectionActive }, ITEMS_ITEM.takeIf { itemsActive },
                     ),
                 )
                 ToolRail(

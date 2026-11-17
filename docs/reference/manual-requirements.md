@@ -80,4 +80,5 @@ nom, belgi yoki rasm ko'chirilmaydi.
 | Benchmark (qurish, bul, eksport/import, aylanish kadri) | qilingan; Perfetto/AGI profili qilinmagan |
 | Shell, kesim ko'rinishi, maydon/hajm o'lchash | qilingan (qurilmada sinalmagan) |
 | Markazdan to'rtburchak, olti burchak; teng/parallel/perpendikulyar cheklovlar (dvigatelda) | qilingan |
-| Qolganlari (yoy, splayn, kesish, ofset, massiv, matn, loft, sweep, Items, o'zgaruvchilar, gizmo, cheklovlarni UI dan qo'yish) | rejalashtirilgan |
+| Items paneli: tanlash, nomlash, yashirish/ko'rsatish, o'chirish (loyihada saqlanadi) | qilingan |
+| Qolganlari (yoy, splayn, kesish, ofset, massiv, matn, loft, sweep, o'zgaruvchilar, gizmo, cheklovlarni UI dan qo'yish) | rejalashtirilgan |

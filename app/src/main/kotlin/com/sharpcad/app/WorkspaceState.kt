@@ -83,6 +83,7 @@ class WorkspaceState(
             projectName = data.name
             errorLine = ""
             model.restoreMaterials(data.materials)
+            model.restoreItems(data.bodyNames, data.hidden)
             model.reset(data.features)
         }
     }
@@ -102,7 +103,10 @@ class WorkspaceState(
         saveJob?.cancel()
         saveJob = scope.launch {
             kotlinx.coroutines.delay(SAVE_DELAY_MS)
-            val data = com.sharpcad.document.ProjectData(name = projectName, features = model.state.features, materials = model.materialsSnapshot())
+            val data = com.sharpcad.document.ProjectData(
+                name = projectName, features = model.state.features, materials = model.materialsSnapshot(),
+                bodyNames = model.namesSnapshot(), hidden = model.hiddenSnapshot(),
+            )
             try {
                 withContext(Dispatchers.IO) { store.save(id, data) }
                 recentProjects = withContext(Dispatchers.IO) { store.list() }.map { it.id to it.name }

@@ -209,6 +209,50 @@ class ModelController(
         get() = selection?.let { s -> "Applies to ${state.bodies.firstOrNull { it.bodyId == s.bodyId }?.label ?: "the selected body"}" }
             ?: "Nothing selected: applies to every body"
 
+    // ---- Items ----------------------------------------------------------------------
+
+    private val bodyNames = androidx.compose.runtime.mutableStateMapOf<Long, String>()
+    private val hidden = androidx.compose.runtime.mutableStateListOf<Long>()
+    var itemsOpen by mutableStateOf(false)
+        private set
+
+    fun toggleItems() {
+        itemsOpen = !itemsOpen
+    }
+
+    fun bodyName(id: Long): String = bodyNames[id] ?: state.bodies.firstOrNull { it.bodyId == id }?.label ?: "Body"
+
+    val itemRows: List<com.sharpcad.ui.workspace.ItemRow>
+        get() = state.bodies.map { com.sharpcad.ui.workspace.ItemRow(it.bodyId, bodyName(it.bodyId), it.bodyId !in hidden, selection?.bodyId == it.bodyId) }
+
+    fun selectBody(id: Long) = select(Selection(id, 0))
+
+    fun renameBody(id: Long, name: String) {
+        bodyNames[id] = name
+        onChanged?.invoke()
+    }
+
+    fun toggleVisible(id: Long) {
+        if (id in hidden) hidden.remove(id) else hidden.add(id)
+        if (selection?.bodyId == id) clearSelection()
+        scope.launch { redraw(fit = false) }
+        onChanged?.invoke()
+    }
+
+    fun deleteBody(id: Long) = launchEdit {
+        clearSelection()
+        document.add(com.sharpcad.document.DeleteBodyFeature(document.newId(), id))
+    }
+
+    fun namesSnapshot(): Map<Long, String> = bodyNames.toMap()
+
+    fun hiddenSnapshot(): Set<Long> = hidden.toSet()
+
+    fun restoreItems(names: Map<Long, String>, hiddenIds: Set<Long>) {
+        bodyNames.clear(); bodyNames.putAll(names)
+        hidden.clear(); hidden.addAll(hiddenIds)
+    }
+
     /** Called after every rebuild or appearance change (autosave). */
     var onChanged: (() -> Unit)? = null
 
@@ -414,7 +458,7 @@ class ModelController(
             is PushPullFeature -> fields += DimensionField("Distance", kotlin.math.abs(f.distance))
             is com.sharpcad.document.ShellFeature -> fields += DimensionField("Thickness", f.thickness)
             is BooleanFeature -> choices += ChoiceField("Operation", BooleanOp.entries.map { it.name.lowercase() }, f.op.name.lowercase())
-            is ImportFeature -> Unit
+            is ImportFeature, is com.sharpcad.document.DeleteBodyFeature -> Unit
         }
         val flip = when (f) {
             is ExtrudeFeature -> f.copy(distance = -f.distance)
@@ -514,7 +558,8 @@ class ModelController(
 
     /** Re-merges the bodies with their materials and hands the mesh to the viewport. */
     private suspend fun redraw(fit: Boolean): Boolean {
-        val bodies = state.bodies
+        val hiddenNow = hidden.toSet()
+        val bodies = state.bodies.filter { it.bodyId !in hiddenNow }
         val chosen = materials.toMap()
         val merged = withContext(Dispatchers.Default) {
             MeshTools.merge(bodies) { id -> MaterialLibrary.find(chosen[id]) }

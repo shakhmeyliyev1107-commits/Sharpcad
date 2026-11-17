@@ -23,6 +23,7 @@ import com.sharpcad.document.Document
 import com.sharpcad.ui.designsystem.SharpCadTheme
 import com.sharpcad.document.MaterialLibrary
 import com.sharpcad.ui.workspace.HistoryPanel
+import com.sharpcad.ui.workspace.ItemsPanel
 import com.sharpcad.ui.workspace.MaterialPanel
 import com.sharpcad.ui.workspace.MaterialSwatch
 import com.sharpcad.ui.workspace.ParameterPanel
@@ -113,6 +114,8 @@ private fun WorkspaceScreen() {
         onDrawings = { model.openDrawing(state.projectName) },
         onAppearance = settings::toggle,
         onSection = model::toggleSection,
+        onItems = model::toggleItems,
+        itemsActive = model.itemsOpen,
         sectionActive = model.sectionOn,
         appearanceActive = settings.open,
         toolsOnRight = settings.toolsOnRight,
@@ -175,6 +178,17 @@ private fun WorkspaceScreen() {
                         modifier = Modifier.padding(top = 8.dp).widthIn(max = 560.dp),
                     )
                 }
+            }
+            if (model.itemsOpen) {
+                ItemsPanel(
+                    items = model.itemRows,
+                    onSelect = model::selectBody,
+                    onRename = model::renameBody,
+                    onToggleVisible = model::toggleVisible,
+                    onDelete = model::deleteBody,
+                    modifier = if (settings.toolsOnRight) Modifier.align(Alignment.BottomEnd).padding(end = 64.dp, bottom = 64.dp)
+                    else Modifier.align(Alignment.BottomStart).padding(start = 64.dp, bottom = 64.dp),
+                )
             }
             if (model.materialsOpen) {
                 MaterialPanel(

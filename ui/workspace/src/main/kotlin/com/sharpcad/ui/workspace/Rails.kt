@@ -55,6 +55,7 @@ internal const val VISUALIZATION_ITEM = "Visualization"
 internal const val DRAWINGS_ITEM = "Drawings"
 internal const val APPEARANCE_ITEM = "Appearance"
 internal const val SECTION_ITEM = "Section view"
+internal const val ITEMS_ITEM = "Items"
 internal const val DISPLAY_ITEM = "Display mode"
 
 internal val LeftRailGroups: List<List<RailItem>> = listOf(
@@ -62,7 +63,7 @@ internal val LeftRailGroups: List<List<RailItem>> = listOf(
         RailItem("Modeling", Icons.Outlined.ViewInAr, selected = true),
         RailItem(VISUALIZATION_ITEM, Icons.Outlined.Texture),
         RailItem(DRAWINGS_ITEM, Icons.Outlined.Architecture),
-        RailItem("Items", Icons.Outlined.Layers),
+        RailItem(ITEMS_ITEM, Icons.Outlined.Layers),
     ),
     listOf(
         RailItem("Search", Icons.Outlined.Search),

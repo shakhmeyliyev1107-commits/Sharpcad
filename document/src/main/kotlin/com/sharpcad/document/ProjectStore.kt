@@ -13,6 +13,10 @@ data class ProjectData(
     val features: List<Feature>,
     /** Material preset id per body id. */
     val materials: Map<Long, String> = emptyMap(),
+    /** User-given body names by body id. */
+    val bodyNames: Map<Long, String> = emptyMap(),
+    /** Ids of hidden bodies. */
+    val hidden: Set<Long> = emptySet(),
 ) {
     companion object {
         const val FORMAT = 1
