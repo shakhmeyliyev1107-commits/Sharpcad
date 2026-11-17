@@ -7,7 +7,7 @@ sources:
   - ext: https://support.shapr3d.com/hc/en-us/articles/9760033847964-Shapr3D-Manual
   - code: document/src/main/kotlin/com/sharpcad/document/ModelBuilder.kt
   - code: app/src/main/kotlin/com/sharpcad/app/ModelController.kt
-verified_at: 8f33ddb
+verified_at: 5728ade
 ---
 
 # Ish oqimi talablari
