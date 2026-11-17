@@ -157,7 +157,12 @@ internal fun DimensionInput(field: DimensionField, onCommit: (Double) -> Unit) {
     var text by remember { mutableStateOf(formatMillimetres(field.value)) }
     val parsed = Expression.evaluate(text)
         ?.takeIf { it.isFinite() && (if (field.allowNegative) it != 0.0 else it > 0.0) }
-    val commit = { if (parsed != null) onCommit(parsed) }
+    val commit = {
+        if (parsed != null) {
+            Expression.assignedName(text)?.let { Expression.variables[it] = parsed }
+            onCommit(parsed)
+        }
+    }
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(field.label, color = SharpCadColors.ContentMuted, fontSize = 12.sp)
         BasicTextField(
@@ -177,7 +182,7 @@ internal fun DimensionInput(field: DimensionField, onCommit: (Double) -> Unit) {
             ),
             keyboardActions = KeyboardActions(onDone = { commit() }),
             modifier = Modifier
-                .width(72.dp)
+                .width(96.dp)
                 .clip(RoundedCornerShape(6.dp))
                 .background(SharpCadColors.Background)
                 .padding(horizontal = 8.dp, vertical = 6.dp),

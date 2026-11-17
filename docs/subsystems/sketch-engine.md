@@ -96,7 +96,10 @@ chiziq; Equal, Parallel, Perpendicular — ikki chiziq ketma-ket) teginish bilan
 ziddiyat bo'lsa cheklov qaytarib olinadi.
 
 Pattern: obyekt ustiga bosib sudraladi; 3 nusxa barmoqqacha teng taqsimlanadi, so'ng
-"Count" maydoni sonini o'zgartiradi (2–50). O'lcham maydonlari ifodalarni qabul qiladi
+"Count" maydoni sonini o'zgartiradi (2–50). Circular pattern: obyekt ustiga bosib
+markazgacha sudraladi; 6 nusxa 360° bo'ylab teng joylashadi, Count bilan o'zgaradi.
+Istalgan o'lcham maydoniga `w=40` yozilsa, `w` o'zgaruvchisi seans davomida boshqa
+maydonlarda ishlatiladi (`w/2`). O'lcham maydonlari ifodalarni qabul qiladi
 (`20+5*2`, `2 cm`, `1in`) — `ui/workspace/src/main/kotlin/com/sharpcad/ui/workspace/Expression.kt`.
 
 Spline: barmoq bilan erkin chiziladi; iz ~40 px oralig'ida nazorat nuqtalariga
@@ -130,3 +133,6 @@ Boshqaruv paneli (`SketchControls`) tor ekranda bir necha qatorga o'raladi.
 
 Yechuvchi o'rami (11 C++), JNI (6) va Kotlin mantig'i (yopishish, tekislik, chiziqlar)
 host'da test qilinadi. `SketchSession` va boshqaruv paneli faqat qurilmada tekshiriladi.
+
+> ⚠️ O'zgaruvchilar (`Expression.variables`) faqat xotirada: loyihaga saqlanmaydi va
+> qiymatlar o'zgarganda avval kiritilgan o'lchamlar qayta hisoblanmaydi.

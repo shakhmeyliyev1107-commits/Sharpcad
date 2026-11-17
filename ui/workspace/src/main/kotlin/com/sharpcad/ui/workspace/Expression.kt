@@ -6,11 +6,21 @@ package com.sharpcad.ui.workspace
  * suffixes mm, cm, m and in (result in millimetres). Returns `null` when it does not parse.
  */
 object Expression {
-    fun evaluate(text: String): Double? = runCatching {
-        Parser(text.replace(',', '.').lowercase().filterNot { it.isWhitespace() }).run()
+    /** Named values typed as `name=expression` in any size field; live for the session. */
+    val variables = mutableMapOf<String, Double>()
+
+    fun evaluate(text: String, vars: Map<String, Double> = variables): Double? = runCatching {
+        val clean = text.replace(',', '.').lowercase().filterNot { it.isWhitespace() }
+        Parser(clean.substringAfter('=', clean), vars).run()
     }.getOrNull()?.takeIf { it.isFinite() }
 
-    private class Parser(val s: String) {
+    /** The variable name of a `name=expression` entry, or `null`. */
+    fun assignedName(text: String): String? =
+        text.substringBefore('=', "").trim().lowercase().takeIf { NAME.matches(it) }
+
+    private val NAME = Regex("[a-z_][a-z0-9_]*")
+
+    private class Parser(val s: String, val vars: Map<String, Double>) {
         var i = 0
 
         fun run(): Double {
@@ -48,6 +58,10 @@ object Expression {
                 require(i < s.length && s[i] == ')')
                 i++
                 inner
+            } else if (i < s.length && (s[i].isLetter() || s[i] == '_')) {
+                val start = i
+                while (i < s.length && (s[i].isLetterOrDigit() || s[i] == '_')) i++
+                return vars.getValue(s.substring(start, i))
             } else {
                 val start = i
                 while (i < s.length && (s[i].isDigit() || s[i] == '.')) i++

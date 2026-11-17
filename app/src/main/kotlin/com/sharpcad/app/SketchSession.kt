@@ -36,6 +36,7 @@ enum class SketchTool(val label: String) {
     TRIM("Trim"),
     OFFSET("Offset"),
     PATTERN("Pattern"),
+    CIRCULAR("Circular pattern"),
     SPLINE("Spline"),
     HORIZONTAL("Horizontal"),
     VERTICAL("Vertical"),
@@ -170,7 +171,9 @@ class SketchSession(private val viewport: ViewportController) {
             val count = millimetres.toInt().coerceIn(2, MAX_PATTERN)
             target.ids.forEach { runCatching { s.removeEntity(it) } }
             target.ids.clear()
-            for (k in 1 until count) target.ids += addShifted(s, target.source, k * target.dx, k * target.dy)
+            for (k in 1 until count) {
+                target.ids += addShifted(s, placed(target.source, k * target.dx, k * target.dy, target.center, 2 * Math.PI * k / count), 0.0, 0.0)
+            }
             refresh()
             return
         }
@@ -231,7 +234,7 @@ class SketchSession(private val viewport: ViewportController) {
         when (activeTool) {
             SketchTool.TRIM -> return trimAt(point)
             SketchTool.OFFSET -> return beginOffset(point)
-            SketchTool.PATTERN -> return beginPattern(point)
+            SketchTool.PATTERN, SketchTool.CIRCULAR -> return beginPattern(activeTool, point)
             SketchTool.HORIZONTAL, SketchTool.VERTICAL, SketchTool.EQUAL,
             SketchTool.PARALLEL, SketchTool.PERPENDICULAR -> return constrainAt(activeTool, point)
             else -> Unit
@@ -301,7 +304,7 @@ class SketchSession(private val viewport: ViewportController) {
                 s.setArc(d.ids[0], cx, cy, r, a0, a0 + Math.PI)
             }
             SketchTool.OFFSET -> offsetTo(d, end)
-            SketchTool.PATTERN -> patternTo(d, end)
+            SketchTool.PATTERN, SketchTool.CIRCULAR -> patternTo(d, end)
             SketchTool.TRIM, SketchTool.SPLINE, SketchTool.HORIZONTAL, SketchTool.VERTICAL, SketchTool.EQUAL,
             SketchTool.PARALLEL, SketchTool.PERPENDICULAR -> Unit
             SketchTool.POLYGON -> {
@@ -397,6 +400,9 @@ class SketchSession(private val viewport: ViewportController) {
                     DimensionTarget.Count("Count", d.source!!, (d.end.x - d.start.x) / n, (d.end.y - d.start.y) / n, d.ids.toMutableList()),
                 )
             }
+            SketchTool.CIRCULAR -> dimensionTargets = listOf(
+                DimensionTarget.Count("Count", d.source!!, 0.0, 0.0, d.ids.toMutableList(), center = d.end.x to d.end.y),
+            )
             SketchTool.ARC -> {
                 val arc = d.ids[0]
                 d.start.point?.let { added += s.addCoincident(PointRef(arc, PointRole.START), it) }
@@ -476,7 +482,7 @@ class SketchSession(private val viewport: ViewportController) {
     }
 
     /** Pattern tool: press on an entity and drag; copies spread evenly up to the finger. */
-    private fun beginPattern(point: DoubleArray): Boolean {
+    private fun beginPattern(activeTool: SketchTool, point: DoubleArray): Boolean {
         val s = sketch ?: return true
         val tolerance = viewport.millimetresPerPixel() * SNAP_PIXELS
         val target = s.entities().filter { Trim.distance(it, point[0], point[1]) <= tolerance }
@@ -485,9 +491,10 @@ class SketchSession(private val viewport: ViewportController) {
             refresh("Press on a line, arc or circle and drag to pattern it")
             return true
         }
-        val ids = List(DEFAULT_PATTERN - 1) { addShifted(s, target, 0.0, 0.0) }
+        val copies = if (activeTool == SketchTool.CIRCULAR) DEFAULT_CIRCULAR - 1 else DEFAULT_PATTERN - 1
+        val ids = List(copies) { addShifted(s, target, 0.0, 0.0) }
         val start = Snap(point[0], point[1], SnapKind.NONE)
-        draft = Draft(SketchTool.PATTERN, ids, start, start).also { it.source = target }
+        draft = Draft(activeTool, ids, start, start).also { it.source = target }
         refresh()
         return true
     }
@@ -500,15 +507,37 @@ class SketchSession(private val viewport: ViewportController) {
             val f = (i + 1) / n
             val ox = (end.x - d.start.x) * f
             val oy = (end.y - d.start.y) * f
-            when (src) {
-                is SketchLine -> {
-                    s.setPoint(PointRef(id, PointRole.START), src.x1 + ox, src.y1 + oy)
-                    s.setPoint(PointRef(id, PointRole.END), src.x2 + ox, src.y2 + oy)
-                }
-                is SketchCircle -> s.setPoint(PointRef(id, PointRole.CENTER), src.cx + ox, src.cy + oy)
-                is com.sharpcad.sketch.SketchArc ->
-                    s.setArc(id, src.cx + ox, src.cy + oy, src.radius, src.startAngle, src.endAngle)
+            // Circular: the finger is the centre; copies go evenly round 360°.
+            val placedSrc = if (d.tool == SketchTool.CIRCULAR) {
+                placed(src, 0.0, 0.0, end.x to end.y, 2 * Math.PI * (i + 1) / (n + 1))
+            } else {
+                placed(src, ox, oy, null, 0.0)
             }
+            when (val e = placedSrc) {
+                is SketchLine -> {
+                    s.setPoint(PointRef(id, PointRole.START), e.x1, e.y1)
+                    s.setPoint(PointRef(id, PointRole.END), e.x2, e.y2)
+                }
+                is SketchCircle -> s.setPoint(PointRef(id, PointRole.CENTER), e.cx, e.cy)
+                is com.sharpcad.sketch.SketchArc -> s.setArc(id, e.cx, e.cy, e.radius, e.startAngle, e.endAngle)
+            }
+        }
+    }
+
+    /** [e] rotated by [angle] about [center] (if any), then moved by ([ox], [oy]). */
+    private fun placed(
+        e: com.sharpcad.sketch.SketchEntity, ox: Double, oy: Double, center: Pair<Double, Double>?, angle: Double,
+    ): com.sharpcad.sketch.SketchEntity {
+        val c = kotlin.math.cos(angle)
+        val sn = kotlin.math.sin(angle)
+        fun px(x: Double, y: Double) = if (center == null) x + ox else center.first + (x - center.first) * c - (y - center.second) * sn + ox
+        fun py(x: Double, y: Double) = if (center == null) y + oy else center.second + (x - center.first) * sn + (y - center.second) * c + oy
+        val turn = if (center == null) 0.0 else angle
+        return when (e) {
+            is SketchLine -> SketchLine(e.id, px(e.x1, e.y1), py(e.x1, e.y1), px(e.x2, e.y2), py(e.x2, e.y2))
+            is SketchCircle -> SketchCircle(e.id, px(e.cx, e.cy), py(e.cx, e.cy), e.radius)
+            is com.sharpcad.sketch.SketchArc ->
+                com.sharpcad.sketch.SketchArc(e.id, px(e.cx, e.cy), py(e.cx, e.cy), e.radius, e.startAngle + turn, e.endAngle + turn)
         }
     }
 
@@ -739,6 +768,8 @@ class SketchSession(private val viewport: ViewportController) {
             val dx: Double,
             val dy: Double,
             val ids: MutableList<Int>,
+            /** Centre of a circular pattern; `null` for a linear one. */
+            val center: Pair<Double, Double>? = null,
         ) : DimensionTarget(label)
     }
 
@@ -756,6 +787,7 @@ class SketchSession(private val viewport: ViewportController) {
 
         private const val POLYGON_SIDES = 6
         private const val DEFAULT_PATTERN = 3
+        private const val DEFAULT_CIRCULAR = 6
         private const val SPLINE_SPACING_PIXELS = 40.0
         private const val MAX_PATTERN = 50
         private const val UNDER_DEFINED_SRGB = 0x5AA2FF

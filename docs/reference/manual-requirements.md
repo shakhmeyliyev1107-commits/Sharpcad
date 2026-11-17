@@ -89,4 +89,5 @@ nom, belgi yoki rasm ko'chirilmaydi.
 | Eskiz chiziqli massivi (Count bilan); o'lchamlarda ifodalar va birliklar (mm, cm, m, in) | qilingan (qurilmada sinalmagan) |
 | Spline (erkin chizish, silliq egri; profilda kesmalar bilan) | qilingan (qurilmada sinalmagan) |
 | Zanjir ofset (ulangan chiziqlar, burchaklar tutashtiriladi) | qilingan (qurilmada sinalmagan) |
-| Qolganlari (haqiqiy B-spline, eskiz massivi, matn, o'zgaruvchilar, gizmo) | rejalashtirilgan |
+| Doiraviy eskiz massivi; o'zgaruvchilar (`w=40`, keyin `w/2`; seans davomida) | qilingan (qurilmada sinalmagan) |
+| Qolganlari (haqiqiy B-spline, matn, gizmo, saqlanadigan o'zgaruvchilar) | rejalashtirilgan |
