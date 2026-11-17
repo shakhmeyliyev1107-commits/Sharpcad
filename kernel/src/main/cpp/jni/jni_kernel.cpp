@@ -149,6 +149,21 @@ Java_com_sharpcad_kernel_KernelNative_nativeExportStep(JNIEnv* env, jclass, jlon
     });
 }
 
+JNIEXPORT jlong JNICALL
+Java_com_sharpcad_kernel_KernelNative_nativeImportIges(JNIEnv* env, jclass, jstring path) {
+    return guard<jlong>(env, 0, [&] {
+        return reinterpret_cast<jlong>(Shape::importIges(toStdString(env, path)).release());
+    });
+}
+
+JNIEXPORT void JNICALL
+Java_com_sharpcad_kernel_KernelNative_nativeExportIges(JNIEnv* env, jclass, jlong handle, jstring path) {
+    guard<int>(env, 0, [&] {
+        shapeFromHandle(handle).exportIges(toStdString(env, path));
+        return 0;
+    });
+}
+
 JNIEXPORT jdoubleArray JNICALL
 Java_com_sharpcad_kernel_KernelNative_nativeBoundingBox(JNIEnv* env, jclass, jlong handle) {
     return guard<jdoubleArray>(env, nullptr, [&]() -> jdoubleArray {

@@ -115,6 +115,17 @@ TEST(Step, RoundTripPreservesBounds) {
     std::remove(path.c_str());
 }
 
+TEST(Iges, RoundTripPreservesBounds) {
+    const std::string path = tempPath("sharpcad_roundtrip.igs");
+    Shape::makeBox(10.0, 20.0, 30.0)->exportIges(path);
+    const auto b = Shape::importIges(path)->boundingBox();
+    EXPECT_NEAR(b.max[0], 10.0, 1e-4);
+    EXPECT_NEAR(b.max[1], 20.0, 1e-4);
+    EXPECT_NEAR(b.max[2], 30.0, 1e-4);
+    std::remove(path.c_str());
+    expectError(ErrorCode::IoError, [] { Shape::importIges("/nonexistent/none.igs"); });
+}
+
 TEST(Step, MissingFileIsIoError) {
     expectError(ErrorCode::IoError, [] { Shape::importStep("/nonexistent/none.step"); });
 }

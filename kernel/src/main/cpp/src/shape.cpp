@@ -12,6 +12,10 @@
 #include <IFSelect_ReturnStatus.hxx>
 #include <Poly_PolygonOnTriangulation.hxx>
 #include <Poly_Triangulation.hxx>
+#include <IGESControl_Controller.hxx>
+#include <IGESControl_Reader.hxx>
+#include <IGESControl_Writer.hxx>
+#include <Interface_Static.hxx>
 #include <STEPControl_Reader.hxx>
 #include <STEPControl_Writer.hxx>
 #include <Standard_Failure.hxx>
@@ -141,6 +145,33 @@ void Shape::exportStep(const std::string& path) const {
         if (writer.Transfer(impl_->shape, STEPControl_AsIs) != IFSelect_RetDone ||
             writer.Write(path.c_str()) != IFSelect_RetDone) {
             throw KernelError(ErrorCode::IoError, "Cannot write STEP file: " + path);
+        }
+        return 0;
+    });
+}
+
+std::unique_ptr<Shape> Shape::importIges(const std::string& path) {
+    return guarded("importIges", [&] {
+        IGESControl_Reader reader;
+        if (reader.ReadFile(path.c_str()) != IFSelect_RetDone) {
+            throw KernelError(ErrorCode::IoError, "Cannot read IGES file: " + path);
+        }
+        reader.TransferRoots();
+        auto impl = std::make_unique<Impl>();
+        impl->shape = reader.OneShape();
+        if (impl->shape.IsNull()) {
+            throw KernelError(ErrorCode::IoError, "IGES file contains no geometry: " + path);
+        }
+        return std::unique_ptr<Shape>(new Shape(std::move(impl)));
+    });
+}
+
+void Shape::exportIges(const std::string& path) const {
+    guarded("exportIges", [&] {
+        IGESControl_Controller::Init();
+        IGESControl_Writer writer("MM", 1);  // millimetres, BRep (faces/solids) mode
+        if (!writer.AddShape(impl_->shape) || !writer.Write(path.c_str())) {
+            throw KernelError(ErrorCode::IoError, "Cannot write IGES file: " + path);
         }
         return 0;
     });

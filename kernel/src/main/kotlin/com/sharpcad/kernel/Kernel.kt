@@ -26,6 +26,9 @@ object Kernel {
      */
     fun importStep(path: String): Shape = Shape(KernelNative.nativeImportStep(path))
 
+    /** Reads an IGES file into a single shape. Same errors as [importStep]. */
+    fun importIges(path: String): Shape = Shape(KernelNative.nativeImportIges(path))
+
     /**
      * Closed regions enclosed by sketch geometry on [plane], as planar faces.
      *

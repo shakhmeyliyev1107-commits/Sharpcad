@@ -44,7 +44,10 @@ object ModelBuilder {
 
     private fun apply(feature: Feature, bodies: LinkedHashMap<Long, Shape>) {
         when (feature) {
-            is ImportFeature -> bodies[feature.id] = Kernel.importStep(feature.path)
+            is ImportFeature -> bodies[feature.id] = when (feature.path.substringAfterLast('.').lowercase()) {
+                "igs", "iges" -> Kernel.importIges(feature.path)
+                else -> Kernel.importStep(feature.path)
+            }
             is ExtrudeFeature -> {
                 val n = feature.profile.plane.normal
                 val d = feature.distance

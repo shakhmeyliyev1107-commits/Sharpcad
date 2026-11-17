@@ -120,6 +120,9 @@ class Shape internal constructor(private var handle: Long) : AutoCloseable {
         return if (face < 0) null else PickHit(face, raw[1])
     }
 
+    /** Writes the shape as an IGES file (millimetres). */
+    fun exportIges(path: String) = KernelNative.nativeExportIges(handle, path)
+
     /** Writes the shape as a STEP file. */
     fun exportStep(path: String) = KernelNative.nativeExportStep(handle, path)
 

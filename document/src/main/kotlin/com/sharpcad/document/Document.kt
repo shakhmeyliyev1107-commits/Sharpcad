@@ -117,13 +117,38 @@ class Document(private val dispatcher: CoroutineDispatcher = KernelDispatcher) :
         }
 
     /** Writes all bodies to one STEP file. Returns false when there is nothing to export. */
-    suspend fun exportStep(path: String): Boolean = lock.withLock {
+    suspend fun exportStep(path: String): Boolean = exportExact(path, iges = false)
+
+    /** Writes all bodies to one IGES file. Returns false when there is nothing to export. */
+    suspend fun exportIges(path: String): Boolean = exportExact(path, iges = true)
+
+    private suspend fun exportExact(path: String, iges: Boolean): Boolean = lock.withLock {
         withContext(dispatcher) {
             val shapes = built?.bodies?.values?.toList().orEmpty()
             if (shapes.isEmpty()) return@withContext false
-            com.sharpcad.kernel.Kernel.compound(shapes).use { it.exportStep(path) }
+            com.sharpcad.kernel.Kernel.compound(shapes).use { if (iges) it.exportIges(path) else it.exportStep(path) }
             true
         }
+    }
+
+    /**
+     * Writes all bodies as a mesh file, tessellated finer than the display mesh
+     * ([deflectionMm] chord error). Returns false when there is nothing to export.
+     */
+    suspend fun exportMesh(format: MeshFormat, path: String, deflectionMm: Double = 0.01): Boolean = lock.withLock {
+        val names = _state.value.bodies.associate { it.bodyId to it.label }
+        val parts = withContext(dispatcher) {
+            built?.bodies?.map { (id, shape) -> meshPart(names[id] ?: "Body $id", shape.tessellate(deflectionMm)) }.orEmpty()
+        }
+        if (parts.isEmpty()) return@withLock false
+        withContext(kotlinx.coroutines.Dispatchers.IO) { MeshExport.write(format, parts, java.io.File(path)) }
+        true
+    }
+
+    private fun meshPart(name: String, mesh: Mesh): MeshPart {
+        val positions = FloatArray(mesh.vertexCount * 3).also { mesh.positions.duplicate().order(java.nio.ByteOrder.nativeOrder()).asFloatBuffer().get(it) }
+        val indices = IntArray(mesh.triangleCount * 3).also { mesh.indices.duplicate().order(java.nio.ByteOrder.nativeOrder()).asIntBuffer().get(it) }
+        return MeshPart(name, positions, indices)
     }
 
     override fun close() {

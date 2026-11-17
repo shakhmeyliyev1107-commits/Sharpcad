@@ -12,6 +12,8 @@ internal object KernelNative {
     @JvmStatic external fun nativeMakeBox(dx: Double, dy: Double, dz: Double): Long
     @JvmStatic external fun nativeImportStep(path: String): Long
     @JvmStatic external fun nativeExportStep(handle: Long, path: String)
+    @JvmStatic external fun nativeImportIges(path: String): Long
+    @JvmStatic external fun nativeExportIges(handle: Long, path: String)
     @JvmStatic external fun nativeBoundingBox(handle: Long): DoubleArray
 
     /** Returns positions, normals, indices, edge segments and triangle faces, in that order. */

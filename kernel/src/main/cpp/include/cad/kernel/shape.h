@@ -60,6 +60,12 @@ public:
     /// Writes the shape as STEP. Throws KernelError(IoError) on failure.
     void exportStep(const std::string& path) const;
 
+    /// Reads all roots of an IGES file into one shape, in millimetres.
+    static std::unique_ptr<Shape> importIges(const std::string& path);
+
+    /// Writes the shape as IGES (BRep mode). Throws KernelError(IoError) on failure.
+    void exportIges(const std::string& path) const;
+
     /// Closed regions bounded by the sketch, as planar faces (one compound). Crossing
     /// lines split regions; a circle inside a rectangle gives a ring and a disc.
     /// Throws KernelError(InvalidArgument) if the sketch encloses no region.

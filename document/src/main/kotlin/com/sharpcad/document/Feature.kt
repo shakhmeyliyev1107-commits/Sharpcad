@@ -68,7 +68,7 @@ sealed interface Feature {
     val label: String
 }
 
-/** A STEP file copied into app storage. Creates a body. */
+/** A STEP or IGES file copied into app storage (format from the extension). Creates a body. */
 data class ImportFeature(override val id: Long, val path: String, val name: String) : Feature {
     override val label: String get() = "Import $name"
 }
