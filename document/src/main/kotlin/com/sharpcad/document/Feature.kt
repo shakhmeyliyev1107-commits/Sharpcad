@@ -133,6 +133,13 @@ data class PushPullFeature(override val id: Long, val body: Long, val face: Int,
     override val label: String get() = "Push/Pull ${formatMm(distance)} mm"
 }
 
+/** Hollows [body] to [thickness] mm walls with [face] removed (-1 keeps it closed). */
+@Serializable
+@SerialName("shell")
+data class ShellFeature(override val id: Long, val body: Long, val face: Int, val thickness: Double) : Feature {
+    override val label: String get() = "Shell ${formatMm(thickness)} mm"
+}
+
 /** Combines [tool] into [target]; the tool body is consumed. */
 @Serializable
 @SerialName("boolean")

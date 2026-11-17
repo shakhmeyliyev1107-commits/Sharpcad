@@ -73,6 +73,7 @@ object ModelBuilder {
             is FilletFeature -> replace(feature.body, bodies) { it.fillet(feature.radius, feature.face) }
             is ChamferFeature -> replace(feature.body, bodies) { it.chamfer(feature.distance, feature.face) }
             is PushPullFeature -> replace(feature.body, bodies) { it.pushPull(feature.face, feature.distance) }
+            is ShellFeature -> replace(feature.body, bodies) { it.shell(feature.face, feature.thickness) }
             is BooleanFeature -> {
                 require(feature.target != feature.tool) { "A body cannot be combined with itself" }
                 val tool = bodies[feature.tool] ?: throw IllegalArgumentException("Tool body no longer exists")

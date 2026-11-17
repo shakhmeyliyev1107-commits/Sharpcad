@@ -256,6 +256,19 @@ TEST(Drawing, HiddenEdgesAppearForAHoleSeenFromTheSide) {
     expectError(ErrorCode::InvalidArgument, [&] { plate->project(top, top, 0.05); });
 }
 
+TEST(Modeling, ShellOpensAFaceAndKeepsTheOuterSize) {
+    const auto box = Shape::makeBox(20, 20, 20);
+    const double origin[3] = {10, 10, 100};
+    const double down[3] = {0, 0, -1};
+    const int top = box->pick(origin, down).face;
+    const auto cup = box->shell(top, 2.0);
+    EXPECT_NEAR(cup->volume(), 8000.0 - 16.0 * 16.0 * 18.0, 1e-3);
+    EXPECT_NEAR(cup->boundingBox().max[0], 20.0, 1e-6);
+    EXPECT_NEAR(box->faceArea(top), 400.0, 1e-6);
+    expectError(ErrorCode::InvalidArgument, [&] { box->shell(top, 0.0); });
+    expectError(ErrorCode::InvalidArgument, [&] { box->faceArea(99); });
+}
+
 TEST(Modeling, CompoundKeepsAllBodies) {
     const auto a = Shape::makeBox(1, 1, 1);
     const auto b = Shape::makeBox(2, 2, 2);

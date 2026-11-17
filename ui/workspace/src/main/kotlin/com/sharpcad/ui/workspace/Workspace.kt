@@ -85,6 +85,8 @@ fun Workspace(
     onDisplayMode: () -> Unit = {},
     onDrawings: () -> Unit = {},
     onAppearance: () -> Unit = {},
+    onSection: () -> Unit = {},
+    sectionActive: Boolean = false,
     appearanceActive: Boolean = false,
     /** Left-handed layout: tools on the right, settings on the left. */
     toolsOnRight: Boolean = false,
@@ -101,8 +103,14 @@ fun Workspace(
                     LeftRailGroups,
                     Modifier.align(if (toolsOnRight) Alignment.TopEnd else Alignment.TopStart),
                     showLabels = showLabels,
-                    actions = mapOf(SKETCH_ITEM to onSketchToggle, VISUALIZATION_ITEM to onMaterialsToggle, DRAWINGS_ITEM to onDrawings),
-                    active = setOfNotNull(SKETCH_ITEM.takeIf { sketchActive }, VISUALIZATION_ITEM.takeIf { materialsActive }),
+                    actions = mapOf(
+                        SKETCH_ITEM to onSketchToggle, VISUALIZATION_ITEM to onMaterialsToggle,
+                        DRAWINGS_ITEM to onDrawings, SECTION_ITEM to onSection,
+                    ),
+                    active = setOfNotNull(
+                        SKETCH_ITEM.takeIf { sketchActive }, VISUALIZATION_ITEM.takeIf { materialsActive },
+                        SECTION_ITEM.takeIf { sectionActive },
+                    ),
                 )
                 ToolRail(
                     RightRailGroups,

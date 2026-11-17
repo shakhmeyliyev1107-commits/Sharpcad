@@ -4,6 +4,7 @@ material {
     shadingModel : unlit,
     culling : none,
     parameters : [
+        { type : float4, name : section },
         { type : float3, name : color }
     ]
 }
@@ -11,6 +12,9 @@ material {
 fragment {
     void material(inout MaterialInputs material) {
         prepareMaterial(material);
+        // Section view: section.xyz is the cut normal, section.w the offset; xyz = 0 disables it.
+        vec3 sectionNormal = materialParams.section.xyz;
+        if (dot(sectionNormal, sectionNormal) > 0.5 && dot(getUserWorldPosition(), sectionNormal) > materialParams.section.w) discard;
         material.baseColor = vec4(materialParams.color, 1.0);
     }
 }

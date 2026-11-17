@@ -249,6 +249,17 @@ internal class ViewportRenderer(private val surfaceView: SurfaceView) {
         requestRender()
     }
 
+    /**
+     * Section view: hides everything on the side of the plane `dot(p, normal) > offset`.
+     * A zero normal turns it off.
+     */
+    fun setSection(nx: Float, ny: Float, nz: Float, offset: Float) {
+        for (m in listOf(faceInstance, pbrInstance, edgeInstance, highlightInstance)) {
+            m.setParameter("section", nx, ny, nz, offset)
+        }
+        requestRender()
+    }
+
     /** Background colour as 0xRRGGBB sRGB. */
     fun setBackground(srgb: Int) {
         val c = srgbToLinear(srgb)

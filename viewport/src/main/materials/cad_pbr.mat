@@ -7,7 +7,10 @@ material {
     requires : [ custom0, custom1, custom2 ],
     shadingModel : unlit,
     culling : none,
-    variables : [ worldNormal, appearance, extra ]
+    variables : [ worldNormal, appearance, extra ],
+    parameters : [
+        { type : float4, name : section }
+    ]
 }
 
 vertex {
@@ -41,6 +44,9 @@ fragment {
 
     void material(inout MaterialInputs material) {
         prepareMaterial(material);
+        // Section view: section.xyz is the cut normal, section.w the offset; xyz = 0 disables it.
+        vec3 sectionNormal = materialParams.section.xyz;
+        if (dot(sectionNormal, sectionNormal) > 0.5 && dot(getUserWorldPosition(), sectionNormal) > materialParams.section.w) discard;
         vec3 base = variable_appearance.rgb;
         float roughness = clamp(variable_appearance.a, 0.04, 1.0);
         float metallic = clamp(variable_extra.x, 0.0, 1.0);

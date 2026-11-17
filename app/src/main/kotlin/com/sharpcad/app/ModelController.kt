@@ -138,6 +138,59 @@ class ModelController(
         drawing = null
     }
 
+    // ---- Section view -------------------------------------------------------------
+
+    var sectionOn by mutableStateOf(false)
+        private set
+    private var sectionPlane by mutableStateOf("XY")
+    private var sectionOffset by mutableStateOf(0.0)
+    private var sectionFlip by mutableStateOf(false)
+
+    fun toggleSection() {
+        sectionOn = !sectionOn
+        if (sectionOn) {
+            // Start through the middle of the model.
+            val b = state.bodies.map { it.bounds }
+            if (b.isNotEmpty()) sectionOffset = (b.minOf { it[2] } + b.maxOf { it[5] }) / 2
+        }
+        applySection()
+    }
+
+    val sectionPanel: PanelModel?
+        get() = if (!sectionOn) null else PanelModel(
+            "Section view",
+            listOf(DimensionField("Offset", sectionOffset, allowNegative = true)),
+            listOf(ChoiceField("Plane", listOf("XY", "XZ", "YZ"), sectionPlane)),
+            listOf(
+                PanelAction("Flip side") { sectionFlip = !sectionFlip; applySection() },
+                PanelAction("Close", accent = true) { toggleSection() },
+            ),
+            "Cuts away everything on one side of the plane",
+        )
+
+    fun changeSectionOffset(value: Double) {
+        sectionOffset = value
+        applySection()
+    }
+
+    fun changeSectionPlane(plane: String) {
+        sectionPlane = plane
+        val b = state.bodies.map { it.bounds }
+        val axis = when (plane) { "YZ" -> 0; "XZ" -> 1; else -> 2 }
+        if (b.isNotEmpty()) sectionOffset = (b.minOf { it[axis] } + b.maxOf { it[axis + 3] }) / 2
+        applySection()
+    }
+
+    private fun applySection() {
+        if (!sectionOn) {
+            viewport.setSection(0f, 0f, 0f, 0f)
+            return
+        }
+        val sign = if (sectionFlip) -1f else 1f
+        val (x, y, z) = when (sectionPlane) { "YZ" -> Triple(1f, 0f, 0f); "XZ" -> Triple(0f, 1f, 0f); else -> Triple(0f, 0f, 1f) }
+        viewport.setSection(x * sign, y * sign, z * sign, (sectionOffset * sign).toFloat())
+    }
+
     fun toggleMaterials() {
         materialsOpen = !materialsOpen
     }
@@ -272,7 +325,20 @@ class ModelController(
         addFromProfile(Profile(planeSpec(r.plane), lines, circles, r.regions.sorted()), revolve)
     }
 
+    /** Volume and face area of the selection, filled in asynchronously. */
+    private var measureText by mutableStateOf<String?>(null)
+
     private fun select(value: Selection?) {
+        if (value != selection) measureText = null
+        if (value != null && value != selection) {
+            scope.launch {
+                document.measure(value.bodyId, value.face)?.let { (volume, area) ->
+                    if (selection == value) {
+                        measureText = String.format(java.util.Locale.US, "area %,.2f mm² · volume %,.1f mm³", area, volume)
+                    }
+                }
+            }
+        }
         selection = value
         if (value != null) {
             editingId = null
@@ -310,6 +376,7 @@ class ModelController(
         val waiting = pendingBoolean
         val actions = listOf(
             PanelAction("Push/Pull", accent = true) { addAndEdit(PushPullFeature(document.newId(), s.bodyId, s.face, DEFAULT_DISTANCE / 2)) },
+            PanelAction("Shell (open face)") { addAndEdit(com.sharpcad.document.ShellFeature(document.newId(), s.bodyId, s.face, 1.0)) },
             PanelAction("Fillet face") { addAndEdit(FilletFeature(document.newId(), s.bodyId, 1.0, s.face)) },
             PanelAction("Chamfer face") { addAndEdit(ChamferFeature(document.newId(), s.bodyId, 1.0, s.face)) },
             PanelAction("Fillet all") { addAndEdit(FilletFeature(document.newId(), s.bodyId, 1.0)) },
@@ -322,7 +389,7 @@ class ModelController(
         val message = if (waiting != null) {
             "Tap the other body to ${waiting.name.lowercase()} it"
         } else {
-            "$body · face ${s.face + 1}"
+            "$body · face ${s.face + 1}" + (measureText?.let { " · $it" } ?: "")
         }
         return PanelModel("Selection", emptyList(), emptyList(), actions, message)
     }
@@ -345,6 +412,7 @@ class ModelController(
             is FilletFeature -> fields += DimensionField("Radius", f.radius)
             is ChamferFeature -> fields += DimensionField("Distance", f.distance)
             is PushPullFeature -> fields += DimensionField("Distance", kotlin.math.abs(f.distance))
+            is com.sharpcad.document.ShellFeature -> fields += DimensionField("Thickness", f.thickness)
             is BooleanFeature -> choices += ChoiceField("Operation", BooleanOp.entries.map { it.name.lowercase() }, f.op.name.lowercase())
             is ImportFeature -> Unit
         }
@@ -372,6 +440,7 @@ class ModelController(
             is FilletFeature -> f.copy(radius = value)
             is ChamferFeature -> f.copy(distance = value)
             is PushPullFeature -> f.copy(distance = if (f.distance < 0) -value else value)
+            is com.sharpcad.document.ShellFeature -> f.copy(thickness = value)
             else -> return
         }
         note = ""

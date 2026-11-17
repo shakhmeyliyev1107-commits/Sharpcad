@@ -41,6 +41,8 @@ internal object KernelNative {
     @JvmStatic external fun nativeCompound(handles: LongArray): Long
     @JvmStatic external fun nativeDistance(handle: Long, other: Long): Double
     @JvmStatic external fun nativeProject(handle: Long, toViewer: DoubleArray, up: DoubleArray, deflection: Double): Array<FloatArray>
+    @JvmStatic external fun nativeShell(handle: Long, face: Int, thickness: Double): Long
+    @JvmStatic external fun nativeFaceArea(handle: Long, face: Int): Double
     @JvmStatic external fun nativeFaceCount(handle: Long): Int
     @JvmStatic external fun nativeVolume(handle: Long): Double
     @JvmStatic external fun nativePick(handle: Long, origin: DoubleArray, direction: DoubleArray): DoubleArray

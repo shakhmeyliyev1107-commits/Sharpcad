@@ -54,6 +54,7 @@ internal const val HISTORY_ITEM = "History"
 internal const val VISUALIZATION_ITEM = "Visualization"
 internal const val DRAWINGS_ITEM = "Drawings"
 internal const val APPEARANCE_ITEM = "Appearance"
+internal const val SECTION_ITEM = "Section view"
 internal const val DISPLAY_ITEM = "Display mode"
 
 internal val LeftRailGroups: List<List<RailItem>> = listOf(
@@ -71,7 +72,7 @@ internal val LeftRailGroups: List<List<RailItem>> = listOf(
         RailItem("Tools", Icons.Outlined.Build),
     ),
     listOf(
-        RailItem("Section view", Icons.Outlined.ContentCut),
+        RailItem(SECTION_ITEM, Icons.Outlined.ContentCut),
         RailItem("Measure", Icons.Outlined.Straighten),
     ),
 )

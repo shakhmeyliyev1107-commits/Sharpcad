@@ -21,6 +21,7 @@
 #include <BRepFilletAPI_MakeFillet.hxx>
 #include <BRepExtrema_DistShapeShape.hxx>
 #include <BRepGProp.hxx>
+#include <BRepOffsetAPI_MakeThickSolid.hxx>
 #include <BRepGProp_Face.hxx>
 #include <BRepPrimAPI_MakePrism.hxx>
 #include <BRepPrimAPI_MakeRevol.hxx>
@@ -364,6 +365,32 @@ ViewProjection Shape::project(const double toViewer[3], const double up[3], doub
         appendSegments(extract.HCompound(), deflection, out.hidden);
         appendSegments(extract.OutLineHCompound(), deflection, out.hidden);
         return out;
+    });
+}
+
+std::unique_ptr<Shape> Shape::shell(int face, double thickness) const {
+    require(std::isfinite(thickness) && thickness > kTiny, "Wall thickness must be positive");
+    return guarded("shell", [&] {
+        const auto faces = facesOf(impl_->shape);
+        TopTools_ListOfShape open;
+        if (face >= 0) open.Append(faceAt(faces, face));
+        BRepOffsetAPI_MakeThickSolid algo;
+        // Negative offset: the wall grows inwards, keeping the outer size.
+        algo.MakeThickSolidByJoin(impl_->shape, open, -thickness, 1e-3);
+        algo.Build();
+        if (!algo.IsDone()) throw KernelError(ErrorCode::OcctFailure, "Shell failed: wall too thick for this shape?");
+        auto impl = std::make_unique<Impl>();
+        impl->shape = algo.Shape();
+        return std::unique_ptr<Shape>(new Shape(std::move(impl)));
+    });
+}
+
+double Shape::faceArea(int face) const {
+    return guarded("faceArea", [&] {
+        const auto faces = facesOf(impl_->shape);
+        GProp_GProps props;
+        BRepGProp::SurfaceProperties(faceAt(faces, face), props);
+        return props.Mass();
     });
 }
 

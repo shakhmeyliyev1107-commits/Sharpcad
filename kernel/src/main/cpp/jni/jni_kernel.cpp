@@ -321,6 +321,16 @@ Java_com_sharpcad_kernel_KernelNative_nativeProject(JNIEnv* env, jclass, jlong h
     });
 }
 
+JNIEXPORT jlong JNICALL
+Java_com_sharpcad_kernel_KernelNative_nativeShell(JNIEnv* env, jclass, jlong handle, jint face, jdouble thickness) {
+    return guard<jlong>(env, 0, [&] { return release(shapeFromHandle(handle).shell(face, thickness)); });
+}
+
+JNIEXPORT jdouble JNICALL
+Java_com_sharpcad_kernel_KernelNative_nativeFaceArea(JNIEnv* env, jclass, jlong handle, jint face) {
+    return guard<jdouble>(env, 0.0, [&] { return shapeFromHandle(handle).faceArea(face); });
+}
+
 JNIEXPORT jint JNICALL
 Java_com_sharpcad_kernel_KernelNative_nativeFaceCount(JNIEnv* env, jclass, jlong handle) {
     return guard<jint>(env, 0, [&] { return shapeFromHandle(handle).faceCount(); });

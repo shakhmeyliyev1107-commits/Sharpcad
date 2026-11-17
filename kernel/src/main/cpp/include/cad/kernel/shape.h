@@ -113,6 +113,12 @@ public:
     /// `up` is the view's vertical; x grows to the right of the viewer.
     ViewProjection project(const double toViewer[3], const double up[3], double deflection) const;
 
+    /// Hollows the solid to a wall of `thickness` mm, opening face `face` (-1 = closed shell).
+    std::unique_ptr<Shape> shell(int face, double thickness) const;
+
+    /// Area of face `face` in mm².
+    double faceArea(int face) const;
+
     int faceCount() const;
     double volume() const;
 

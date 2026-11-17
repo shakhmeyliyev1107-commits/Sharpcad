@@ -107,6 +107,12 @@ class Shape internal constructor(private var handle: Long) : AutoCloseable {
         return ViewProjection(raw[0], raw[1])
     }
 
+    /** Hollows the solid to [thickness] mm walls, opening [face] (-1 keeps it closed). */
+    fun shell(face: Int, thickness: Double): Shape = Shape(KernelNative.nativeShell(handle, face, thickness))
+
+    /** Area of [face] in square millimetres. */
+    fun faceArea(face: Int): Double = KernelNative.nativeFaceArea(handle, face)
+
     /** Smallest distance to [other] in millimetres; 0 when they touch or overlap. */
     fun distanceTo(other: Shape): Double = KernelNative.nativeDistance(handle, other.handle)
 

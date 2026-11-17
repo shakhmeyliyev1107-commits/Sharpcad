@@ -116,6 +116,14 @@ class Document(private val dispatcher: CoroutineDispatcher = KernelDispatcher) :
             }
         }
 
+    /** Measurements of a body and one of its faces: (volume mm³, face area mm²), or null. */
+    suspend fun measure(bodyId: Long, face: Int): Pair<Double, Double>? = lock.withLock {
+        withContext(dispatcher) {
+            val shape = built?.bodies?.get(bodyId) ?: return@withContext null
+            try { shape.volume to shape.faceArea(face) } catch (e: com.sharpcad.kernel.KernelException) { null }
+        }
+    }
+
     /** Writes all bodies to one STEP file. Returns false when there is nothing to export. */
     suspend fun exportStep(path: String): Boolean = exportExact(path, iges = false)
 

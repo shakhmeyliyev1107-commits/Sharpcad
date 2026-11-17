@@ -38,6 +38,7 @@ class ViewportController {
     private var overlayColor: Int = 0x5AA2FF
     private var displayMode = DisplayMode.SHADED_EDGES
     private var background = 0x1B1F26
+    private var section = floatArrayOf(0f, 0f, 0f, 0f)
 
     /** Shows [mesh] (or clears the model when `null`) and, if [fit], frames it. */
     fun setModel(mesh: RenderMesh?, fit: Boolean = true) {
@@ -60,6 +61,12 @@ class ViewportController {
     fun setOverlayLines(segments: FloatArray?) {
         overlay = segments
         renderer?.setOverlayLines(segments)
+    }
+
+    /** Cuts the model with a plane (normal, offset); a zero normal shows everything. */
+    fun setSection(nx: Float, ny: Float, nz: Float, offset: Float) {
+        section = floatArrayOf(nx, ny, nz, offset)
+        renderer?.setSection(nx, ny, nz, offset)
     }
 
     /** Background colour as 0xRRGGBB (follows the app theme). */
@@ -117,6 +124,7 @@ class ViewportController {
         r.setOverlayColor(overlayColor)
         r.setDisplayMode(displayMode)
         r.setBackground(background)
+        r.setSection(section[0], section[1], section[2], section[3])
         r.fitView()
     }
 

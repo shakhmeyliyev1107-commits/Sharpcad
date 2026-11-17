@@ -112,6 +112,8 @@ private fun WorkspaceScreen() {
         onDisplayMode = model::cycleDisplayMode,
         onDrawings = { model.openDrawing(state.projectName) },
         onAppearance = settings::toggle,
+        onSection = model::toggleSection,
+        sectionActive = model.sectionOn,
         appearanceActive = settings.open,
         toolsOnRight = settings.toolsOnRight,
         showLabels = settings.showLabels,
@@ -135,6 +137,14 @@ private fun WorkspaceScreen() {
                         dimensions = sketch.dimensions,
                         onDimension = sketch::setDimension,
                         message = sketch.message,
+                    )
+                }
+                model.sectionPanel?.let { panel ->
+                    ParameterPanel(
+                        title = panel.title, fields = panel.fields, onField = { _, v -> model.changeSectionOffset(v) },
+                        choices = panel.choices, onChoice = { _, option -> model.changeSectionPlane(option) },
+                        actions = panel.actions, message = panel.message,
+                        modifier = Modifier.padding(top = 8.dp).widthIn(max = 560.dp),
                     )
                 }
                 if (settings.open) {
