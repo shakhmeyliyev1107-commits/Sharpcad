@@ -33,6 +33,12 @@ enum class SketchTool(val label: String) {
     POLYGON("Hexagon"),
     ARC("Arc"),
     TRIM("Trim"),
+    OFFSET("Offset"),
+    HORIZONTAL("Horizontal"),
+    VERTICAL("Vertical"),
+    EQUAL("Equal"),
+    PARALLEL("Parallel"),
+    PERPENDICULAR("Perpendicular"),
 }
 
 /**
@@ -130,6 +136,7 @@ class SketchSession(private val viewport: ViewportController) {
     /** Activates a tool, or returns to navigation when the active tool is tapped again. */
     fun selectTool(label: String) {
         cancelDraft()
+        pendingPair = null
         val picked = SketchTool.entries.firstOrNull { it.label == label }
         tool = if (picked == tool) null else picked
         clearDimensions()
@@ -200,7 +207,13 @@ class SketchSession(private val viewport: ViewportController) {
 
     private fun begin(activeTool: SketchTool, x: Float, y: Float): Boolean {
         val point = planePoint(x, y) ?: return false
-        if (activeTool == SketchTool.TRIM) return trimAt(point)
+        when (activeTool) {
+            SketchTool.TRIM -> return trimAt(point)
+            SketchTool.OFFSET -> return beginOffset(point)
+            SketchTool.HORIZONTAL, SketchTool.VERTICAL, SketchTool.EQUAL,
+            SketchTool.PARALLEL, SketchTool.PERPENDICULAR -> return constrainAt(activeTool, point)
+            else -> Unit
+        }
         val s = sketches.getOrPut(plane) { Sketch() }
         // The size fields of the previous entity stay until a new entity is finished: a
         // two-finger orbit also starts with one finger down and must not wipe them.
@@ -211,7 +224,7 @@ class SketchSession(private val viewport: ViewportController) {
             SketchTool.POLYGON -> List(POLYGON_SIDES) { s.addLine(start.x, start.y, start.x, start.y) }
             SketchTool.CIRCLE -> listOf(s.addCircle(start.x, start.y, MIN_SIZE))
             SketchTool.ARC -> listOf(s.addArc(start.x, start.y, MIN_SIZE, 0.0, Math.PI))
-            SketchTool.TRIM -> return false
+            else -> return false
         }
         draft = Draft(activeTool, ids, start, end = start)
         snapMarker = start.takeIf { it.kind != SnapKind.NONE }
@@ -265,7 +278,9 @@ class SketchSession(private val viewport: ViewportController) {
                 val a0 = kotlin.math.atan2(d.start.y - cy, d.start.x - cx)
                 s.setArc(d.ids[0], cx, cy, r, a0, a0 + Math.PI)
             }
-            SketchTool.TRIM -> Unit
+            SketchTool.OFFSET -> offsetTo(d, end)
+            SketchTool.TRIM, SketchTool.HORIZONTAL, SketchTool.VERTICAL, SketchTool.EQUAL,
+            SketchTool.PARALLEL, SketchTool.PERPENDICULAR -> Unit
             SketchTool.POLYGON -> {
                 // Regular polygon: start is the centre, end one vertex.
                 val r = hypot(end.x - d.start.x, end.y - d.start.y)
@@ -291,8 +306,8 @@ class SketchSession(private val viewport: ViewportController) {
         val width = abs(d.end.x - d.start.x)
         val height = abs(d.end.y - d.start.y)
         val tooSmall = when (d.tool) {
-            SketchTool.LINE, SketchTool.CIRCLE, SketchTool.POLYGON, SketchTool.ARC, SketchTool.TRIM -> hypot(width, height) < MIN_SIZE * 10
             SketchTool.RECTANGLE, SketchTool.CENTER_RECTANGLE -> width < MIN_SIZE * 10 || height < MIN_SIZE * 10
+            else -> hypot(width, height) < MIN_SIZE * 10
         }
         if (tooSmall) {
             d.ids.forEach { s.removeEntity(it) }
@@ -352,7 +367,7 @@ class SketchSession(private val viewport: ViewportController) {
                 d.end.point?.let { added += s.addCoincident(PointRef(arc, PointRole.END), it) }
                 dimensionTargets = listOf(DimensionTarget.Radius("Radius", arc))
             }
-            SketchTool.TRIM -> Unit
+            else -> Unit
         }
 
         if (s.solve().status != SolveStatus.SOLVED) {
@@ -363,6 +378,96 @@ class SketchSession(private val viewport: ViewportController) {
         } else {
             refresh()
         }
+    }
+
+    /** Offset tool: press on an entity and drag away; a parallel copy follows the finger. */
+    private fun beginOffset(point: DoubleArray): Boolean {
+        val s = sketch ?: return true
+        val tolerance = viewport.millimetresPerPixel() * SNAP_PIXELS
+        val target = s.entities().filter { Trim.distance(it, point[0], point[1]) <= tolerance }
+            .minByOrNull { Trim.distance(it, point[0], point[1]) }
+        if (target == null) {
+            refresh("Press on a line, arc or circle and drag to offset it")
+            return true
+        }
+        val copy = when (target) {
+            is SketchLine -> s.addLine(target.x1, target.y1, target.x2, target.y2)
+            is SketchCircle -> s.addCircle(target.cx, target.cy, target.radius)
+            is com.sharpcad.sketch.SketchArc ->
+                s.addArc(target.cx, target.cy, target.radius, target.startAngle, target.endAngle)
+        }
+        val start = Snap(point[0], point[1], SnapKind.NONE)
+        draft = Draft(SketchTool.OFFSET, listOf(copy), start, start).also { it.source = target }
+        refresh()
+        return true
+    }
+
+    private fun offsetTo(d: Draft, end: Snap) {
+        val s = sketch ?: return
+        val id = d.ids[0]
+        when (val src = d.source) {
+            is SketchLine -> {
+                val len = hypot(src.x2 - src.x1, src.y2 - src.y1).coerceAtLeast(MIN_SIZE)
+                val nx = -(src.y2 - src.y1) / len
+                val ny = (src.x2 - src.x1) / len
+                val dist = (end.x - src.x1) * nx + (end.y - src.y1) * ny
+                s.setPoint(PointRef(id, PointRole.START), src.x1 + nx * dist, src.y1 + ny * dist)
+                s.setPoint(PointRef(id, PointRole.END), src.x2 + nx * dist, src.y2 + ny * dist)
+                d.offset = abs(dist)
+            }
+            is SketchCircle -> {
+                val r = hypot(end.x - src.cx, end.y - src.cy).coerceAtLeast(MIN_SIZE)
+                s.setCircleRadius(id, r)
+                d.offset = abs(r - src.radius)
+            }
+            is com.sharpcad.sketch.SketchArc -> {
+                val r = hypot(end.x - src.cx, end.y - src.cy).coerceAtLeast(MIN_SIZE)
+                s.setArc(id, src.cx, src.cy, r, src.startAngle, src.endAngle)
+                d.offset = abs(r - src.radius)
+            }
+            null -> Unit
+        }
+    }
+
+    private var pendingPair: Int? = null
+
+    /** Constraint tools: tap a line (or two lines for the pair constraints). */
+    private fun constrainAt(tool: SketchTool, point: DoubleArray): Boolean {
+        val s = sketch ?: return true
+        val tolerance = viewport.millimetresPerPixel() * SNAP_PIXELS
+        val line = s.entities().filterIsInstance<SketchLine>()
+            .filter { Trim.distance(it, point[0], point[1]) <= tolerance }
+            .minByOrNull { Trim.distance(it, point[0], point[1]) }
+        if (line == null) {
+            refresh("Tap a line")
+            return true
+        }
+        val first = pendingPair
+        val constraint = when (tool) {
+            SketchTool.HORIZONTAL -> s.addHorizontal(line.id)
+            SketchTool.VERTICAL -> s.addVertical(line.id)
+            else -> {
+                if (first == null || first == line.id) {
+                    pendingPair = line.id
+                    refresh("Now tap the second line")
+                    return true
+                }
+                pendingPair = null
+                when (tool) {
+                    SketchTool.EQUAL -> s.addEqualLength(first, line.id)
+                    SketchTool.PARALLEL -> s.addParallel(first, line.id)
+                    else -> s.addPerpendicular(first, line.id)
+                }
+            }
+        }
+        if (s.solve().status != SolveStatus.SOLVED) {
+            s.removeConstraint(constraint)
+            s.solve()
+            refresh("That constraint conflicts with the others")
+        } else {
+            refresh()
+        }
+        return true
     }
 
     /** Trim tool: cuts the tapped piece back to its nearest intersections. */
@@ -474,6 +579,8 @@ class SketchSession(private val viewport: ViewportController) {
     private class Draft(val tool: SketchTool, val ids: List<Int>, val start: Snap, var end: Snap) {
         var horizontal = false
         var vertical = false
+        var source: com.sharpcad.sketch.SketchEntity? = null
+        var offset = 0.0
     }
 
     private sealed class DimensionTarget(val label: String) {

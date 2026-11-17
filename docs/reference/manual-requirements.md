@@ -83,4 +83,5 @@ nom, belgi yoki rasm ko'chirilmaydi.
 | Items paneli: tanlash, nomlash, yashirish/ko'rsatish, o'chirish (loyihada saqlanadi) | qilingan |
 | Transform: siljitish/aylantirish, nusxa, ko'zgu, chiziqli va doiraviy massiv (jismlar) | qilingan (qurilmada sinalmagan) |
 | Yoy (vatar ustida yarim aylana), Trim (teginish bilan kesish); yoyli profillar ekstruziya/revolve qilinadi | qilingan (qurilmada sinalmagan) |
-| Qolganlari (splayn, ofset, eskiz massivi, matn, loft, sweep, o'zgaruvchilar, gizmo, cheklovlarni UI dan qo'yish) | rejalashtirilgan |
+| Offset (bitta obyekt), cheklovlarni UI dan qo'yish (gorizontal, vertikal, teng, parallel, perpendikulyar) | qilingan (qurilmada sinalmagan) |
+| Qolganlari (splayn, zanjir ofset, eskiz massivi, matn, loft, sweep, o'zgaruvchilar, gizmo) | rejalashtirilgan |

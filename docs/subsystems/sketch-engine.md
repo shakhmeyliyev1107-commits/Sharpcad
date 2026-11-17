@@ -66,7 +66,7 @@ sarlavhalari `tools/fetch-sketch-deps.sh` bilan yuklanadi (git'da yo'q).
 
 ## Ilovadagi eskiz rejimi
 
-`SketchSession` asbob (chiziq, to'rtburchak, markazdan to'rtburchak, aylana, olti burchak, yoy, kesish), yopishish va avtomatik
+`SketchSession` asbob (chiziq, to'rtburchak, markazdan to'rtburchak, aylana, olti burchak, yoy, kesish, ofset, cheklov asboblari), yopishish va avtomatik
 cheklovlarni bog'laydi. Bir barmoq bilan sudrash chizadi; ikki barmoq navigatsiya
 bo'lib qoladi. Chizib bo'lingach, o'lcham maydoni chiqadi va kiritilgan qiymat masofa
 yoki radius cheklovi sifatida qo'shiladi. Ziddiyat chiqsa, yangi cheklov qaytarib
@@ -89,6 +89,11 @@ Yoy: vatar sudraladi, uning ustida yarim aylana chiziladi; uchlari yopishsa ustm
 tushish qo'yiladi, o'lcham maydoni radius. Kesish (Trim): teginilgan bo'lak eng yaqin ikki
 kesishmagacha olib tashlanadi; hech narsani kesmagan obyekt butunlay o'chadi. Geometriya
 `sketch/src/main/kotlin/com/sharpcad/sketch/Trim.kt` da (sof Kotlin, `TrimTest`).
+
+Offset: obyekt ustiga bosib sudraladi; chiziq parallel, aylana/yoy konsentrik nusxa
+oladi (nusxa asl bilan bog'lanmaydi). Cheklov asboblari (Horizontal, Vertical — bitta
+chiziq; Equal, Parallel, Perpendicular — ikki chiziq ketma-ket) teginish bilan qo'yiladi;
+ziddiyat bo'lsa cheklov qaytarib olinadi.
 
 > ⚠️ Trim obyektni o'chirib, qolgan bo'laklarni yangi obyekt sifatida qo'shadi: o'chirilgan
 > obyektning cheklovlari (o'lcham, tutashish) yo'qoladi.
