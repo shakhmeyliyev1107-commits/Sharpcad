@@ -14,9 +14,10 @@ sources:
   - code: third_party/planegcs/CMakeLists.txt
   - code: third_party/planegcs/README.md
   - code: app/src/main/kotlin/com/sharpcad/app/SketchSession.kt
+  - code: ui/workspace/src/main/kotlin/com/sharpcad/ui/workspace/SketchControls.kt
   - code: app/build.gradle.kts
   - code: tools/fetch-sketch-deps.sh
-verified_at: 931875f
+verified_at: 992fb5b
 ---
 
 # Eskiz dvigateli va eskiz rejimi
@@ -74,6 +75,12 @@ yopishganda ustma-ust tushish cheklovi qo'yiladi.
 
 > ⚠️ Asbob faol bo'lganda bir barmoqli surish o'chadi (barmoq chizadi). Surish uchun
 > asbobni o'chirish kerak; bu ma'lum cheklov, xato emas.
+
+Boshqaruv paneli (`SketchControls`) tor ekranda bir necha qatorga o'raladi.
+
+> ⚠️ O'lcham maydonlarini teginish boshlanganda tozalamang. Ikki barmoqli aylantirish ham
+> bitta barmoq tushishidan boshlanadi va maydonlar yo'qolib qoladi; ular faqat yangi
+> shakl tugallanganda yoki asbob almashganda almashtiriladi.
 
 ## Yig'ilish
 

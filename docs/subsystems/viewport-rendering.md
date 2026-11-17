@@ -8,10 +8,11 @@ sources:
   - code: viewport/src/main/kotlin/com/sharpcad/viewport/Viewport.kt
   - code: viewport/src/main/kotlin/com/sharpcad/viewport/OrbitCamera.kt
   - code: viewport/src/main/kotlin/com/sharpcad/viewport/NavigationGestures.kt
+  - code: viewport/src/main/materials/overlay_color.mat
   - code: viewport/src/main/materials/cad_shaded.mat
   - code: tools/build-materials.sh
   - code: gradle/libs.versions.toml
-verified_at: f369e70
+verified_at: 992fb5b
 ---
 
 # Ko'rinish oynasi va render
@@ -28,6 +29,24 @@ oladi. Mesh qayerdan kelishi [[kernel-jni]] sahifasida.
 - `OrbitCamera` — sof matematika (Z yuqoriga), JVM'da test qilinadi.
 - `NavigationGestures` — bir barmoq surish, ikki barmoq aylantirish va chimdib
   masshtablash, ikki marta bosish sig'dirish.
+
+## Navigatsiya va chizish kiritishi
+
+Aylantirish tezligi ekranning qisqa tomoniga bog'langan: u bo'ylab bitta surish chorak
+kam to'liq aylanish (270°) beradi, shuning uchun vertikal va gorizontal holatda bir xil
+seziladi. `ViewportController.onSingleTouch` o'rnatilgan bo'lsa, bir barmoqli imo-ishora
+avval unga taklif qilinadi (eskiz asboblari); u rad etsa, odatdagidek suriladi. Ikkinchi
+barmoq tushishi bilan chizish bekor qilinadi va boshqaruv navigatsiyaga qaytadi.
+
+Eskiz chiziqlari `setOverlayLines` orqali, chuqurlik tekshiruvisiz (`overlay_color`
+materiali) hamma narsaning ustidan chiziladi.
+
+> ⚠️ Aylantirish tezligini ekran balandligiga bog'lamang. Vertikal telefonda gorizontal
+> surish shunda atigi ~80° beradi va to'liq aylantirish "og'ir va sekin" tuyuladi —
+> foydalanuvchi aynan shundan shikoyat qilgan.
+
+> ⚠️ Ikki barmoqli imo-ishora ham bitta barmoq tushishidan boshlanadi. Chizish asbobi
+> `DOWN` da qilgan har qanday ishni `CANCEL` da to'liq qaytarishi kerak.
 
 ## Kadr sikli
 
