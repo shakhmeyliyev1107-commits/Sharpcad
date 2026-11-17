@@ -7,7 +7,7 @@ sources:
   - ext: https://support.shapr3d.com/hc/en-us/articles/9760033847964-Shapr3D-Manual
   - code: document/src/main/kotlin/com/sharpcad/document/ModelBuilder.kt
   - code: app/src/main/kotlin/com/sharpcad/app/ModelController.kt
-verified_at: 0cf1366
+verified_at: dd34235
 ---
 
 # Ish oqimi talablari
@@ -78,4 +78,6 @@ nom, belgi yoki rasm ko'chirilmaydi.
 | Loyihalar, avtomatik saqlash, oxirgi loyihalar | qilingan (qurilmada sinalmagan) |
 | Mavzu (qorong'i/yorug'), urg'u rangi, chap qo'l rejimi, yozuvlar | qilingan |
 | Benchmark (qurish, bul, eksport/import, aylanish kadri) | qilingan; Perfetto/AGI profili qilinmagan |
-| Qolganlari (yoy, splayn, kesish, ofset, massiv, matn, shell, loft, sweep, kesim ko'rinishi, o'lchash, Items, o'zgaruvchilar, gizmo) | rejalashtirilgan |
+| Shell, kesim ko'rinishi, maydon/hajm o'lchash | qilingan (qurilmada sinalmagan) |
+| Markazdan to'rtburchak, olti burchak; teng/parallel/perpendikulyar cheklovlar (dvigatelda) | qilingan |
+| Qolganlari (yoy, splayn, kesish, ofset, massiv, matn, loft, sweep, Items, o'zgaruvchilar, gizmo, cheklovlarni UI dan qo'yish) | rejalashtirilgan |

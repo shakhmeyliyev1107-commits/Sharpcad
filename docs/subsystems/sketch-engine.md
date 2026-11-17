@@ -17,7 +17,7 @@ sources:
   - code: ui/workspace/src/main/kotlin/com/sharpcad/ui/workspace/SketchControls.kt
   - code: app/build.gradle.kts
   - code: tools/fetch-sketch-deps.sh
-verified_at: 19752a7
+verified_at: dd34235
 ---
 
 # Eskiz dvigateli va eskiz rejimi
@@ -33,6 +33,8 @@ Obyekt va cheklov identifikatorlari hech qachon qayta ishlatilmaydi; o'chirilgan
 "o'lik" deb belgilanadi. Cheklovlar: ustma-ust tushish, gorizontal, vertikal, masofa,
 radius, mahkamlash. Har bir `solve` da PlaneGCS tizimi modeldan qaytadan quriladi —
 eskizlar kichik, ikki tasvirni sinxron saqlashdan arzonroq.
+
+Ikki chiziqli cheklovlar ham bor: teng uzunlik, parallel, perpendikulyar.
 
 Natija: holat (yechildi / ziddiyat / yaqinlashmadi), erkinlik darajalari soni, zid va
 ortiqcha cheklovlar ro'yxati. Ziddiyat yoki muvaffaqiyatsizlikda geometriya o'zgarmaydi.
@@ -64,7 +66,7 @@ sarlavhalari `tools/fetch-sketch-deps.sh` bilan yuklanadi (git'da yo'q).
 
 ## Ilovadagi eskiz rejimi
 
-`SketchSession` asbob (chiziq, to'rtburchak, aylana), yopishish va avtomatik
+`SketchSession` asbob (chiziq, to'rtburchak, markazdan to'rtburchak, aylana, olti burchak), yopishish va avtomatik
 cheklovlarni bog'laydi. Bir barmoq bilan sudrash chizadi; ikki barmoq navigatsiya
 bo'lib qoladi. Chizib bo'lingach, o'lcham maydoni chiqadi va kiritilgan qiymat masofa
 yoki radius cheklovi sifatida qo'shiladi. Ziddiyat chiqsa, yangi cheklov qaytarib

@@ -12,7 +12,7 @@ sources:
   - code: app/src/main/kotlin/com/sharpcad/app/MeshTools.kt
   - code: app/src/main/kotlin/com/sharpcad/app/WorkspaceState.kt
   - code: document/src/main/kotlin/com/sharpcad/document/MeshExport.kt
-verified_at: 0cf1366
+verified_at: dd34235
 ---
 
 # Modellashtirish va tarix
@@ -25,7 +25,7 @@ da, talablar [[manual-requirements]] da.
 
 ## Xususiyatlar
 
-Import (STEP), Extrude, Revolve, Fillet, Chamfer, Push/Pull, Boolean. Extrude va
+Import (STEP/IGES), Extrude, Revolve, Fillet, Chamfer, Push/Pull, Shell, Boolean. Yuza tanlanganda uning maydoni va jism hajmi ko'rsatiladi. Extrude va
 Revolve eskiz geometriyasining nusxasini (`Profile`) saqlaydi, shuning uchun eskiz
 keyin o'zgarsa model jim o'zgarmaydi. Tanlangan hududlar `Profile.regions` da indeks
 sifatida turadi.

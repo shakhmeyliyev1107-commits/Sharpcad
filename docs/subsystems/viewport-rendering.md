@@ -15,7 +15,7 @@ sources:
   - code: document/src/main/kotlin/com/sharpcad/document/Materials.kt
   - code: tools/build-materials.sh
   - code: gradle/libs.versions.toml
-verified_at: 0cf1366
+verified_at: dd34235
 ---
 
 # Ko'rinish oynasi va render
@@ -102,6 +102,15 @@ qirra obyektlari olib tashlanadi, mesh qayta yuklanmaydi.
 > ⚠️ Filament'ning `lit` modeli tangens atributini va IBL/ekspozitsiyani talab qiladi;
 > shuning uchun PBR o'z `unlit` sheyderimizda hisoblanadi. Uni `lit` ga almashtirsangiz,
 > ranglar ekspozitsiya sozlanmaguncha juda qorong'i yoki oq bo'lib chiqadi.
+
+## Kesim ko'rinishi
+
+Jism materiallarida `section` parametri bor: `xyz` — kesish tekisligi normali, `w` —
+ofset. `dot(dunyo_pozitsiyasi, normal) > ofset` bo'lgan fragmentlar tashlanadi; nol normal
+kesimni o'chiradi.
+
+> ⚠️ Kesimda `getUserWorldPosition()` ishlatilsin, `getWorldPosition()` emas: Filament
+> dunyo pozitsiyasini kameraga nisbatan beradi va kesim kamera bilan birga siljiydi.
 
 ## Ranglar
 
