@@ -85,4 +85,5 @@ nom, belgi yoki rasm ko'chirilmaydi.
 | Yoy (vatar ustida yarim aylana), Trim (teginish bilan kesish); yoyli profillar ekstruziya/revolve qilinadi | qilingan (qurilmada sinalmagan) |
 | Offset (bitta obyekt), cheklovlarni UI dan qo'yish (gorizontal, vertikal, teng, parallel, perpendikulyar) | qilingan (qurilmada sinalmagan) |
 | Loft (parallel tekisliklardagi profillar), siljigan qurilish tekisliklari | qilingan (qurilmada sinalmagan) |
-| Qolganlari (splayn, zanjir ofset, eskiz massivi, matn, sweep, o'zgaruvchilar, gizmo) | rejalashtirilgan |
+| Sweep (profil kesib o'tuvchi tekislikdagi yo'l bo'ylab) | qilingan (qurilmada sinalmagan) |
+| Qolganlari (splayn, zanjir ofset, eskiz massivi, matn, o'zgaruvchilar, gizmo) | rejalashtirilgan |

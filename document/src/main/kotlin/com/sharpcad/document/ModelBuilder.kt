@@ -107,6 +107,12 @@ object ModelBuilder {
                 val solid = try { Kernel.loft(shapes) } finally { shapes.forEach { it.close() } }
                 combine(feature.id, solid, feature.operation, null, bodies)
             }
+            is SweepFeature -> {
+                val solid = profileShape(feature.profile).use {
+                    it.sweep(feature.pathPlane.frame(), feature.pathLines.toDoubleArray(), feature.pathArcs.toDoubleArray())
+                }
+                combine(feature.id, solid, feature.operation, null, bodies)
+            }
             is ShellFeature -> replace(feature.body, bodies) { it.shell(feature.face, feature.thickness) }
             is BooleanFeature -> {
                 require(feature.target != feature.tool) { "A body cannot be combined with itself" }

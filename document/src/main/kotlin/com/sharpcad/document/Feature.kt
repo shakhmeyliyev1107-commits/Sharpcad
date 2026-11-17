@@ -153,6 +153,20 @@ data class LoftFeature(
     override val label: String get() = "Loft (${profiles.size} profiles)"
 }
 
+/** Sweeps [profile] along the lines and arcs [pathLines]/[pathArcs] drawn on [pathPlane]. */
+@Serializable
+@SerialName("sweep")
+data class SweepFeature(
+    override val id: Long,
+    val profile: Profile,
+    val pathPlane: PlaneSpec,
+    val pathLines: List<Double>,
+    val pathArcs: List<Double> = emptyList(),
+    val operation: Operation = Operation.AUTO,
+) : Feature {
+    override val label: String get() = "Sweep"
+}
+
 /** A world axis. */
 enum class WorldAxis(val label: String, val vector: DoubleArray) {
     X("X", doubleArrayOf(1.0, 0.0, 0.0)),

@@ -31,6 +31,15 @@ Ilovada eskiz profili tanlanganda "Loft" tugmasi unga parallel barcha eskizlanga
 tekisliklarni normal bo'yicha tartiblab ishlatadi. Buning uchun siljigan qurilish
 tekisliklari bor: XY+50, XY+100, XZ+50, YZ+50 (`SketchSession.PLANES`).
 
+## Sweep
+
+`SweepFeature` profil birinchi yuzasini yo'l bo'ylab `BRepOffsetAPI_MakePipe` bilan
+suradi. Yo'l — profilni kesib o'tuvchi (parallel bo'lmagan) birinchi eskizlangan
+tekislikdagi chiziq va yoylar; aylanalar yo'lga kirmaydi (`ModelController.sweepFromRegion`).
+
+> ⚠️ Yo'l qirralari `BOPAlgo_Tools::EdgesToWires` bilan bitta simga yig'iladi; uzilgan yo'lda
+> faqat birinchi bo'lagi ishlatiladi.
+
 > ⚠️ Loft har profilning faqat birinchi yuzasini oladi; ichki teshiklar e'tiborga olinmaydi.
 
 ## Xususiyatlar

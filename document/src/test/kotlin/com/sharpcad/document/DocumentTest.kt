@@ -87,6 +87,12 @@ class DocumentTest {
     }
 
     @Test
+    fun sweepSquareUpAStraightPath() {
+        val sweep = SweepFeature(1, Profile(PlaneSpec.XY, rect(-1.0, -1.0, 1.0, 1.0), emptyList()), PlaneSpec.XZ, listOf(0.0, 0.0, 0.0, 10.0))
+        assertEquals(40.0, volumes(listOf(sweep)).getValue(1), 1e-3)
+    }
+
+    @Test
     fun revolveFilletChamferPushPullAndBoolean() {
         val revolve = RevolveFeature(1, Profile(PlaneSpec.XY, rect(10.0, 0.0, 20.0, 5.0), emptyList()), RevolveAxis.V, 360.0)
         assertEquals(PI * 300 * 5, volumes(listOf(revolve)).getValue(1), 1e-3)

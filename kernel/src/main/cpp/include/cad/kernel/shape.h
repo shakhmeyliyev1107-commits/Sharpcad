@@ -107,6 +107,9 @@ public:
     /// Compound of several shapes (used to export many bodies to one file).
     static std::unique_ptr<Shape> compound(const std::vector<const Shape*>& shapes);
 
+    /// Sweeps this profile's first face along the connected lines/arcs of `path`.
+    std::unique_ptr<Shape> sweep(const SketchProfileInput& path) const;
+
     /// Solid through the outer boundary of the first face of each profile, in order.
     static std::unique_ptr<Shape> loft(const std::vector<const Shape*>& profiles);
 

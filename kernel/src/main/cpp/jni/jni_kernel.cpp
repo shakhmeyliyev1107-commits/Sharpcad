@@ -217,6 +217,18 @@ Java_com_sharpcad_kernel_KernelNative_nativeProfileFromSketch(JNIEnv* env, jclas
     });
 }
 
+JNIEXPORT jlong JNICALL
+Java_com_sharpcad_kernel_KernelNative_nativeSweep(JNIEnv* env, jclass, jlong handle, jdoubleArray origin,
+                                                  jdoubleArray xAxis, jdoubleArray yAxis, jdoubleArray lines,
+                                                  jdoubleArray arcs) {
+    return guard<jlong>(env, 0, [&] {
+        auto in = planeInput(env, origin, xAxis, yAxis);
+        in.lines = toDoubles(env, lines);
+        in.arcs = toDoubles(env, arcs);
+        return release(shapeFromHandle(handle).sweep(in));
+    });
+}
+
 JNIEXPORT jint JNICALL
 Java_com_sharpcad_kernel_KernelNative_nativeRegionAt(JNIEnv* env, jclass, jlong handle, jdoubleArray origin,
                                                      jdoubleArray xAxis, jdoubleArray yAxis, jdouble u,

@@ -108,6 +108,10 @@ class Shape internal constructor(private var handle: Long) : AutoCloseable {
     }
 
     /** Hollows the solid to [thickness] mm walls, opening [face] (-1 keeps it closed). */
+    /** Sweeps this profile's first face along the connected [lines] and [arcs] drawn on [plane]. */
+    fun sweep(plane: PlaneFrame, lines: DoubleArray, arcs: DoubleArray): Shape =
+        Shape(KernelNative.nativeSweep(handle, plane.origin, plane.xAxis, plane.yAxis, lines, arcs))
+
     fun shell(face: Int, thickness: Double): Shape = Shape(KernelNative.nativeShell(handle, face, thickness))
 
     /** Area of [face] in square millimetres. */

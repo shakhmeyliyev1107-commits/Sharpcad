@@ -28,6 +28,9 @@ internal object KernelNative {
     @JvmStatic external fun nativeProfileFromSketch(
         origin: DoubleArray, xAxis: DoubleArray, yAxis: DoubleArray, lines: DoubleArray, circles: DoubleArray, arcs: DoubleArray,
     ): Long
+    @JvmStatic external fun nativeSweep(
+        handle: Long, origin: DoubleArray, xAxis: DoubleArray, yAxis: DoubleArray, lines: DoubleArray, arcs: DoubleArray,
+    ): Long
     @JvmStatic external fun nativeRegionAt(
         handle: Long, origin: DoubleArray, xAxis: DoubleArray, yAxis: DoubleArray, u: Double, v: Double,
     ): Int

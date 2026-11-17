@@ -24,6 +24,8 @@
 #include <BRepGProp.hxx>
 #include <BRepOffsetAPI_MakeThickSolid.hxx>
 #include <BRepOffsetAPI_ThruSections.hxx>
+#include <BRepOffsetAPI_MakePipe.hxx>
+#include <TopoDS_Wire.hxx>
 #include <BRepTools.hxx>
 #include <BRepGProp_Face.hxx>
 #include <BRepPrimAPI_MakePrism.hxx>
@@ -110,34 +112,42 @@ bool hasFaces(const TopoDS_Shape& shape) {
 
 }  // namespace
 
+namespace {
+// Model-space edges of a sketch's lines, circles and arcs.
+TopTools_ListOfShape sketchEdges(const SketchProfileInput& in, const gp_Dir& normal) {
+    TopTools_ListOfShape edgeList;
+    for (size_t i = 0; i < in.lines.size(); i += 4) {
+        const gp_Pnt a = planePoint(in, in.lines[i], in.lines[i + 1]);
+        const gp_Pnt b = planePoint(in, in.lines[i + 2], in.lines[i + 3]);
+        if (a.Distance(b) < kTiny) continue;
+        edgeList.Append(BRepBuilderAPI_MakeEdge(a, b).Edge());
+    }
+    for (size_t i = 0; i < in.circles.size(); i += 3) {
+        const double r = in.circles[i + 2];
+        require(std::isfinite(r) && r > kTiny, "Circle radius must be positive");
+        const gp_Ax2 axes(planePoint(in, in.circles[i], in.circles[i + 1]), normal,
+                          gp_Dir(in.xAxis[0], in.xAxis[1], in.xAxis[2]));
+        edgeList.Append(BRepBuilderAPI_MakeEdge(gp_Circ(axes, r)).Edge());
+    }
+    require(in.arcs.size() % 5 == 0, "Malformed arc array");
+    for (size_t i = 0; i < in.arcs.size(); i += 5) {
+        const double r = in.arcs[i + 2];
+        require(std::isfinite(r) && r > kTiny, "Arc radius must be positive");
+        const gp_Ax2 axes(planePoint(in, in.arcs[i], in.arcs[i + 1]), normal,
+                          gp_Dir(in.xAxis[0], in.xAxis[1], in.xAxis[2]));
+        edgeList.Append(BRepBuilderAPI_MakeEdge(gp_Circ(axes, r), in.arcs[i + 3], in.arcs[i + 4]).Edge());
+    }
+    return edgeList;
+}
+}  // namespace
+
 std::unique_ptr<Shape> Shape::profileFromSketch(const SketchProfileInput& in) {
     require(finite3(in.origin) && finite3(in.xAxis) && finite3(in.yAxis), "Plane must be finite");
     require(in.lines.size() % 4 == 0 && in.circles.size() % 3 == 0, "Malformed sketch arrays");
     const gp_Dir normal = planeNormal(in);
     return guarded("profileFromSketch", [&] {
         // Splitting edges where they cross lets crossing lines close up a region.
-        TopTools_ListOfShape edgeList;
-        for (size_t i = 0; i < in.lines.size(); i += 4) {
-            const gp_Pnt a = planePoint(in, in.lines[i], in.lines[i + 1]);
-            const gp_Pnt b = planePoint(in, in.lines[i + 2], in.lines[i + 3]);
-            if (a.Distance(b) < kTiny) continue;
-            edgeList.Append(BRepBuilderAPI_MakeEdge(a, b).Edge());
-        }
-        for (size_t i = 0; i < in.circles.size(); i += 3) {
-            const double r = in.circles[i + 2];
-            require(std::isfinite(r) && r > kTiny, "Circle radius must be positive");
-            const gp_Ax2 axes(planePoint(in, in.circles[i], in.circles[i + 1]), normal,
-                              gp_Dir(in.xAxis[0], in.xAxis[1], in.xAxis[2]));
-            edgeList.Append(BRepBuilderAPI_MakeEdge(gp_Circ(axes, r)).Edge());
-        }
-        require(in.arcs.size() % 5 == 0, "Malformed arc array");
-        for (size_t i = 0; i < in.arcs.size(); i += 5) {
-            const double r = in.arcs[i + 2];
-            require(std::isfinite(r) && r > kTiny, "Arc radius must be positive");
-            const gp_Ax2 axes(planePoint(in, in.arcs[i], in.arcs[i + 1]), normal,
-                              gp_Dir(in.xAxis[0], in.xAxis[1], in.xAxis[2]));
-            edgeList.Append(BRepBuilderAPI_MakeEdge(gp_Circ(axes, r), in.arcs[i + 3], in.arcs[i + 4]).Edge());
-        }
+        TopTools_ListOfShape edgeList = sketchEdges(in, normal);
         require(!edgeList.IsEmpty(), "Sketch is empty");
 
         TopoDS_Shape split;
@@ -340,6 +350,31 @@ std::unique_ptr<Shape> Shape::loft(const std::vector<const Shape*>& profiles) {
         if (!sections.IsDone()) throw KernelError(ErrorCode::OcctFailure, "loft failed");
         auto impl = std::make_unique<Impl>();
         impl->shape = sections.Shape();
+        return std::unique_ptr<Shape>(new Shape(std::move(impl)));
+    });
+}
+
+std::unique_ptr<Shape> Shape::sweep(const SketchProfileInput& path) const {
+    require(finite3(path.origin) && finite3(path.xAxis) && finite3(path.yAxis), "Plane must be finite");
+    require(path.lines.size() % 4 == 0 && path.circles.empty(), "Path must be lines and arcs");
+    return guarded("sweep", [&] {
+        TopTools_ListOfShape edges = sketchEdges(path, planeNormal(path));
+        require(!edges.IsEmpty(), "Path is empty");
+        TopoDS_Compound all;
+        BRep_Builder builder;
+        builder.MakeCompound(all);
+        for (const TopoDS_Shape& e : edges) builder.Add(all, e);
+        TopoDS_Shape wires;
+        BOPAlgo_Tools::EdgesToWires(all, wires, Standard_False);
+        TopExp_Explorer wire(wires, TopAbs_WIRE);
+        require(wire.More(), "Path is not connected");
+        TopExp_Explorer face(impl_->shape, TopAbs_FACE);
+        require(face.More(), "Profile has no face");
+        BRepOffsetAPI_MakePipe pipe(TopoDS::Wire(wire.Current()), face.Current());
+        pipe.Build();
+        if (!pipe.IsDone()) throw KernelError(ErrorCode::OcctFailure, "sweep failed");
+        auto impl = std::make_unique<Impl>();
+        impl->shape = pipe.Shape();
         return std::unique_ptr<Shape>(new Shape(std::move(impl)));
     });
 }

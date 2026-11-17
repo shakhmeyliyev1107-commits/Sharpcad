@@ -315,3 +315,13 @@ TEST(Loft, TwoEqualSquaresMakeABox) {
     EXPECT_NEAR(Shape::loft({a.get(), b.get()})->volume(), 1000.0, 1e-3);
     expectError(ErrorCode::InvalidArgument, [&] { Shape::loft({a.get()}); });
 }
+
+TEST(Sweep, SquareAlongStraightPath) {
+    auto profile = xyPlane();
+    addRect(profile, -1, -1, 1, 1);
+    SketchProfileInput path{};
+    path.xAxis[0] = 1.0;  // XZ plane
+    path.yAxis[2] = 1.0;
+    path.lines = {0, 0, 0, 10};  // straight up z
+    EXPECT_NEAR(Shape::profileFromSketch(profile)->sweep(path)->volume(), 40.0, 1e-3);
+}

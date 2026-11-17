@@ -386,6 +386,32 @@ class ModelController(
         launchEdit { document.add(com.sharpcad.document.LoftFeature(document.newId(), profiles)) }
     }
 
+    /** Sweep the selected profile along the lines/arcs sketched on a plane that crosses it. */
+    private fun sweepFromRegion() {
+        val r = regionSelection ?: return
+        val n = r.plane.normal
+        val pathPlane = sketches.sketchedPlanes.firstOrNull { p ->
+            val m = p.normal
+            kotlin.math.abs(m[0] * n[0] + m[1] * n[1] + m[2] * n[2]) < 0.999
+        }
+        val path = pathPlane?.let { sketches.geometry(it) }
+        if (pathPlane == null || path == null || (path.lines.isEmpty() && path.arcs.isEmpty())) {
+            note = "Sweep needs a path: draw lines/arcs on a crossing plane (e.g. XZ for an XY profile)"
+            return
+        }
+        val (lines, circles, arcs) = sketches.geometry(r.plane)
+        regionSelection = null
+        viewport.setHighlight(null)
+        launchEdit {
+            document.add(
+                com.sharpcad.document.SweepFeature(
+                    document.newId(), Profile(planeSpec(r.plane), lines, circles, r.regions.sorted().take(1), arcs),
+                    planeSpec(pathPlane), path.lines, path.arcs,
+                ),
+            )
+        }
+    }
+
     private fun solidFromRegions(revolve: Boolean) {
         val r = regionSelection ?: return
         val (lines, circles, arcs) = sketches.geometry(r.plane)
@@ -432,6 +458,7 @@ class ModelController(
                         PanelAction("Extrude", accent = true) { solidFromRegions(revolve = false) },
                         PanelAction("Revolve") { solidFromRegions(revolve = true) },
                         PanelAction("Loft") { loftFromRegions() },
+                        PanelAction("Sweep") { sweepFromRegion() },
                         PanelAction("Deselect") { clearSelection(); viewport.setHighlight(null) },
                     ),
                     "${r.plane.name} · $count region${if (count == 1) "" else "s"} · tap more regions to add",
@@ -505,7 +532,7 @@ class ModelController(
                 choices += ChoiceField("Type", PATTERN_TYPES, if (f.circular) PATTERN_TYPES[1] else PATTERN_TYPES[0])
                 choices += ChoiceField("Axis", AXES, f.axis.label)
             }
-            is ImportFeature, is com.sharpcad.document.DeleteBodyFeature, is com.sharpcad.document.LoftFeature -> Unit
+            is ImportFeature, is com.sharpcad.document.DeleteBodyFeature, is com.sharpcad.document.LoftFeature, is com.sharpcad.document.SweepFeature -> Unit
         }
         val flip = when (f) {
             is ExtrudeFeature -> f.copy(distance = -f.distance)
