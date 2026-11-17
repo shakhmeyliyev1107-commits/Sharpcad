@@ -76,4 +76,15 @@ class ModelingJniTest {
         }
         assertThrows(IllegalArgumentException::class.java) { PlaneFrame(DoubleArray(2), DoubleArray(3), DoubleArray(3)) }
     }
+
+    @Test
+    fun projectionCrossesJniAsSegments() {
+        Kernel.makeBox(10.0, 20.0, 30.0).use { box ->
+            val view = box.project(doubleArrayOf(0.0, -1.0, 0.0), doubleArrayOf(0.0, 0.0, 1.0))
+            assertTrue(view.visible.isNotEmpty())
+            assertEquals(0, view.visible.size % 4)
+            val xs = view.visible.filterIndexed { i, _ -> i % 2 == 0 }
+            assertEquals(10f, xs.max() - xs.min(), 1e-3f)
+        }
+    }
 }

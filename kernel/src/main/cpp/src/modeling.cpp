@@ -6,7 +6,12 @@
 
 #include <BOPAlgo_Builder.hxx>
 #include <BOPAlgo_Tools.hxx>
+#include <BRepAdaptor_Curve.hxx>
 #include <BRepAdaptor_Surface.hxx>
+#include <GCPnts_QuasiUniformDeflection.hxx>
+#include <HLRAlgo_Projector.hxx>
+#include <HLRBRep_Algo.hxx>
+#include <HLRBRep_HLRToShape.hxx>
 #include <BRepAlgoAPI_Common.hxx>
 #include <BRepAlgoAPI_Cut.hxx>
 #include <BRepAlgoAPI_Fuse.hxx>
@@ -314,6 +319,51 @@ double Shape::distanceTo(const Shape& other) const {
         BRepExtrema_DistShapeShape dist(impl_->shape, other.impl_->shape);
         if (!dist.IsDone()) throw KernelError(ErrorCode::OcctFailure, "distance failed");
         return dist.Value();
+    });
+}
+
+namespace {
+
+// Appends every edge of `edges` as a polyline of segments, reading x and y only.
+void appendSegments(const TopoDS_Shape& edges, double deflection, std::vector<float>& out) {
+    if (edges.IsNull()) return;
+    for (TopExp_Explorer it(edges, TopAbs_EDGE); it.More(); it.Next()) {
+        BRepAdaptor_Curve curve(TopoDS::Edge(it.Current()));
+        GCPnts_QuasiUniformDeflection points(curve, deflection);
+        if (!points.IsDone() || points.NbPoints() < 2) continue;
+        for (int i = 1; i < points.NbPoints(); ++i) {
+            const gp_Pnt a = points.Value(i);
+            const gp_Pnt b = points.Value(i + 1);
+            out.insert(out.end(), {static_cast<float>(a.X()), static_cast<float>(a.Y()),
+                                   static_cast<float>(b.X()), static_cast<float>(b.Y())});
+        }
+    }
+}
+
+}  // namespace
+
+ViewProjection Shape::project(const double toViewer[3], const double up[3], double deflection) const {
+    require(finite3(toViewer) && finite3(up), "View directions must be finite");
+    require(std::isfinite(deflection) && deflection > kTiny, "Deflection must be positive");
+    const gp_Vec z(toViewer[0], toViewer[1], toViewer[2]);
+    const gp_Vec u(up[0], up[1], up[2]);
+    require(z.Magnitude() > kTiny && u.Magnitude() > kTiny, "View directions must not be zero");
+    const gp_Vec x = u.Crossed(z);
+    require(x.Magnitude() > kTiny, "Up must not be parallel to the view direction");
+    return guarded("project", [&] {
+        Handle(HLRBRep_Algo) hlr = new HLRBRep_Algo();
+        hlr->Add(impl_->shape);
+        hlr->Projector(HLRAlgo_Projector(gp_Ax2(gp_Pnt(0, 0, 0), gp_Dir(z), gp_Dir(x))));
+        hlr->Update();
+        hlr->Hide();
+        HLRBRep_HLRToShape extract(hlr);
+        ViewProjection out;
+        appendSegments(extract.VCompound(), deflection, out.visible);
+        appendSegments(extract.OutLineVCompound(), deflection, out.visible);
+        appendSegments(extract.Rg1LineVCompound(), deflection, out.visible);
+        appendSegments(extract.HCompound(), deflection, out.hidden);
+        appendSegments(extract.OutLineHCompound(), deflection, out.hidden);
+        return out;
     });
 }
 

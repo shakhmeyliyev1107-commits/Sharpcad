@@ -207,6 +207,55 @@ TEST(Modeling, DistanceBetweenShapes) {
     EXPECT_NEAR(a->distanceTo(*Shape::profileFromSketch(touching)->extrude(0, 0, 1)), 0.0, 1e-6);
 }
 
+namespace {
+void extent(const std::vector<float>& segs, float out[4]) {
+    out[0] = out[1] = 1e9f;
+    out[2] = out[3] = -1e9f;
+    for (size_t i = 0; i < segs.size(); i += 2) {
+        out[0] = std::min(out[0], segs[i]);
+        out[1] = std::min(out[1], segs[i + 1]);
+        out[2] = std::max(out[2], segs[i]);
+        out[3] = std::max(out[3], segs[i + 1]);
+    }
+}
+}  // namespace
+
+TEST(Drawing, FrontViewOfABoxIsItsWidthByHeight) {
+    const auto box = Shape::makeBox(10, 20, 30);
+    const double front[3] = {0, -1, 0};  // viewer in front (-Y), looking at +Y
+    const double up[3] = {0, 0, 1};
+    const auto view = box->project(front, up, 0.05);
+    ASSERT_FALSE(view.visible.empty());
+    float e[4];
+    extent(view.visible, e);
+    EXPECT_NEAR(e[2] - e[0], 10.0f, 1e-3f);
+    EXPECT_NEAR(e[3] - e[1], 30.0f, 1e-3f);
+    EXPECT_EQ(view.visible.size() % 4, 0u);
+}
+
+TEST(Drawing, HiddenEdgesAppearForAHoleSeenFromTheSide) {
+    auto in = xyPlane();
+    addRect(in, 0, 0, 40, 40);
+    in.circles = {20, 20, 5};
+    auto profile = Shape::profileFromSketch(in);
+    const auto plate = profile->subset({profile->regionAt(in, 1, 1)})->extrude(0, 0, 10);
+    const double front[3] = {0, -1, 0};
+    const double up[3] = {0, 0, 1};
+    EXPECT_FALSE(plate->project(front, up, 0.05).hidden.empty());
+    const double top[3] = {0, 0, 1};
+    const double north[3] = {0, 1, 0};
+    // From above, hidden edges (bottom outline, hole bottom) lie under visible ones.
+    const auto plan = plate->project(top, north, 0.05);
+    float v[4], h[4];
+    extent(plan.visible, v);
+    extent(plan.hidden, h);
+    EXPECT_GE(h[0], v[0] - 1e-3f);
+    EXPECT_LE(h[2], v[2] + 1e-3f);
+    const double bad[3] = {0, 0, 0};
+    expectError(ErrorCode::InvalidArgument, [&] { plate->project(bad, up, 0.05); });
+    expectError(ErrorCode::InvalidArgument, [&] { plate->project(top, top, 0.05); });
+}
+
 TEST(Modeling, CompoundKeepsAllBodies) {
     const auto a = Shape::makeBox(1, 1, 1);
     const auto b = Shape::makeBox(2, 2, 2);

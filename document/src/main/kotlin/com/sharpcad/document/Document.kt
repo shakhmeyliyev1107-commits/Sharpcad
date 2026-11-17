@@ -151,6 +151,18 @@ class Document(private val dispatcher: CoroutineDispatcher = KernelDispatcher) :
         return MeshPart(name, positions, indices)
     }
 
+    /** Hidden-line views of all bodies for a drawing, or empty when there are none. */
+    suspend fun drawingViews(views: List<DrawingView> = DrawingView.entries): List<ViewLines> = lock.withLock {
+        withContext(dispatcher) {
+            val shapes = built?.bodies?.values?.toList().orEmpty()
+            if (shapes.isEmpty()) return@withContext emptyList()
+            com.sharpcad.kernel.Kernel.compound(shapes).use { all ->
+                val deflection = (all.boundingBox().diagonal * 0.0005).coerceIn(0.005, 1.0)
+                views.map { v -> all.project(v.toViewer, v.up, deflection).let { ViewLines(v, it.visible, it.hidden) } }
+            }
+        }
+    }
+
     override fun close() {
         built?.close()
         built = null

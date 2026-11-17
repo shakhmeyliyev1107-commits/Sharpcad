@@ -52,13 +52,14 @@ internal const val SKETCH_ITEM = "Sketch"
 /** Label of the rail item that toggles the history panel. */
 internal const val HISTORY_ITEM = "History"
 internal const val VISUALIZATION_ITEM = "Visualization"
+internal const val DRAWINGS_ITEM = "Drawings"
 internal const val DISPLAY_ITEM = "Display mode"
 
 internal val LeftRailGroups: List<List<RailItem>> = listOf(
     listOf(
         RailItem("Modeling", Icons.Outlined.ViewInAr, selected = true),
         RailItem(VISUALIZATION_ITEM, Icons.Outlined.Texture),
-        RailItem("Drawings", Icons.Outlined.Architecture),
+        RailItem(DRAWINGS_ITEM, Icons.Outlined.Architecture),
         RailItem("Items", Icons.Outlined.Layers),
     ),
     listOf(

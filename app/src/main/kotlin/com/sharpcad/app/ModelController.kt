@@ -120,6 +120,24 @@ class ModelController(
         historyOpen = !historyOpen
     }
 
+    /** The drawing being previewed, or `null`. */
+    var drawing by mutableStateOf<com.sharpcad.document.DrawingSheet?>(null)
+        private set
+
+    /** Projects all bodies into a drawing sheet (front, top, right, isometric). */
+    fun openDrawing(title: String) = launchEdit {
+        val views = document.drawingViews()
+        if (views.isEmpty()) {
+            note = "Nothing to draw yet"
+            return@launchEdit
+        }
+        drawing = com.sharpcad.document.DrawingLayout.layout(title, views)
+    }
+
+    fun closeDrawing() {
+        drawing = null
+    }
+
     fun toggleMaterials() {
         materialsOpen = !materialsOpen
     }

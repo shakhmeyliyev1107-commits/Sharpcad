@@ -73,6 +73,20 @@ class WorkspaceState(
         busy = true
         scope.launch {
             try {
+                val sheet = model.drawing
+                if (sheet != null && extension in setOf("svg", "dxf", "pdf")) {
+                    withContext(Dispatchers.IO) {
+                        appContext.contentResolver.openOutputStream(uri)?.use { out ->
+                            when (extension) {
+                                "pdf" -> SheetPainter.writePdf(sheet, out)
+                                "svg" -> out.write(com.sharpcad.document.DrawingExport.svg(sheet).toByteArray())
+                                else -> out.write(com.sharpcad.document.DrawingExport.dxf(sheet).toByteArray())
+                            }
+                        } ?: throw IOException("Cannot write $uri")
+                    }
+                    errorLine = ""
+                    return@launch
+                }
                 val staged = File(appContext.cacheDir, "export.$extension")
                 val doc = model.document
                 val written = when (extension) {

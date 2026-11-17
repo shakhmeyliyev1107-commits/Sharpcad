@@ -78,6 +78,7 @@ fun Workspace(
     materialsActive: Boolean = false,
     onMaterialsToggle: () -> Unit = {},
     onDisplayMode: () -> Unit = {},
+    onDrawings: () -> Unit = {},
     overlay: @Composable BoxScope.() -> Unit = {},
     viewport: @Composable () -> Unit,
 ) {
@@ -89,7 +90,7 @@ fun Workspace(
                 ToolRail(
                     LeftRailGroups,
                     Modifier.align(Alignment.TopStart),
-                    actions = mapOf(SKETCH_ITEM to onSketchToggle, VISUALIZATION_ITEM to onMaterialsToggle),
+                    actions = mapOf(SKETCH_ITEM to onSketchToggle, VISUALIZATION_ITEM to onMaterialsToggle, DRAWINGS_ITEM to onDrawings),
                     active = setOfNotNull(SKETCH_ITEM.takeIf { sketchActive }, VISUALIZATION_ITEM.takeIf { materialsActive }),
                 )
                 ToolRail(

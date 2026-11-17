@@ -98,6 +98,15 @@ class Shape internal constructor(private var handle: Long) : AutoCloseable {
     fun revolve(axisOrigin: DoubleArray, axisDirection: DoubleArray, angle: Double): Shape =
         Shape(KernelNative.nativeRevolve(handle, axisOrigin, axisDirection, angle))
 
+    /**
+     * Orthographic hidden-line view. [toViewer] points from the model to the eye, [up] is
+     * the view's vertical. Segments are x1, y1, x2, y2 in the view plane, millimetres.
+     */
+    fun project(toViewer: DoubleArray, up: DoubleArray, deflection: Double = 0.05): ViewProjection {
+        val raw = KernelNative.nativeProject(handle, toViewer, up, deflection)
+        return ViewProjection(raw[0], raw[1])
+    }
+
     /** Smallest distance to [other] in millimetres; 0 when they touch or overlap. */
     fun distanceTo(other: Shape): Double = KernelNative.nativeDistance(handle, other.handle)
 
@@ -162,3 +171,6 @@ class PlaneFrame(val origin: DoubleArray, val xAxis: DoubleArray, val yAxis: Dou
             xAxis[0] * yAxis[1] - xAxis[1] * yAxis[0],
         )
 }
+
+/** Line segments of a hidden-line view: x1, y1, x2, y2 per segment, millimetres. */
+class ViewProjection(val visible: FloatArray, val hidden: FloatArray)

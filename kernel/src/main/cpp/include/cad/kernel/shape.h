@@ -33,6 +33,12 @@ struct SketchProfileInput {
 
 enum class BooleanOp : int { Union = 0, Subtract = 1, Intersect = 2 };
 
+/// A 2D projection of a shape: line segments (x1, y1, x2, y2 …) in the view plane, mm.
+struct ViewProjection {
+    std::vector<float> visible;  ///< sharp edges and silhouettes facing the viewer
+    std::vector<float> hidden;   ///< edges behind faces (drawn dashed in drawings)
+};
+
 /// Result of a ray pick: the hit face and the distance along the ray, or face -1.
 struct PickHit {
     int face;
@@ -102,6 +108,10 @@ public:
 
     /// Smallest distance between this shape and `other` (0 when they touch or overlap).
     double distanceTo(const Shape& other) const;
+
+    /// Orthographic hidden-line projection. `toViewer` points from the model to the eye,
+    /// `up` is the view's vertical; x grows to the right of the viewer.
+    ViewProjection project(const double toViewer[3], const double up[3], double deflection) const;
 
     int faceCount() const;
     double volume() const;

@@ -297,6 +297,30 @@ Java_com_sharpcad_kernel_KernelNative_nativeDistance(JNIEnv* env, jclass, jlong 
     return guard<jdouble>(env, 0.0, [&] { return shapeFromHandle(handle).distanceTo(shapeFromHandle(other)); });
 }
 
+// Returns {visible, hidden} float arrays of x1, y1, x2, y2 segments.
+JNIEXPORT jobjectArray JNICALL
+Java_com_sharpcad_kernel_KernelNative_nativeProject(JNIEnv* env, jclass, jlong handle, jdoubleArray toViewer,
+                                                    jdoubleArray up, jdouble deflection) {
+    return guard<jobjectArray>(env, nullptr, [&]() -> jobjectArray {
+        double z[3], u[3];
+        toVec3(env, toViewer, z);
+        toVec3(env, up, u);
+        const auto view = shapeFromHandle(handle).project(z, u, deflection);
+        jclass cls = env->FindClass("[F");
+        if (!cls) throw JavaExceptionPending{};
+        jobjectArray out = env->NewObjectArray(2, cls, nullptr);
+        if (!out) throw JavaExceptionPending{};
+        const std::vector<float>* parts[2] = {&view.visible, &view.hidden};
+        for (int i = 0; i < 2; ++i) {
+            jfloatArray arr = env->NewFloatArray(static_cast<jsize>(parts[i]->size()));
+            if (!arr) throw JavaExceptionPending{};
+            if (!parts[i]->empty()) env->SetFloatArrayRegion(arr, 0, static_cast<jsize>(parts[i]->size()), parts[i]->data());
+            env->SetObjectArrayElement(out, i, arr);
+        }
+        return out;
+    });
+}
+
 JNIEXPORT jint JNICALL
 Java_com_sharpcad_kernel_KernelNative_nativeFaceCount(JNIEnv* env, jclass, jlong handle) {
     return guard<jint>(env, 0, [&] { return shapeFromHandle(handle).faceCount(); });

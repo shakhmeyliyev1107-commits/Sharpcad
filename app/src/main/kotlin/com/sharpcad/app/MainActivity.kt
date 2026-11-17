@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -89,6 +90,7 @@ private fun WorkspaceScreen() {
     // Start with something to look at.
     LaunchedEffect(Unit) { state.openSample() }
 
+    Box(Modifier.fillMaxSize()) {
     Workspace(
         projectName = state.projectName,
         actions = actions,
@@ -103,6 +105,7 @@ private fun WorkspaceScreen() {
         materialsActive = model.materialsOpen,
         onMaterialsToggle = model::toggleMaterials,
         onDisplayMode = model::cycleDisplayMode,
+        onDrawings = { model.openDrawing(state.projectName) },
         overlay = {
             // Between the rails, clear of both.
             Column(
@@ -164,5 +167,9 @@ private fun WorkspaceScreen() {
         },
     ) {
         Viewport(viewport, Modifier.fillMaxSize(), onError = state::onViewportError)
+    }
+    model.drawing?.let { sheet ->
+        DrawingScreen(sheet, onExport = actions.onExport, onClose = model::closeDrawing)
+    }
     }
 }

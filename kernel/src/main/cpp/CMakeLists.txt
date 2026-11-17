@@ -22,7 +22,7 @@ endif()
 # OCCT toolkits cadcore links against directly. Always dynamic (LGPL).
 set(OCCT_TOOLKITS
     TKernel TKMath TKG2d TKG3d TKGeomBase TKBRep TKGeomAlgo TKTopAlgo TKPrim
-    TKMesh TKShHealing TKDE TKXSBase TKDESTEP TKDEIGES TKBO TKBool TKFillet)
+    TKMesh TKShHealing TKDE TKXSBase TKDESTEP TKDEIGES TKBO TKBool TKFillet TKHLR)
 foreach(tk IN LISTS OCCT_TOOLKITS)
     add_library(occt::${tk} SHARED IMPORTED)
     set_target_properties(occt::${tk} PROPERTIES
