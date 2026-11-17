@@ -49,7 +49,7 @@ Eng yangi jismdan boshlab tekshiriladi.
 
 Import: STEP va IGES (o'quvchi kengaytmadan tanlanadi). Eksport: STEP va IGES (aniq
 geometriya), STL (binar), OBJ va 3MF (mesh, 0.01 mm og'ish bilan qayta
-tessellyatsiya qilinadi, millimetrda). Mesh yozuvchilari sof Kotlin (\`MeshExport\`).
+tessellyatsiya qilinadi, millimetrda). Mesh yozuvchilari sof Kotlin (`MeshExport`).
 
 ## Bekor qilish va qaytarish
 

@@ -86,21 +86,21 @@ keladi.
 
 ## Materiallar va ko'rinish rejimlari
 
-Barcha jismlar bitta mesh va bitta chizish chaqiruvida chiziladi (\`MeshTools.merge\`).
+Barcha jismlar bitta mesh va bitta chizish chaqiruvida chiziladi (`MeshTools.merge`).
 Har bir uchning materiali (chiziqli rang, g'adir-budurlik, metallik) alohida buferda
-keladi va \`cad_pbr\` materiali GGX + Schlick bilan, sahna chiroqlarisiz, o'zgarmas
+keladi va `cad_pbr` materiali GGX + Schlick bilan, sahna chiroqlarisiz, o'zgarmas
 asosiy yorug'lik, yarim shar atrofi va osmon aksi bilan soyalaydi. Unlit model bo'lgani
-uchun rang ekspozitsiyaga bog'liq emas. 105 ta tayyor material \`MaterialLibrary\` da.
+uchun rang ekspozitsiyaga bog'liq emas. 105 ta tayyor material `MaterialLibrary` da.
 
 Ko'rinish rejimlari: qirrali soyali, faqat soyali, sim karkas — sahnadan yuza yoki
 qirra obyektlari olib tashlanadi, mesh qayta yuklanmaydi.
 
-> ⚠️ \`ByteBuffer.asIntBuffer()\` ko'rinishi buferning **joriy** pozitsiyasidan
-> boshlanadi. Unga yana \`position()\` qo'yish ofsetni ikki marta qo'shadi — ikki va undan
+> ⚠️ `ByteBuffer.asIntBuffer()` ko'rinishi buferning **joriy** pozitsiyasidan
+> boshlanadi. Unga yana `position()` qo'yish ofsetni ikki marta qo'shadi — ikki va undan
 > ortiq jism birlashtirilganda indekslar noto'g'ri yozilgan edi (4-bosqichda tuzatildi).
 
-> ⚠️ Filament'ning \`lit\` modeli tangens atributini va IBL/ekspozitsiyani talab qiladi;
-> shuning uchun PBR o'z \`unlit\` sheyderimizda hisoblanadi. Uni \`lit\` ga almashtirsangiz,
+> ⚠️ Filament'ning `lit` modeli tangens atributini va IBL/ekspozitsiyani talab qiladi;
+> shuning uchun PBR o'z `unlit` sheyderimizda hisoblanadi. Uni `lit` ga almashtirsangiz,
 > ranglar ekspozitsiya sozlanmaguncha juda qorong'i yoki oq bo'lib chiqadi.
 
 ## Ranglar
