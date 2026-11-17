@@ -16,3 +16,8 @@ Append-only. Newest entries at the bottom.
 - Koddan yozilgan ikki sahifa: `subsystems/kernel-jni.md` (`kernel/`, `tools/build-occt.sh`)
   va `subsystems/viewport-rendering.md` (`viewport/`, `tools/build-materials.sh`)
 - Qamrab olinmagan: `app/`, `ui/` -- ularga tegilganda sahifa qo'shiladi
+
+## [2026-11-17] add | eskiz dvigateli sahifasi
+
+- `subsystems/sketch-engine.md`: `sketch/`, `third_party/planegcs/`, `SketchSession`
+
