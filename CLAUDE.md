@@ -60,12 +60,14 @@ Target: arm64-v8a only, minSdk 29, 8–13 inch tablets. Phone layout out of scop
     tools/build-occt.sh host      # host build used by tests
     tools/build-materials.sh      # recompile *.mat after editing or bumping Filament
     ./gradlew :app:assembleDebug
-    ./gradlew :kernel:hostTest    # C++ + JNI tests on host
+    tools/fetch-sketch-deps.sh    # Eigen + Boost headers for PlaneGCS
+    ./gradlew :kernel:hostTest :sketch:hostTest   # C++ + JNI tests on host
 
 ## Licensing (every new native dependency must be listed here before it is added)
 - OCCT: LGPL-2.1 with the Open CASCADE exception. Link dynamically, ship unmodified `.so` files,
   include the licence text and a source offer. Do not link statically.
-- PlaneGCS: LGPL-2.0+ — same handling. Depends on Eigen (MPL-2.0) and Boost (BSL-1.0).
+- PlaneGCS: LGPL-2.0+ — same handling; unmodified sources vendored in `third_party/planegcs`,
+  built as `libplanegcs.so`. Depends on Eigen (MPL-2.0 only) and Boost headers (BSL-1.0).
 - Filament, ARCore SDK, AndroidX: Apache-2.0.
 - Forbidden: GPL code (SolveSpace solver, LibreDWG, CGAL GPL parts) and any proprietary SDK
   without a signed licence (Parasolid, D-Cubed, ODA, SolidWorks readers).

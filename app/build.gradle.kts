@@ -39,6 +39,7 @@ kotlin {
 dependencies {
     implementation(project(":viewport"))
     implementation(project(":kernel"))
+    implementation(project(":sketch"))
     implementation(project(":ui:workspace"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
