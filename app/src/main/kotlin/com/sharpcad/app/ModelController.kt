@@ -361,6 +361,31 @@ class ModelController(
     }
 
     /** Extrudes or revolves the selected regions. */
+    /**
+     * Loft from the selected profile through the first profile of every other sketched
+     * plane parallel to it, ordered along the normal.
+     */
+    private fun loftFromRegions() {
+        val r = regionSelection ?: return
+        val n = r.plane.normal
+        fun along(p: SketchPlane) = p.origin[0] * n[0] + p.origin[1] * n[1] + p.origin[2] * n[2]
+        val planes = sketches.sketchedPlanes.filter { p ->
+            val m = p.normal
+            kotlin.math.abs(m[0] * n[0] + m[1] * n[1] + m[2] * n[2]) > 0.999
+        }.sortedBy { along(it) }
+        if (planes.size < 2) {
+            note = "Loft needs sketches on two parallel planes (e.g. XY and XY+50)"
+            return
+        }
+        val profiles = planes.map { p ->
+            val (lines, circles, arcs) = sketches.geometry(p)
+            Profile(planeSpec(p), lines, circles, if (p == r.plane) r.regions.sorted().take(1) else null, arcs)
+        }
+        regionSelection = null
+        viewport.setHighlight(null)
+        launchEdit { document.add(com.sharpcad.document.LoftFeature(document.newId(), profiles)) }
+    }
+
     private fun solidFromRegions(revolve: Boolean) {
         val r = regionSelection ?: return
         val (lines, circles, arcs) = sketches.geometry(r.plane)
@@ -406,6 +431,7 @@ class ModelController(
                     listOf(
                         PanelAction("Extrude", accent = true) { solidFromRegions(revolve = false) },
                         PanelAction("Revolve") { solidFromRegions(revolve = true) },
+                        PanelAction("Loft") { loftFromRegions() },
                         PanelAction("Deselect") { clearSelection(); viewport.setHighlight(null) },
                     ),
                     "${r.plane.name} · $count region${if (count == 1) "" else "s"} · tap more regions to add",
@@ -479,7 +505,7 @@ class ModelController(
                 choices += ChoiceField("Type", PATTERN_TYPES, if (f.circular) PATTERN_TYPES[1] else PATTERN_TYPES[0])
                 choices += ChoiceField("Axis", AXES, f.axis.label)
             }
-            is ImportFeature, is com.sharpcad.document.DeleteBodyFeature -> Unit
+            is ImportFeature, is com.sharpcad.document.DeleteBodyFeature, is com.sharpcad.document.LoftFeature -> Unit
         }
         val flip = when (f) {
             is ExtrudeFeature -> f.copy(distance = -f.distance)
@@ -628,11 +654,8 @@ class ModelController(
         private fun axisOf(label: String) = com.sharpcad.document.WorldAxis.entries.firstOrNull { it.label == label }
         private fun mirrorLabel(axis: com.sharpcad.document.WorldAxis) = MIRROR_PLANES[axis.ordinal]
 
-        fun planeSpec(plane: SketchPlane): PlaneSpec = when (plane.name) {
-            "XZ" -> PlaneSpec.XZ
-            "YZ" -> PlaneSpec.YZ
-            else -> PlaneSpec.XY
-        }
+        fun planeSpec(plane: SketchPlane): PlaneSpec =
+            PlaneSpec(plane.name, plane.origin.toList(), plane.xAxis.toList(), plane.yAxis.toList())
 
         fun formatValue(v: Double) = formatMm(v)
     }

@@ -45,4 +45,8 @@ object Kernel {
         val handles = shapes.map { it.nativeHandle() }.toLongArray()
         return Shape(KernelNative.nativeCompound(handles))
     }
+
+    /** Solid through the outer boundary of each profile's first face, in order. */
+    fun loft(profiles: List<Shape>): Shape =
+        Shape(KernelNative.nativeLoft(profiles.map { it.nativeHandle() }.toLongArray()))
 }

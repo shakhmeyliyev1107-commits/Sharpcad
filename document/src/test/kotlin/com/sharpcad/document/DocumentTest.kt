@@ -77,6 +77,16 @@ class DocumentTest {
     }
 
     @Test
+    fun loftBetweenSquareAndOffsetSquare() {
+        val top = PlaneSpec("XY+10", listOf(0.0, 0.0, 10.0), listOf(1.0, 0.0, 0.0), listOf(0.0, 1.0, 0.0))
+        val loft = LoftFeature(1, listOf(
+            Profile(PlaneSpec.XY, rect(0.0, 0.0, 10.0, 10.0), emptyList()),
+            Profile(top, rect(0.0, 0.0, 10.0, 10.0), emptyList()),
+        ))
+        assertEquals(1000.0, volumes(listOf(loft)).getValue(1), 1e-3)
+    }
+
+    @Test
     fun revolveFilletChamferPushPullAndBoolean() {
         val revolve = RevolveFeature(1, Profile(PlaneSpec.XY, rect(10.0, 0.0, 20.0, 5.0), emptyList()), RevolveAxis.V, 360.0)
         assertEquals(PI * 300 * 5, volumes(listOf(revolve)).getValue(1), 1e-3)

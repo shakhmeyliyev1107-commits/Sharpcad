@@ -142,6 +142,17 @@ data class ShellFeature(override val id: Long, val body: Long, val face: Int, va
     override val label: String get() = "Shell ${formatMm(thickness)} mm"
 }
 
+/** Solid through the profiles, in order (each profile's first region boundary). */
+@Serializable
+@SerialName("loft")
+data class LoftFeature(
+    override val id: Long,
+    val profiles: List<Profile>,
+    val operation: Operation = Operation.AUTO,
+) : Feature {
+    override val label: String get() = "Loft (${profiles.size} profiles)"
+}
+
 /** A world axis. */
 enum class WorldAxis(val label: String, val vector: DoubleArray) {
     X("X", doubleArrayOf(1.0, 0.0, 0.0)),

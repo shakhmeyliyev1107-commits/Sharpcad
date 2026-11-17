@@ -23,6 +23,8 @@
 #include <BRepBuilderAPI_Transform.hxx>
 #include <BRepGProp.hxx>
 #include <BRepOffsetAPI_MakeThickSolid.hxx>
+#include <BRepOffsetAPI_ThruSections.hxx>
+#include <BRepTools.hxx>
 #include <BRepGProp_Face.hxx>
 #include <BRepPrimAPI_MakePrism.hxx>
 #include <BRepPrimAPI_MakeRevol.hxx>
@@ -322,6 +324,24 @@ std::unique_ptr<Shape> Shape::compound(const std::vector<const Shape*>& shapes) 
     auto impl = std::make_unique<Impl>();
     impl->shape = compound;
     return std::unique_ptr<Shape>(new Shape(std::move(impl)));
+}
+
+std::unique_ptr<Shape> Shape::loft(const std::vector<const Shape*>& profiles) {
+    require(profiles.size() >= 2, "Loft needs at least two profiles");
+    return guarded("loft", [&] {
+        BRepOffsetAPI_ThruSections sections(Standard_True, Standard_False);
+        for (const Shape* p : profiles) {
+            require(p != nullptr, "Null shape");
+            TopExp_Explorer face(p->impl_->shape, TopAbs_FACE);
+            require(face.More(), "Profile has no face");
+            sections.AddWire(BRepTools::OuterWire(TopoDS::Face(face.Current())));
+        }
+        sections.Build();
+        if (!sections.IsDone()) throw KernelError(ErrorCode::OcctFailure, "loft failed");
+        auto impl = std::make_unique<Impl>();
+        impl->shape = sections.Shape();
+        return std::unique_ptr<Shape>(new Shape(std::move(impl)));
+    });
 }
 
 double Shape::distanceTo(const Shape& other) const {

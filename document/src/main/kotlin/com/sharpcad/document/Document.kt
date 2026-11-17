@@ -241,6 +241,7 @@ class Document(private val dispatcher: CoroutineDispatcher = KernelDispatcher) :
         is ImportFeature -> feature.name
         is ExtrudeFeature -> "Body ${feature.id}"
         is RevolveFeature -> "Body ${feature.id}"
+        is LoftFeature -> "Body ${feature.id}"
         else -> "Body"
     }
 

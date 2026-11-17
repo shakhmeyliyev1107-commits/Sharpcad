@@ -10,9 +10,9 @@ import kotlin.math.abs
  */
 class SketchPlane(
     val name: String,
-    private val origin: DoubleArray,
-    private val xAxis: DoubleArray,
-    private val yAxis: DoubleArray,
+    val origin: DoubleArray,
+    val xAxis: DoubleArray,
+    val yAxis: DoubleArray,
 ) {
     /** Unit normal, [xAxis] × [yAxis]. */
     val normal: DoubleArray = doubleArrayOf(

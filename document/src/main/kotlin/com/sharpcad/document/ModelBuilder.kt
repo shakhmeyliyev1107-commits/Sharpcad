@@ -102,6 +102,11 @@ object ModelBuilder {
                 }
             }
             is DeleteBodyFeature -> (bodies.remove(feature.body) ?: throw IllegalArgumentException("Body no longer exists")).close()
+            is LoftFeature -> {
+                val shapes = feature.profiles.map { profileShape(it) }
+                val solid = try { Kernel.loft(shapes) } finally { shapes.forEach { it.close() } }
+                combine(feature.id, solid, feature.operation, null, bodies)
+            }
             is ShellFeature -> replace(feature.body, bodies) { it.shell(feature.face, feature.thickness) }
             is BooleanFeature -> {
                 require(feature.target != feature.tool) { "A body cannot be combined with itself" }

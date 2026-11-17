@@ -23,6 +23,16 @@ qayta quradi; natija `Document.state` orqali UI ga keladi. Jism identifikatori �
 yaratgan xususiyatning `id` si. Yadro amallari [[kernel-jni]] da, eskiz [[sketch-engine]]
 da, talablar [[manual-requirements]] da.
 
+## Loft
+
+`LoftFeature` profillar ro'yxatidan jism quradi: har bir profil birinchi yuzasining
+tashqi konturi `BRepOffsetAPI_ThruSections` ga beriladi (`kernel/src/main/cpp/src/modeling.cpp`).
+Ilovada eskiz profili tanlanganda "Loft" tugmasi unga parallel barcha eskizlangan
+tekisliklarni normal bo'yicha tartiblab ishlatadi. Buning uchun siljigan qurilish
+tekisliklari bor: XY+50, XY+100, XZ+50, YZ+50 (`SketchSession.PLANES`).
+
+> ⚠️ Loft har profilning faqat birinchi yuzasini oladi; ichki teshiklar e'tiborga olinmaydi.
+
 ## Xususiyatlar
 
 Import (STEP/IGES), Extrude, Revolve, Fillet, Chamfer, Push/Pull, Shell, Boolean, Move/Copy, Mirror, Pattern, Delete body. Yuza tanlanganda uning maydoni va jism hajmi ko'rsatiladi. Extrude va

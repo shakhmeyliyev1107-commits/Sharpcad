@@ -303,3 +303,15 @@ TEST(Modeling, CompoundKeepsAllBodies) {
     EXPECT_EQ(both->faceCount(), 12);
     EXPECT_NEAR(both->volume(), 9.0, 1e-9);
 }
+
+TEST(Loft, TwoEqualSquaresMakeABox) {
+    auto bottom = xyPlane();
+    addRect(bottom, 0, 0, 10, 10);
+    auto top = xyPlane();
+    top.origin[2] = 10.0;
+    addRect(top, 0, 0, 10, 10);
+    const auto a = Shape::profileFromSketch(bottom);
+    const auto b = Shape::profileFromSketch(top);
+    EXPECT_NEAR(Shape::loft({a.get(), b.get()})->volume(), 1000.0, 1e-3);
+    expectError(ErrorCode::InvalidArgument, [&] { Shape::loft({a.get()}); });
+}

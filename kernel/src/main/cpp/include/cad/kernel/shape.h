@@ -107,6 +107,9 @@ public:
     /// Compound of several shapes (used to export many bodies to one file).
     static std::unique_ptr<Shape> compound(const std::vector<const Shape*>& shapes);
 
+    /// Solid through the outer boundary of the first face of each profile, in order.
+    static std::unique_ptr<Shape> loft(const std::vector<const Shape*>& profiles);
+
     /// Smallest distance between this shape and `other` (0 when they touch or overlap).
     double distanceTo(const Shape& other) const;
 

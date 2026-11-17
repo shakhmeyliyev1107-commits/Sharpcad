@@ -294,6 +294,18 @@ Java_com_sharpcad_kernel_KernelNative_nativeCompound(JNIEnv* env, jclass, jlongA
     });
 }
 
+JNIEXPORT jlong JNICALL
+Java_com_sharpcad_kernel_KernelNative_nativeLoft(JNIEnv* env, jclass, jlongArray handles) {
+    return guard<jlong>(env, 0, [&] {
+        if (!handles) throw KernelError(ErrorCode::InvalidArgument, "Array must not be null");
+        std::vector<jlong> raw(static_cast<size_t>(env->GetArrayLength(handles)));
+        if (!raw.empty()) env->GetLongArrayRegion(handles, 0, static_cast<jsize>(raw.size()), raw.data());
+        std::vector<const Shape*> shapes;
+        for (jlong h : raw) shapes.push_back(&shapeFromHandle(h));
+        return release(Shape::loft(shapes));
+    });
+}
+
 JNIEXPORT jdouble JNICALL
 Java_com_sharpcad_kernel_KernelNative_nativeDistance(JNIEnv* env, jclass, jlong handle, jlong other) {
     return guard<jdouble>(env, 0.0, [&] { return shapeFromHandle(handle).distanceTo(shapeFromHandle(other)); });

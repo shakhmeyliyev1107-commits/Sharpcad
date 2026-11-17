@@ -84,4 +84,5 @@ nom, belgi yoki rasm ko'chirilmaydi.
 | Transform: siljitish/aylantirish, nusxa, ko'zgu, chiziqli va doiraviy massiv (jismlar) | qilingan (qurilmada sinalmagan) |
 | Yoy (vatar ustida yarim aylana), Trim (teginish bilan kesish); yoyli profillar ekstruziya/revolve qilinadi | qilingan (qurilmada sinalmagan) |
 | Offset (bitta obyekt), cheklovlarni UI dan qo'yish (gorizontal, vertikal, teng, parallel, perpendikulyar) | qilingan (qurilmada sinalmagan) |
-| Qolganlari (splayn, zanjir ofset, eskiz massivi, matn, loft, sweep, o'zgaruvchilar, gizmo) | rejalashtirilgan |
+| Loft (parallel tekisliklardagi profillar), siljigan qurilish tekisliklari | qilingan (qurilmada sinalmagan) |
+| Qolganlari (splayn, zanjir ofset, eskiz massivi, matn, sweep, o'zgaruvchilar, gizmo) | rejalashtirilgan |

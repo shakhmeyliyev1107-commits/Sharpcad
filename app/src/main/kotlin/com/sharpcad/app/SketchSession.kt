@@ -512,9 +512,9 @@ class SketchSession(private val viewport: ViewportController) {
     }
 
     private fun lookAtPlane() {
-        when (plane) {
-            SketchPlane.XY -> viewport.setViewDirection(Math.toRadians(-90.0), Math.toRadians(90.0))
-            SketchPlane.XZ -> viewport.setViewDirection(Math.toRadians(-90.0), 0.0)
+        when (plane.name.take(2)) {
+            "XY" -> viewport.setViewDirection(Math.toRadians(-90.0), Math.toRadians(90.0))
+            "XZ" -> viewport.setViewDirection(Math.toRadians(-90.0), 0.0)
             else -> viewport.setViewDirection(0.0, 0.0)
         }
     }
@@ -592,7 +592,16 @@ class SketchSession(private val viewport: ViewportController) {
     }
 
     companion object {
-        val PLANES = listOf(SketchPlane.XY, SketchPlane.XZ, SketchPlane.YZ)
+        val PLANES = listOf(
+            SketchPlane.XY, SketchPlane.XZ, SketchPlane.YZ,
+            offset(SketchPlane.XY, 50.0), offset(SketchPlane.XY, 100.0), offset(SketchPlane.XZ, 50.0), offset(SketchPlane.YZ, 50.0),
+        )
+
+        /** Construction plane parallel to [base] at [mm] along its normal (used by Loft). */
+        private fun offset(base: SketchPlane, mm: Double) = SketchPlane(
+            "${base.name}+${mm.toInt()}",
+            DoubleArray(3) { base.origin[it] + base.normal[it] * mm }, base.xAxis, base.yAxis,
+        )
 
         private const val POLYGON_SIDES = 6
         private const val UNDER_DEFINED_SRGB = 0x5AA2FF
