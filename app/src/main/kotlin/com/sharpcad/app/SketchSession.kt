@@ -34,6 +34,7 @@ enum class SketchTool(val label: String) {
     ARC("Arc"),
     TRIM("Trim"),
     OFFSET("Offset"),
+    PATTERN("Pattern"),
     HORIZONTAL("Horizontal"),
     VERTICAL("Vertical"),
     EQUAL("Equal"),
@@ -155,12 +156,21 @@ class SketchSession(private val viewport: ViewportController) {
     fun setDimension(index: Int, millimetres: Double) {
         val s = sketch ?: return
         val target = dimensionTargets.getOrNull(index) ?: return
+        if (target is DimensionTarget.Count) {
+            val count = millimetres.toInt().coerceIn(2, MAX_PATTERN)
+            target.ids.forEach { runCatching { s.removeEntity(it) } }
+            target.ids.clear()
+            for (k in 1 until count) target.ids += addShifted(s, target.source, k * target.dx, k * target.dy)
+            refresh()
+            return
+        }
         try {
             val existing = target.constraint
             if (existing != null) {
                 s.setDimension(existing, millimetres)
             } else {
                 target.constraint = when (target) {
+                    is DimensionTarget.Count -> return
                     is DimensionTarget.Distance -> s.addDistance(target.a, target.b, millimetres)
                     is DimensionTarget.Radius -> s.addRadius(target.circle, millimetres)
                 }
@@ -210,6 +220,7 @@ class SketchSession(private val viewport: ViewportController) {
         when (activeTool) {
             SketchTool.TRIM -> return trimAt(point)
             SketchTool.OFFSET -> return beginOffset(point)
+            SketchTool.PATTERN -> return beginPattern(point)
             SketchTool.HORIZONTAL, SketchTool.VERTICAL, SketchTool.EQUAL,
             SketchTool.PARALLEL, SketchTool.PERPENDICULAR -> return constrainAt(activeTool, point)
             else -> Unit
@@ -279,6 +290,7 @@ class SketchSession(private val viewport: ViewportController) {
                 s.setArc(d.ids[0], cx, cy, r, a0, a0 + Math.PI)
             }
             SketchTool.OFFSET -> offsetTo(d, end)
+            SketchTool.PATTERN -> patternTo(d, end)
             SketchTool.TRIM, SketchTool.HORIZONTAL, SketchTool.VERTICAL, SketchTool.EQUAL,
             SketchTool.PARALLEL, SketchTool.PERPENDICULAR -> Unit
             SketchTool.POLYGON -> {
@@ -361,6 +373,12 @@ class SketchSession(private val viewport: ViewportController) {
                 d.start.point?.let { added += s.addCoincident(PointRef(circle, PointRole.CENTER), it) }
                 dimensionTargets = listOf(DimensionTarget.Radius("Radius", circle))
             }
+            SketchTool.PATTERN -> {
+                val n = d.ids.size.toDouble()
+                dimensionTargets = listOf(
+                    DimensionTarget.Count("Count", d.source!!, (d.end.x - d.start.x) / n, (d.end.y - d.start.y) / n, d.ids.toMutableList()),
+                )
+            }
             SketchTool.ARC -> {
                 val arc = d.ids[0]
                 d.start.point?.let { added += s.addCoincident(PointRef(arc, PointRole.START), it) }
@@ -400,6 +418,49 @@ class SketchSession(private val viewport: ViewportController) {
         draft = Draft(SketchTool.OFFSET, listOf(copy), start, start).also { it.source = target }
         refresh()
         return true
+    }
+
+    /** Pattern tool: press on an entity and drag; copies spread evenly up to the finger. */
+    private fun beginPattern(point: DoubleArray): Boolean {
+        val s = sketch ?: return true
+        val tolerance = viewport.millimetresPerPixel() * SNAP_PIXELS
+        val target = s.entities().filter { Trim.distance(it, point[0], point[1]) <= tolerance }
+            .minByOrNull { Trim.distance(it, point[0], point[1]) }
+        if (target == null) {
+            refresh("Press on a line, arc or circle and drag to pattern it")
+            return true
+        }
+        val ids = List(DEFAULT_PATTERN - 1) { addShifted(s, target, 0.0, 0.0) }
+        val start = Snap(point[0], point[1], SnapKind.NONE)
+        draft = Draft(SketchTool.PATTERN, ids, start, start).also { it.source = target }
+        refresh()
+        return true
+    }
+
+    private fun patternTo(d: Draft, end: Snap) {
+        val s = sketch ?: return
+        val src = d.source ?: return
+        val n = d.ids.size.toDouble()
+        d.ids.forEachIndexed { i, id ->
+            val f = (i + 1) / n
+            val ox = (end.x - d.start.x) * f
+            val oy = (end.y - d.start.y) * f
+            when (src) {
+                is SketchLine -> {
+                    s.setPoint(PointRef(id, PointRole.START), src.x1 + ox, src.y1 + oy)
+                    s.setPoint(PointRef(id, PointRole.END), src.x2 + ox, src.y2 + oy)
+                }
+                is SketchCircle -> s.setPoint(PointRef(id, PointRole.CENTER), src.cx + ox, src.cy + oy)
+                is com.sharpcad.sketch.SketchArc ->
+                    s.setArc(id, src.cx + ox, src.cy + oy, src.radius, src.startAngle, src.endAngle)
+            }
+        }
+    }
+
+    private fun addShifted(s: Sketch, e: com.sharpcad.sketch.SketchEntity, ox: Double, oy: Double): Int = when (e) {
+        is SketchLine -> s.addLine(e.x1 + ox, e.y1 + oy, e.x2 + ox, e.y2 + oy)
+        is SketchCircle -> s.addCircle(e.cx + ox, e.cy + oy, e.radius)
+        is com.sharpcad.sketch.SketchArc -> s.addArc(e.cx + ox, e.cy + oy, e.radius, e.startAngle, e.endAngle)
     }
 
     private fun offsetTo(d: Draft, end: Snap) {
@@ -546,6 +607,7 @@ class SketchSession(private val viewport: ViewportController) {
                     val line = entities.firstOrNull { it.id == target.a.entity } as? SketchLine
                     line?.let { DimensionField(target.label, hypot(it.x2 - it.x1, it.y2 - it.y1)) }
                 }
+                is DimensionTarget.Count -> DimensionField(target.label, target.ids.size + 1.0, unit = "")
                 is DimensionTarget.Radius -> {
                     when (val e = entities.firstOrNull { it.id == target.circle }) {
                         is SketchCircle -> DimensionField(target.label, e.radius)
@@ -589,6 +651,15 @@ class SketchSession(private val viewport: ViewportController) {
 
         class Distance(label: String, val a: PointRef, val b: PointRef) : DimensionTarget(label)
         class Radius(label: String, val circle: Int) : DimensionTarget(label)
+
+        /** Linear sketch pattern: copies of [source] at k·([dx], [dy]). */
+        class Count(
+            label: String,
+            val source: com.sharpcad.sketch.SketchEntity,
+            val dx: Double,
+            val dy: Double,
+            val ids: MutableList<Int>,
+        ) : DimensionTarget(label)
     }
 
     companion object {
@@ -604,6 +675,8 @@ class SketchSession(private val viewport: ViewportController) {
         )
 
         private const val POLYGON_SIDES = 6
+        private const val DEFAULT_PATTERN = 3
+        private const val MAX_PATTERN = 50
         private const val UNDER_DEFINED_SRGB = 0x5AA2FF
         private const val FULLY_DEFINED_SRGB = 0x46C46E
 

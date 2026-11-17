@@ -95,6 +95,10 @@ oladi (nusxa asl bilan bog'lanmaydi). Cheklov asboblari (Horizontal, Vertical �
 chiziq; Equal, Parallel, Perpendicular — ikki chiziq ketma-ket) teginish bilan qo'yiladi;
 ziddiyat bo'lsa cheklov qaytarib olinadi.
 
+Pattern: obyekt ustiga bosib sudraladi; 3 nusxa barmoqqacha teng taqsimlanadi, so'ng
+"Count" maydoni sonini o'zgartiradi (2–50). O'lcham maydonlari ifodalarni qabul qiladi
+(`20+5*2`, `2 cm`, `1in`) — `ui/workspace/src/main/kotlin/com/sharpcad/ui/workspace/Expression.kt`.
+
 > ⚠️ Trim obyektni o'chirib, qolgan bo'laklarni yangi obyekt sifatida qo'shadi: o'chirilgan
 > obyektning cheklovlari (o'lcham, tutashish) yo'qoladi.
 

@@ -21,4 +21,5 @@ kotlin {
 
 dependencies {
     api(project(":ui:designsystem"))
+    testImplementation(libs.junit)
 }

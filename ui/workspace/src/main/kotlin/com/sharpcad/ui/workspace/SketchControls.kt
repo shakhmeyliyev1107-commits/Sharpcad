@@ -155,7 +155,7 @@ private fun Separator() {
 @Composable
 internal fun DimensionInput(field: DimensionField, onCommit: (Double) -> Unit) {
     var text by remember { mutableStateOf(formatMillimetres(field.value)) }
-    val parsed = text.replace(',', '.').toDoubleOrNull()
+    val parsed = Expression.evaluate(text)
         ?.takeIf { it.isFinite() && (if (field.allowNegative) it != 0.0 else it > 0.0) }
     val commit = { if (parsed != null) onCommit(parsed) }
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -170,9 +170,9 @@ internal fun DimensionInput(field: DimensionField, onCommit: (Double) -> Unit) {
                 fontFamily = FontFamily.Monospace,
             ),
             cursorBrush = SolidColor(SharpCadColors.Accent),
-            // Numeric keypads often lack a minus key, so signed fields get the full keyboard.
+            // Full keyboard: expressions need + - * / ( ) and unit suffixes.
             keyboardOptions = KeyboardOptions(
-                keyboardType = if (field.allowNegative) KeyboardType.Text else KeyboardType.Decimal,
+                keyboardType = KeyboardType.Text,
                 imeAction = ImeAction.Done,
             ),
             keyboardActions = KeyboardActions(onDone = { commit() }),
