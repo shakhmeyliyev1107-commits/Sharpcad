@@ -30,6 +30,7 @@ _(hali sahifa yo'q)_
 - [[viewport-rendering]] -- kadr sikli, materiallar, kamera, imo-ishoralar
 - [[sketch-engine]] -- PlaneGCS o'rami, cheklovlar, yopishish, eskiz rejimi
 - [[modeling-history]] -- xususiyatlar tarixi, qayta qurish, avtomatik birlashtirish/kesish, tanlash
+- [[drawings-ar]] -- yashirin-chiziqli 2D chizmalar, SVG/DXF/PDF, GLB va AR
 
 ## decisions
 
