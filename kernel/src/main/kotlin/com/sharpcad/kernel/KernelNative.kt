@@ -14,7 +14,7 @@ internal object KernelNative {
     @JvmStatic external fun nativeExportStep(handle: Long, path: String)
     @JvmStatic external fun nativeBoundingBox(handle: Long): DoubleArray
 
-    /** Returns positions, normals, indices and edge segments, in that order. */
+    /** Returns positions, normals, indices, edge segments and triangle faces, in that order. */
     @JvmStatic external fun nativeTessellate(
         handle: Long,
         linearDeflection: Double,
@@ -22,4 +22,22 @@ internal object KernelNative {
     ): Array<ByteBuffer>
 
     @JvmStatic external fun nativeRelease(handle: Long)
+
+    @JvmStatic external fun nativeProfileFromSketch(
+        origin: DoubleArray, xAxis: DoubleArray, yAxis: DoubleArray, lines: DoubleArray, circles: DoubleArray,
+    ): Long
+    @JvmStatic external fun nativeRegionAt(
+        handle: Long, origin: DoubleArray, xAxis: DoubleArray, yAxis: DoubleArray, u: Double, v: Double,
+    ): Int
+    @JvmStatic external fun nativeSubset(handle: Long, faces: IntArray): Long
+    @JvmStatic external fun nativeExtrude(handle: Long, dx: Double, dy: Double, dz: Double): Long
+    @JvmStatic external fun nativeRevolve(handle: Long, axisOrigin: DoubleArray, axisDirection: DoubleArray, angle: Double): Long
+    @JvmStatic external fun nativeBoolean(handle: Long, tool: Long, op: Int): Long
+    @JvmStatic external fun nativeFillet(handle: Long, radius: Double, face: Int): Long
+    @JvmStatic external fun nativeChamfer(handle: Long, distance: Double, face: Int): Long
+    @JvmStatic external fun nativePushPull(handle: Long, face: Int, distance: Double): Long
+    @JvmStatic external fun nativeCompound(handles: LongArray): Long
+    @JvmStatic external fun nativeFaceCount(handle: Long): Int
+    @JvmStatic external fun nativeVolume(handle: Long): Double
+    @JvmStatic external fun nativePick(handle: Long, origin: DoubleArray, direction: DoubleArray): DoubleArray
 }

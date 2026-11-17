@@ -16,7 +16,9 @@
 #include <STEPControl_Writer.hxx>
 #include <Standard_Failure.hxx>
 #include <Standard_Version.hxx>
+#include <TopExp.hxx>
 #include <TopExp_Explorer.hxx>
+#include <TopTools_IndexedMapOfShape.hxx>
 #include <TopLoc_Location.hxx>
 #include <TopTools_MapOfShape.hxx>
 #include <TopoDS.hxx>
@@ -26,6 +28,7 @@
 #include <gp_Trsf.hxx>
 
 #include "cad/kernel/error.h"
+#include "shape_impl.h"
 
 namespace cad::kernel {
 
@@ -36,18 +39,6 @@ constexpr double kMinDimension = 1e-6;
 
 bool isValidDimension(double v) { return std::isfinite(v) && v >= kMinDimension; }
 
-// Runs an OCCT call and converts its exceptions into KernelError.
-template <typename Fn>
-auto guarded(const char* what, Fn&& fn) {
-    try {
-        return fn();
-    } catch (const Standard_Failure& e) {
-        const char* msg = e.GetMessageString();
-        throw KernelError(ErrorCode::OcctFailure,
-                          std::string(what) + ": " + (msg && *msg ? msg : e.DynamicType()->Name()));
-    }
-}
-
 void appendPoint(std::vector<float>& out, const gp_Pnt& p) {
     out.push_back(static_cast<float>(p.X()));
     out.push_back(static_cast<float>(p.Y()));
@@ -55,7 +46,7 @@ void appendPoint(std::vector<float>& out, const gp_Pnt& p) {
 }
 
 // Appends one face's triangulation to the mesh, in world coordinates.
-void appendFace(const TopoDS_Face& face, MeshData& mesh) {
+void appendFace(const TopoDS_Face& face, int faceIndex, MeshData& mesh) {
     TopLoc_Location location;
     Handle(Poly_Triangulation) tri = BRep_Tool::Triangulation(face, location);
     if (tri.IsNull() || tri->NbTriangles() == 0) return;  // face could not be meshed
@@ -84,6 +75,7 @@ void appendFace(const TopoDS_Face& face, MeshData& mesh) {
         mesh.indices.push_back(base + static_cast<std::uint32_t>(a - 1));
         mesh.indices.push_back(base + static_cast<std::uint32_t>(b - 1));
         mesh.indices.push_back(base + static_cast<std::uint32_t>(c - 1));
+        mesh.triangleFaces.push_back(faceIndex);
     }
 }
 
@@ -109,10 +101,6 @@ void appendEdges(const TopoDS_Face& face, TopTools_MapOfShape& seen, MeshData& m
 }
 
 }  // namespace
-
-struct Shape::Impl {
-    TopoDS_Shape shape;
-};
 
 Shape::Shape(std::unique_ptr<Impl> impl) : impl_(std::move(impl)) {}
 Shape::~Shape() = default;
@@ -184,9 +172,11 @@ MeshData Shape::tessellate(double linearDeflection, double angularDeflection) co
                                         angularDeflection, /*isInParallel=*/true);
         MeshData mesh;
         TopTools_MapOfShape seenEdges;
-        for (TopExp_Explorer it(impl_->shape, TopAbs_FACE); it.More(); it.Next()) {
-            const TopoDS_Face& face = TopoDS::Face(it.Current());
-            appendFace(face, mesh);
+        TopTools_IndexedMapOfShape faces;
+        TopExp::MapShapes(impl_->shape, TopAbs_FACE, faces);
+        for (int i = 1; i <= faces.Extent(); ++i) {
+            const TopoDS_Face& face = TopoDS::Face(faces(i));
+            appendFace(face, i - 1, mesh);
             appendEdges(face, seenEdges, mesh);
         }
         return mesh;

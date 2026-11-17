@@ -22,7 +22,7 @@ endif()
 # OCCT toolkits cadcore links against directly. Always dynamic (LGPL).
 set(OCCT_TOOLKITS
     TKernel TKMath TKG2d TKG3d TKGeomBase TKBRep TKGeomAlgo TKTopAlgo TKPrim
-    TKMesh TKShHealing TKDE TKXSBase TKDESTEP)
+    TKMesh TKShHealing TKDE TKXSBase TKDESTEP TKBO TKBool TKFillet)
 foreach(tk IN LISTS OCCT_TOOLKITS)
     add_library(occt::${tk} SHARED IMPORTED)
     set_target_properties(occt::${tk} PROPERTIES
@@ -35,6 +35,7 @@ endforeach()
 # Kernel logic, free of JNI so it can be tested directly.
 add_library(cadkernel STATIC
     src/shape.cpp
+    src/modeling.cpp
     src/error.cpp)
 target_include_directories(cadkernel PUBLIC include)
 target_link_libraries(cadkernel PRIVATE ${OCCT_TARGETS})
@@ -66,7 +67,7 @@ if(CADCORE_BUILD_TESTS AND NOT ANDROID)
     set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
     FetchContent_MakeAvailable(googletest)
 
-    add_executable(cadkernel_tests tests/shape_test.cpp)
+    add_executable(cadkernel_tests tests/shape_test.cpp tests/modeling_test.cpp)
     target_link_libraries(cadkernel_tests PRIVATE cadkernel ${OCCT_TARGETS} GTest::gtest_main)
     set_target_properties(cadkernel_tests PROPERTIES BUILD_RPATH "${OCCT_LIB_DIR}")
     include(GoogleTest)

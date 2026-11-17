@@ -6,13 +6,16 @@
 #include <cstring>
 #include <exception>
 #include <string>
+#include <vector>
 
 #include "cad/kernel/error.h"
 #include "cad/kernel/shape.h"
 
 using cad::kernel::ErrorCode;
 using cad::kernel::KernelError;
+using cad::kernel::BooleanOp;
 using cad::kernel::Shape;
+using cad::kernel::SketchProfileInput;
 
 namespace {
 
@@ -86,6 +89,31 @@ jobject toDirectBuffer(JNIEnv* env, const std::vector<T>& values) {
     return toDirectBuffer(env, values.data(), values.size() * sizeof(T));
 }
 
+std::vector<double> toDoubles(JNIEnv* env, jdoubleArray array) {
+    if (!array) throw KernelError(ErrorCode::InvalidArgument, "Array must not be null");
+    std::vector<double> out(static_cast<size_t>(env->GetArrayLength(array)));
+    if (!out.empty()) env->GetDoubleArrayRegion(array, 0, static_cast<jsize>(out.size()), out.data());
+    return out;
+}
+
+void toVec3(JNIEnv* env, jdoubleArray array, double out[3]) {
+    const auto v = toDoubles(env, array);
+    if (v.size() != 3) throw KernelError(ErrorCode::InvalidArgument, "Expected three coordinates");
+    out[0] = v[0];
+    out[1] = v[1];
+    out[2] = v[2];
+}
+
+SketchProfileInput planeInput(JNIEnv* env, jdoubleArray origin, jdoubleArray xAxis, jdoubleArray yAxis) {
+    SketchProfileInput in{};
+    toVec3(env, origin, in.origin);
+    toVec3(env, xAxis, in.xAxis);
+    toVec3(env, yAxis, in.yAxis);
+    return in;
+}
+
+jlong release(std::unique_ptr<Shape> shape) { return reinterpret_cast<jlong>(shape.release()); }
+
 }  // namespace
 
 extern "C" {
@@ -133,7 +161,7 @@ Java_com_sharpcad_kernel_KernelNative_nativeBoundingBox(JNIEnv* env, jclass, jlo
     });
 }
 
-// Returns {positions, normals, indices, edgeSegments} as direct ByteBuffers.
+// Returns {positions, normals, indices, edgeSegments, triangleFaces} as direct ByteBuffers.
 JNIEXPORT jobjectArray JNICALL
 Java_com_sharpcad_kernel_KernelNative_nativeTessellate(JNIEnv* env, jclass, jlong handle,
                                                        jdouble linearDeflection,
@@ -142,8 +170,9 @@ Java_com_sharpcad_kernel_KernelNative_nativeTessellate(JNIEnv* env, jclass, jlon
         const auto mesh = shapeFromHandle(handle).tessellate(linearDeflection, angularDeflection);
         jclass cls = env->FindClass("java/nio/ByteBuffer");
         if (!cls) throw JavaExceptionPending{};
-        jobjectArray out = env->NewObjectArray(4, cls, nullptr);
+        jobjectArray out = env->NewObjectArray(5, cls, nullptr);
         if (!out) throw JavaExceptionPending{};
+        env->SetObjectArrayElement(out, 4, toDirectBuffer(env, mesh.triangleFaces));
         env->SetObjectArrayElement(out, 0, toDirectBuffer(env, mesh.positions));
         env->SetObjectArrayElement(out, 1, toDirectBuffer(env, mesh.normals));
         env->SetObjectArrayElement(out, 2, toDirectBuffer(env, mesh.indices));
@@ -155,6 +184,123 @@ Java_com_sharpcad_kernel_KernelNative_nativeTessellate(JNIEnv* env, jclass, jlon
 JNIEXPORT void JNICALL
 Java_com_sharpcad_kernel_KernelNative_nativeRelease(JNIEnv*, jclass, jlong handle) {
     delete reinterpret_cast<Shape*>(handle);
+}
+
+// ---- Modeling -----------------------------------------------------------------
+
+JNIEXPORT jlong JNICALL
+Java_com_sharpcad_kernel_KernelNative_nativeProfileFromSketch(JNIEnv* env, jclass, jdoubleArray origin,
+                                                              jdoubleArray xAxis, jdoubleArray yAxis,
+                                                              jdoubleArray lines, jdoubleArray circles) {
+    return guard<jlong>(env, 0, [&] {
+        auto in = planeInput(env, origin, xAxis, yAxis);
+        in.lines = toDoubles(env, lines);
+        in.circles = toDoubles(env, circles);
+        return release(Shape::profileFromSketch(in));
+    });
+}
+
+JNIEXPORT jint JNICALL
+Java_com_sharpcad_kernel_KernelNative_nativeRegionAt(JNIEnv* env, jclass, jlong handle, jdoubleArray origin,
+                                                     jdoubleArray xAxis, jdoubleArray yAxis, jdouble u,
+                                                     jdouble v) {
+    return guard<jint>(env, -1, [&] {
+        return shapeFromHandle(handle).regionAt(planeInput(env, origin, xAxis, yAxis), u, v);
+    });
+}
+
+JNIEXPORT jlong JNICALL
+Java_com_sharpcad_kernel_KernelNative_nativeSubset(JNIEnv* env, jclass, jlong handle, jintArray faces) {
+    return guard<jlong>(env, 0, [&] {
+        if (!faces) throw KernelError(ErrorCode::InvalidArgument, "Array must not be null");
+        std::vector<int> indices(static_cast<size_t>(env->GetArrayLength(faces)));
+        if (!indices.empty()) {
+            env->GetIntArrayRegion(faces, 0, static_cast<jsize>(indices.size()),
+                                   reinterpret_cast<jint*>(indices.data()));
+        }
+        return release(shapeFromHandle(handle).subset(indices));
+    });
+}
+
+JNIEXPORT jlong JNICALL
+Java_com_sharpcad_kernel_KernelNative_nativeExtrude(JNIEnv* env, jclass, jlong handle, jdouble dx, jdouble dy,
+                                                    jdouble dz) {
+    return guard<jlong>(env, 0, [&] { return release(shapeFromHandle(handle).extrude(dx, dy, dz)); });
+}
+
+JNIEXPORT jlong JNICALL
+Java_com_sharpcad_kernel_KernelNative_nativeRevolve(JNIEnv* env, jclass, jlong handle, jdoubleArray axisOrigin,
+                                                    jdoubleArray axisDirection, jdouble angle) {
+    return guard<jlong>(env, 0, [&] {
+        double o[3], d[3];
+        toVec3(env, axisOrigin, o);
+        toVec3(env, axisDirection, d);
+        return release(shapeFromHandle(handle).revolve(o, d, angle));
+    });
+}
+
+JNIEXPORT jlong JNICALL
+Java_com_sharpcad_kernel_KernelNative_nativeBoolean(JNIEnv* env, jclass, jlong handle, jlong tool, jint op) {
+    return guard<jlong>(env, 0, [&] {
+        if (op < 0 || op > 2) throw KernelError(ErrorCode::InvalidArgument, "Unknown boolean operation");
+        return release(shapeFromHandle(handle).booleanWith(shapeFromHandle(tool), static_cast<BooleanOp>(op)));
+    });
+}
+
+JNIEXPORT jlong JNICALL
+Java_com_sharpcad_kernel_KernelNative_nativeFillet(JNIEnv* env, jclass, jlong handle, jdouble radius,
+                                                   jint face) {
+    return guard<jlong>(env, 0, [&] { return release(shapeFromHandle(handle).fillet(radius, face)); });
+}
+
+JNIEXPORT jlong JNICALL
+Java_com_sharpcad_kernel_KernelNative_nativeChamfer(JNIEnv* env, jclass, jlong handle, jdouble distance,
+                                                    jint face) {
+    return guard<jlong>(env, 0, [&] { return release(shapeFromHandle(handle).chamfer(distance, face)); });
+}
+
+JNIEXPORT jlong JNICALL
+Java_com_sharpcad_kernel_KernelNative_nativePushPull(JNIEnv* env, jclass, jlong handle, jint face,
+                                                     jdouble distance) {
+    return guard<jlong>(env, 0, [&] { return release(shapeFromHandle(handle).pushPull(face, distance)); });
+}
+
+JNIEXPORT jlong JNICALL
+Java_com_sharpcad_kernel_KernelNative_nativeCompound(JNIEnv* env, jclass, jlongArray handles) {
+    return guard<jlong>(env, 0, [&] {
+        if (!handles) throw KernelError(ErrorCode::InvalidArgument, "Array must not be null");
+        std::vector<jlong> raw(static_cast<size_t>(env->GetArrayLength(handles)));
+        if (!raw.empty()) env->GetLongArrayRegion(handles, 0, static_cast<jsize>(raw.size()), raw.data());
+        std::vector<const Shape*> shapes;
+        for (jlong h : raw) shapes.push_back(&shapeFromHandle(h));
+        return release(Shape::compound(shapes));
+    });
+}
+
+JNIEXPORT jint JNICALL
+Java_com_sharpcad_kernel_KernelNative_nativeFaceCount(JNIEnv* env, jclass, jlong handle) {
+    return guard<jint>(env, 0, [&] { return shapeFromHandle(handle).faceCount(); });
+}
+
+JNIEXPORT jdouble JNICALL
+Java_com_sharpcad_kernel_KernelNative_nativeVolume(JNIEnv* env, jclass, jlong handle) {
+    return guard<jdouble>(env, 0.0, [&] { return shapeFromHandle(handle).volume(); });
+}
+
+// Returns {face, distance}; face is -1 when the ray misses.
+JNIEXPORT jdoubleArray JNICALL
+Java_com_sharpcad_kernel_KernelNative_nativePick(JNIEnv* env, jclass, jlong handle, jdoubleArray origin,
+                                                 jdoubleArray direction) {
+    return guard<jdoubleArray>(env, nullptr, [&]() -> jdoubleArray {
+        double o[3], d[3];
+        toVec3(env, origin, o);
+        toVec3(env, direction, d);
+        const auto hit = shapeFromHandle(handle).pick(o, d);
+        const jdouble values[2] = {static_cast<jdouble>(hit.face), hit.distance};
+        jdoubleArray out = env->NewDoubleArray(2);
+        if (out) env->SetDoubleArrayRegion(out, 0, 2, values);
+        return out;
+    });
 }
 
 }  // extern "C"

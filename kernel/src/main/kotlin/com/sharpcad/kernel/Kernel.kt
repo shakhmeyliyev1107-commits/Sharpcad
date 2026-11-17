@@ -25,4 +25,20 @@ object Kernel {
      *   is not valid STEP or contains no geometry.
      */
     fun importStep(path: String): Shape = Shape(KernelNative.nativeImportStep(path))
+
+    /**
+     * Closed regions enclosed by sketch geometry on [plane], as planar faces.
+     *
+     * @param lines x1, y1, x2, y2 per line, in plane coordinates.
+     * @param circles cx, cy, radius per circle.
+     * @throws KernelException with [KernelException.INVALID_ARGUMENT] if nothing is enclosed.
+     */
+    fun profileFromSketch(plane: PlaneFrame, lines: DoubleArray, circles: DoubleArray): Shape =
+        Shape(KernelNative.nativeProfileFromSketch(plane.origin, plane.xAxis, plane.yAxis, lines, circles))
+
+    /** One shape holding all of [shapes] (for export). */
+    fun compound(shapes: List<Shape>): Shape {
+        val handles = shapes.map { it.nativeHandle() }.toLongArray()
+        return Shape(KernelNative.nativeCompound(handles))
+    }
 }
