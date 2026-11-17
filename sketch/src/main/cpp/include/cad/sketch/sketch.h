@@ -75,6 +75,10 @@ public:
     int addCoincident(PointRef a, PointRef b);
     int addHorizontal(int line);
     int addVertical(int line);
+    /// Two-line constraints; the lines must be different.
+    int addEqualLength(int lineA, int lineB);
+    int addParallel(int lineA, int lineB);
+    int addPerpendicular(int lineA, int lineB);
     /// Distance between two points; must be positive. Use it on a line's ends for length.
     int addDistance(PointRef a, PointRef b, double distance);
     int addRadius(int circle, double radius);
@@ -96,8 +100,9 @@ public:
     /// Geometry of all live entities, in creation order.
     std::vector<EntityGeometry> geometry() const;
 
+    struct Impl;  // public only so internal helpers in sketch.cpp can reach it
+
 private:
-    struct Impl;
     std::unique_ptr<Impl> impl_;
 };
 

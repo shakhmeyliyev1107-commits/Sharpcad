@@ -121,6 +121,18 @@ SKETCH_JNI(jint, nativeAddVertical)(JNIEnv* env, jclass, jlong handle, jint line
     return guard<jint>(env, -1, [&] { return sketchFromHandle(handle).addVertical(line); });
 }
 
+SKETCH_JNI(jint, nativeAddLinePair)(JNIEnv* env, jclass, jlong handle, jint kind, jint a, jint b) {
+    return guard<jint>(env, -1, [&] {
+        Sketch& s = sketchFromHandle(handle);
+        switch (kind) {
+            case 0: return s.addEqualLength(a, b);
+            case 1: return s.addParallel(a, b);
+            case 2: return s.addPerpendicular(a, b);
+            default: throw SketchError(ErrorCode::InvalidArgument, "Unknown line constraint");
+        }
+    });
+}
+
 SKETCH_JNI(jint, nativeAddDistance)(JNIEnv* env, jclass, jlong handle, jint entityA, jint roleA,
                                     jint entityB, jint roleB, jdouble distance) {
     return guard<jint>(env, -1, [&] {

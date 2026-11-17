@@ -192,6 +192,29 @@ TEST(SketchEdit, RemovingAnEntityDropsItsConstraints) {
     EXPECT_EQ(sketch.addLine(0, 0, 1, 1), 2);  // ids are not reused
 }
 
+TEST(SketchSolve, EqualParallelPerpendicular) {
+    Sketch sketch;
+    const int a = sketch.addLine(0, 0, 10, 0);
+    const int b = sketch.addLine(0, 5, 7, 6);
+    const int c = sketch.addLine(0, 0, 1, 8);
+    sketch.addFixed({a, PointRole::Start});
+    sketch.addFixed({a, PointRole::End});
+    sketch.addEqualLength(a, b);
+    sketch.addParallel(a, b);
+    sketch.addPerpendicular(a, c);
+    ASSERT_EQ(sketch.solve().status, SolveStatus::Solved);
+    const auto gb = geometryOf(sketch, b);
+    const auto gc = geometryOf(sketch, c);
+    EXPECT_NEAR(length(gb), 10.0, 1e-6);
+    EXPECT_NEAR(gb.b, gb.d, 1e-6);  // parallel to the horizontal line a
+    EXPECT_NEAR(gc.a, gc.c, 1e-6);  // perpendicular: vertical
+    expectInvalid([&] { sketch.addParallel(a, a); });
+    const int circle = sketch.addCircle(0, 0, 1);
+    expectInvalid([&] { sketch.addEqualLength(a, circle); });
+    sketch.removeEntity(b);  // drops its two-line constraints too
+    EXPECT_EQ(sketch.solve().status, SolveStatus::Solved);
+}
+
 TEST(SketchEdit, EmptySketchSolves) {
     Sketch sketch;
     const auto result = sketch.solve();

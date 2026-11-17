@@ -93,6 +93,12 @@ class Sketch : AutoCloseable {
 
     fun addVertical(line: Int): Int = SketchNative.nativeAddVertical(handle, line)
 
+    fun addEqualLength(lineA: Int, lineB: Int): Int = SketchNative.nativeAddLinePair(handle, 0, lineA, lineB)
+
+    fun addParallel(lineA: Int, lineB: Int): Int = SketchNative.nativeAddLinePair(handle, 1, lineA, lineB)
+
+    fun addPerpendicular(lineA: Int, lineB: Int): Int = SketchNative.nativeAddLinePair(handle, 2, lineA, lineB)
+
     /** Distance between two points. On the two ends of a line this is its length. */
     fun addDistance(a: PointRef, b: PointRef, distance: Double): Int =
         SketchNative.nativeAddDistance(handle, a.entity, a.role.native, b.entity, b.role.native, distance)
@@ -173,6 +179,7 @@ internal object SketchNative {
     @JvmStatic external fun nativeAddCoincident(handle: Long, entityA: Int, roleA: Int, entityB: Int, roleB: Int): Int
     @JvmStatic external fun nativeAddHorizontal(handle: Long, line: Int): Int
     @JvmStatic external fun nativeAddVertical(handle: Long, line: Int): Int
+    @JvmStatic external fun nativeAddLinePair(handle: Long, kind: Int, a: Int, b: Int): Int
     @JvmStatic external fun nativeAddDistance(handle: Long, entityA: Int, roleA: Int, entityB: Int, roleB: Int, distance: Double): Int
     @JvmStatic external fun nativeAddRadius(handle: Long, circle: Int, radius: Double): Int
     @JvmStatic external fun nativeAddFixed(handle: Long, entity: Int, role: Int): Int

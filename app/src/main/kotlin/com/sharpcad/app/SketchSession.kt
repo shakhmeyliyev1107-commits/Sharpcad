@@ -21,7 +21,13 @@ import com.sharpcad.viewport.ViewportController
 import kotlin.math.abs
 import kotlin.math.hypot
 
-enum class SketchTool(val label: String) { LINE("Line"), RECTANGLE("Rectangle"), CIRCLE("Circle") }
+enum class SketchTool(val label: String) {
+    LINE("Line"),
+    RECTANGLE("Rectangle"),
+    CENTER_RECTANGLE("Center rect"),
+    CIRCLE("Circle"),
+    POLYGON("Hexagon"),
+}
 
 /**
  * Sketch mode: draws lines, rectangles and circles on a base plane with one finger,
@@ -192,7 +198,8 @@ class SketchSession(private val viewport: ViewportController) {
         val start = snap(point, exclude = emptySet())
         val ids = when (activeTool) {
             SketchTool.LINE -> listOf(s.addLine(start.x, start.y, start.x, start.y))
-            SketchTool.RECTANGLE -> List(4) { s.addLine(start.x, start.y, start.x, start.y) }
+            SketchTool.RECTANGLE, SketchTool.CENTER_RECTANGLE -> List(4) { s.addLine(start.x, start.y, start.x, start.y) }
+            SketchTool.POLYGON -> List(POLYGON_SIDES) { s.addLine(start.x, start.y, start.x, start.y) }
             SketchTool.CIRCLE -> listOf(s.addCircle(start.x, start.y, MIN_SIZE))
         }
         draft = Draft(activeTool, ids, start, end = start)
@@ -222,9 +229,12 @@ class SketchSession(private val viewport: ViewportController) {
                 }
                 s.setPoint(PointRef(d.ids[0], PointRole.END), end.x, end.y)
             }
-            SketchTool.RECTANGLE -> {
+            SketchTool.RECTANGLE, SketchTool.CENTER_RECTANGLE -> {
                 val (bottom, right, top, left) = d.ids
-                val ax = d.start.x; val ay = d.start.y
+                // Diagonal: dragged corner to corner. Centre: start is the middle, end a corner.
+                val centered = d.tool == SketchTool.CENTER_RECTANGLE
+                val ax = if (centered) 2 * d.start.x - end.x else d.start.x
+                val ay = if (centered) 2 * d.start.y - end.y else d.start.y
                 s.setPoint(PointRef(bottom, PointRole.START), ax, ay)
                 s.setPoint(PointRef(bottom, PointRole.END), end.x, ay)
                 s.setPoint(PointRef(right, PointRole.START), end.x, ay)
@@ -236,6 +246,17 @@ class SketchSession(private val viewport: ViewportController) {
             }
             SketchTool.CIRCLE ->
                 s.setCircleRadius(d.ids[0], hypot(end.x - d.start.x, end.y - d.start.y).coerceAtLeast(MIN_SIZE))
+            SketchTool.POLYGON -> {
+                // Regular polygon: start is the centre, end one vertex.
+                val r = hypot(end.x - d.start.x, end.y - d.start.y)
+                val a0 = kotlin.math.atan2(end.y - d.start.y, end.x - d.start.x)
+                fun vx(k: Int) = d.start.x + r * kotlin.math.cos(a0 + 2 * Math.PI * k / POLYGON_SIDES)
+                fun vy(k: Int) = d.start.y + r * kotlin.math.sin(a0 + 2 * Math.PI * k / POLYGON_SIDES)
+                d.ids.forEachIndexed { k, line ->
+                    s.setPoint(PointRef(line, PointRole.START), vx(k), vy(k))
+                    s.setPoint(PointRef(line, PointRole.END), vx(k + 1), vy(k + 1))
+                }
+            }
         }
         d.end = end
         snapMarker = end.takeIf { it.kind != SnapKind.NONE }
@@ -250,8 +271,8 @@ class SketchSession(private val viewport: ViewportController) {
         val width = abs(d.end.x - d.start.x)
         val height = abs(d.end.y - d.start.y)
         val tooSmall = when (d.tool) {
-            SketchTool.LINE, SketchTool.CIRCLE -> hypot(width, height) < MIN_SIZE * 10
-            SketchTool.RECTANGLE -> width < MIN_SIZE * 10 || height < MIN_SIZE * 10
+            SketchTool.LINE, SketchTool.CIRCLE, SketchTool.POLYGON -> hypot(width, height) < MIN_SIZE * 10
+            SketchTool.RECTANGLE, SketchTool.CENTER_RECTANGLE -> width < MIN_SIZE * 10 || height < MIN_SIZE * 10
         }
         if (tooSmall) {
             d.ids.forEach { s.removeEntity(it) }
@@ -271,7 +292,7 @@ class SketchSession(private val viewport: ViewportController) {
                     DimensionTarget.Distance("Length", PointRef(line, PointRole.START), PointRef(line, PointRole.END)),
                 )
             }
-            SketchTool.RECTANGLE -> {
+            SketchTool.RECTANGLE, SketchTool.CENTER_RECTANGLE -> {
                 val (bottom, right, top, left) = d.ids
                 added += s.addCoincident(PointRef(bottom, PointRole.END), PointRef(right, PointRole.START))
                 added += s.addCoincident(PointRef(right, PointRole.END), PointRef(top, PointRole.START))
@@ -281,11 +302,23 @@ class SketchSession(private val viewport: ViewportController) {
                 added += s.addHorizontal(top)
                 added += s.addVertical(right)
                 added += s.addVertical(left)
-                d.start.point?.let { added += s.addCoincident(PointRef(bottom, PointRole.START), it) }
+                if (d.tool == SketchTool.RECTANGLE) {
+                    d.start.point?.let { added += s.addCoincident(PointRef(bottom, PointRole.START), it) }
+                }
                 d.end.point?.let { added += s.addCoincident(PointRef(right, PointRole.END), it) }
                 dimensionTargets = listOf(
                     DimensionTarget.Distance("Width", PointRef(bottom, PointRole.START), PointRef(bottom, PointRole.END)),
                     DimensionTarget.Distance("Height", PointRef(right, PointRole.START), PointRef(right, PointRole.END)),
+                )
+            }
+            SketchTool.POLYGON -> {
+                d.ids.forEachIndexed { k, line ->
+                    val next = d.ids[(k + 1) % d.ids.size]
+                    added += s.addCoincident(PointRef(line, PointRole.END), PointRef(next, PointRole.START))
+                    if (k > 0) added += s.addEqualLength(d.ids[0], line) // regular: one Side value sets all
+                }
+                dimensionTargets = listOf(
+                    DimensionTarget.Distance("Side", PointRef(d.ids[0], PointRole.START), PointRef(d.ids[0], PointRole.END)),
                 )
             }
             SketchTool.CIRCLE -> {
@@ -407,6 +440,7 @@ class SketchSession(private val viewport: ViewportController) {
     companion object {
         val PLANES = listOf(SketchPlane.XY, SketchPlane.XZ, SketchPlane.YZ)
 
+        private const val POLYGON_SIDES = 6
         private const val UNDER_DEFINED_SRGB = 0x5AA2FF
         private const val FULLY_DEFINED_SRGB = 0x46C46E
 

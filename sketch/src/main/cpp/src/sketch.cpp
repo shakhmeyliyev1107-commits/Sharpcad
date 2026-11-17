@@ -10,7 +10,7 @@ namespace cad::sketch {
 
 namespace {
 
-enum class ConstraintKind { Coincident, Horizontal, Vertical, Distance, Radius, Fixed };
+enum class ConstraintKind { Coincident, Horizontal, Vertical, Distance, Radius, Fixed, EqualLength, Parallel, Perpendicular };
 
 struct Entity {
     EntityKind kind;
@@ -24,7 +24,8 @@ struct Constraint {
     bool alive = true;
     PointRef a{-1, PointRole::Start};
     PointRef b{-1, PointRole::Start};
-    int entity = -1;           // Horizontal, Vertical, Radius
+    int entity = -1;           // Horizontal, Vertical, Radius; first line of two-line kinds
+    int entity2 = -1;          // second line of EqualLength, Parallel, Perpendicular
     double* value = nullptr;   // Distance, Radius; Fixed uses value (x) and value2 (y)
     double* value2 = nullptr;
 };
@@ -128,6 +129,15 @@ struct Sketch::Impl {
                 case ConstraintKind::Radius:
                     system.addConstraintCircleRadius(circles[c.entity], c.value, tag);
                     break;
+                case ConstraintKind::EqualLength:
+                    system.addConstraintEqualLength(lines[c.entity], lines[c.entity2], tag);
+                    break;
+                case ConstraintKind::Parallel:
+                    system.addConstraintParallel(lines[c.entity], lines[c.entity2], tag);
+                    break;
+                case ConstraintKind::Perpendicular:
+                    system.addConstraintPerpendicular(lines[c.entity], lines[c.entity2], tag);
+                    break;
                 case ConstraintKind::Fixed: {
                     GCS::Point a = point(c.a);
                     system.addConstraintCoordinateX(a, c.value, tag);
@@ -207,7 +217,9 @@ void Sketch::removeEntity(int entity) {
             "Unknown sketch entity");
     impl_->entities[entity].alive = false;
     for (Constraint& c : impl_->constraints) {
-        if (c.a.entity == entity || c.b.entity == entity || c.entity == entity) c.alive = false;
+        if (c.a.entity == entity || c.b.entity == entity || c.entity == entity || c.entity2 == entity) {
+            c.alive = false;
+        }
     }
 }
 
@@ -234,6 +246,26 @@ int Sketch::addVertical(int line) {
     c.entity = line;
     return impl_->addConstraint(c);
 }
+
+namespace {
+int addLinePair(Sketch::Impl& impl, ConstraintKind kind, int a, int b);
+}
+
+int Sketch::addEqualLength(int lineA, int lineB) { return addLinePair(*impl_, ConstraintKind::EqualLength, lineA, lineB); }
+int Sketch::addParallel(int lineA, int lineB) { return addLinePair(*impl_, ConstraintKind::Parallel, lineA, lineB); }
+int Sketch::addPerpendicular(int lineA, int lineB) { return addLinePair(*impl_, ConstraintKind::Perpendicular, lineA, lineB); }
+
+namespace {
+int addLinePair(Sketch::Impl& impl, ConstraintKind kind, int a, int b) {
+    impl.entity(a, EntityKind::Line);
+    impl.entity(b, EntityKind::Line);
+    require(a != b, "A line cannot be constrained to itself");
+    Constraint c{kind};
+    c.entity = a;
+    c.entity2 = b;
+    return impl.addConstraint(c);
+}
+}  // namespace
 
 int Sketch::addDistance(PointRef a, PointRef b, double distance) {
     impl_->point(a);
