@@ -156,6 +156,9 @@ class ModelController(
         get() = selection?.let { s -> "Applies to ${state.bodies.firstOrNull { it.bodyId == s.bodyId }?.label ?: "the selected body"}" }
             ?: "Nothing selected: applies to every body"
 
+    /** Material of a body for exports and rendering. */
+    fun materialOf(bodyId: Long) = MaterialLibrary.find(materials[bodyId])
+
     /** Applies a preset to the selected body, or to every body when nothing is selected. */
     fun applyMaterial(id: String) {
         val targets = selection?.let { listOf(it.bodyId) } ?: state.bodies.map { it.bodyId }

@@ -48,6 +48,7 @@ class WorkspaceActions(
     val onExport: (String) -> Unit = {},
     val onUndo: () -> Unit = {},
     val onRedo: () -> Unit = {},
+    val onViewInAr: () -> Unit = {},
 )
 
 /**
@@ -140,7 +141,10 @@ private fun TopBar(projectName: String, actions: WorkspaceActions, busy: Boolean
             MenuItem("Redo", enabled = canRedo) { close(); actions.onRedo() }
         }
         TopMenu("Item") { _ -> MenuItem("No item selected", enabled = false) {} }
-        TopMenu("View") { close -> MenuItem("Fit to screen") { close(); actions.onFitView() } }
+        TopMenu("View") { close ->
+            MenuItem("Fit to screen") { close(); actions.onFitView() }
+            MenuItem("View in AR", enabled = !busy) { close(); actions.onViewInAr() }
+        }
         TopMenu("Help") { _ -> MenuItem("Double-tap the view to fit", enabled = false) {} }
         Text(
             text = projectName,
@@ -161,7 +165,7 @@ private fun TopBar(projectName: String, actions: WorkspaceActions, busy: Boolean
     }
 }
 
-private val EXPORTS = listOf("STEP" to "step", "IGES" to "igs", "STL" to "stl", "OBJ" to "obj", "3MF" to "3mf")
+private val EXPORTS = listOf("STEP" to "step", "IGES" to "igs", "STL" to "stl", "OBJ" to "obj", "3MF" to "3mf", "GLB" to "glb")
 
 @Composable
 private fun TopMenu(label: String, content: @Composable (close: () -> Unit) -> Unit) {

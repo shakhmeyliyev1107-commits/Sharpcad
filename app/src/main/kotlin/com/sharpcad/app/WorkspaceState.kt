@@ -94,6 +94,7 @@ class WorkspaceState(
                     "stl" -> doc.exportMesh(MeshFormat.STL, staged.path)
                     "obj" -> doc.exportMesh(MeshFormat.OBJ, staged.path)
                     "3mf" -> doc.exportMesh(MeshFormat.THREE_MF, staged.path)
+                    "glb" -> doc.exportGlb(staged.path, model::materialOf)
                     else -> doc.exportStep(staged.path)
                 }
                 if (!written) {
@@ -117,6 +118,34 @@ class WorkspaceState(
     }
 
     fun fitView() = viewport.fitView()
+
+    /**
+     * Shows the model in augmented reality: writes a GLB and hands it to Google's AR
+     * viewer (part of Google Play Services for AR), or to any installed 3D viewer.
+     */
+    fun viewInAr(activity: android.app.Activity) {
+        if (busy) return
+        busy = true
+        scope.launch {
+            try {
+                val dir = File(appContext.cacheDir, "shared").apply { mkdirs() }
+                val file = File(dir, "model.glb")
+                if (!model.document.exportGlb(file.path, model::materialOf)) {
+                    errorLine = "Nothing to show in AR yet"
+                    return@launch
+                }
+                val uri = androidx.core.content.FileProvider.getUriForFile(appContext, "${appContext.packageName}.files", file)
+                errorLine = if (ArLauncher.launch(activity, uri, projectName)) "" else
+                    "No AR viewer found: install Google Play Services for AR, or export GLB from the File menu"
+            } catch (e: IOException) {
+                errorLine = "AR export failed: ${e.message}"
+            } catch (e: com.sharpcad.kernel.KernelException) {
+                errorLine = "AR export failed (kernel error ${e.code})"
+            } finally {
+                busy = false
+            }
+        }
+    }
 
     fun onViewportError(error: Throwable) {
         errorLine = "Viewport error: $error"

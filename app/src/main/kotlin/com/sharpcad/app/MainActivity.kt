@@ -84,6 +84,7 @@ private fun WorkspaceScreen() {
             },
             onUndo = model::undo,
             onRedo = model::redo,
+            onViewInAr = { (context as? android.app.Activity)?.let(state::viewInAr) },
         )
     }
 

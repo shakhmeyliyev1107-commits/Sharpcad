@@ -145,6 +145,25 @@ class Document(private val dispatcher: CoroutineDispatcher = KernelDispatcher) :
         true
     }
 
+    /**
+     * Writes all bodies as binary glTF for AR viewers, each with its material from
+     * [materialOf]. Returns false when there is nothing to export.
+     */
+    suspend fun exportGlb(path: String, materialOf: (Long) -> MaterialPreset, deflectionMm: Double = 0.05): Boolean = lock.withLock {
+        val names = _state.value.bodies.associate { it.bodyId to it.label }
+        val parts = withContext(dispatcher) {
+            built?.bodies?.map { (id, shape) ->
+                val mesh = shape.tessellate(deflectionMm)
+                val part = meshPart(names[id] ?: "Body $id", mesh)
+                val normals = FloatArray(mesh.vertexCount * 3).also { mesh.normals.duplicate().order(java.nio.ByteOrder.nativeOrder()).asFloatBuffer().get(it) }
+                GlbPart(part.name, part.positions, normals, part.indices, materialOf(id))
+            }.orEmpty()
+        }
+        if (parts.isEmpty()) return@withLock false
+        withContext(kotlinx.coroutines.Dispatchers.IO) { java.io.File(path).outputStream().buffered().use { GlbExport.write(parts, it) } }
+        true
+    }
+
     private fun meshPart(name: String, mesh: Mesh): MeshPart {
         val positions = FloatArray(mesh.vertexCount * 3).also { mesh.positions.duplicate().order(java.nio.ByteOrder.nativeOrder()).asFloatBuffer().get(it) }
         val indices = IntArray(mesh.triangleCount * 3).also { mesh.indices.duplicate().order(java.nio.ByteOrder.nativeOrder()).asIntBuffer().get(it) }
