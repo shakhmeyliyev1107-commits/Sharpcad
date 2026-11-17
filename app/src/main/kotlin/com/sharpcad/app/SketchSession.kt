@@ -15,6 +15,7 @@ import com.sharpcad.sketch.Snap
 import com.sharpcad.sketch.SnapKind
 import com.sharpcad.sketch.Snapper
 import com.sharpcad.sketch.Trim
+import com.sharpcad.sketch.Spline
 import com.sharpcad.sketch.SolveStatus
 import com.sharpcad.ui.workspace.DimensionField
 import com.sharpcad.viewport.TouchPhase
@@ -35,6 +36,7 @@ enum class SketchTool(val label: String) {
     TRIM("Trim"),
     OFFSET("Offset"),
     PATTERN("Pattern"),
+    SPLINE("Spline"),
     HORIZONTAL("Horizontal"),
     VERTICAL("Vertical"),
     EQUAL("Equal"),
@@ -76,7 +78,13 @@ class SketchSession(private val viewport: ViewportController) {
 
     /** Planes that currently hold sketch geometry. */
     val sketchedPlanes: List<SketchPlane>
-        get() = sketches.filterValues { it.entities().isNotEmpty() }.keys.toList()
+        get() = PLANES.filter { p ->
+            sketches[p]?.entities()?.isNotEmpty() == true || splines[p]?.isNotEmpty() == true
+        }
+
+    /** Splines per plane as control points (u, v pairs); not part of the constraint solver. */
+    private val splines = mutableMapOf<SketchPlane, MutableList<List<Double>>>()
+    private var splineDraft: MutableList<Double>? = null
 
     /**
      * Lines (x1, y1, x2, y2…) and circles (cx, cy, r…) of the sketch on [plane], in plane
@@ -93,6 +101,7 @@ class SketchSession(private val viewport: ViewportController) {
                 is com.sharpcad.sketch.SketchArc -> arcs += listOf(e.cx, e.cy, e.radius, e.startAngle, e.endAngle)
             }
         }
+        splines[plane]?.forEach { lines += Spline.segments(it) }
         return SketchGeometry(lines, circles, arcs)
     }
 
@@ -148,6 +157,7 @@ class SketchSession(private val viewport: ViewportController) {
     fun clear() {
         cancelDraft()
         sketches.remove(plane)?.close()
+        splines.remove(plane)
         clearDimensions()
         refresh()
     }
@@ -201,6 +211,7 @@ class SketchSession(private val viewport: ViewportController) {
 
     private fun onTouch(phase: TouchPhase, x: Float, y: Float): Boolean {
         val activeTool = tool ?: return false
+        if (activeTool == SketchTool.SPLINE) return splineTouch(phase, x, y)
         return try {
             when (phase) {
                 TouchPhase.DOWN -> begin(activeTool, x, y)
@@ -291,7 +302,7 @@ class SketchSession(private val viewport: ViewportController) {
             }
             SketchTool.OFFSET -> offsetTo(d, end)
             SketchTool.PATTERN -> patternTo(d, end)
-            SketchTool.TRIM, SketchTool.HORIZONTAL, SketchTool.VERTICAL, SketchTool.EQUAL,
+            SketchTool.TRIM, SketchTool.SPLINE, SketchTool.HORIZONTAL, SketchTool.VERTICAL, SketchTool.EQUAL,
             SketchTool.PARALLEL, SketchTool.PERPENDICULAR -> Unit
             SketchTool.POLYGON -> {
                 // Regular polygon: start is the centre, end one vertex.
@@ -416,6 +427,32 @@ class SketchSession(private val viewport: ViewportController) {
         }
         val start = Snap(point[0], point[1], SnapKind.NONE)
         draft = Draft(SketchTool.OFFSET, listOf(copy), start, start).also { it.source = target }
+        refresh()
+        return true
+    }
+
+    /** Spline tool: freehand stroke, thinned to control points of a smooth curve. */
+    private fun splineTouch(phase: TouchPhase, x: Float, y: Float): Boolean {
+        val point = planePoint(x, y)
+        when (phase) {
+            TouchPhase.DOWN -> {
+                point ?: return false
+                val start = snap(point, exclude = emptySet())
+                splineDraft = mutableListOf(start.x, start.y)
+            }
+            TouchPhase.MOVE -> point?.let { splineDraft?.addAll(listOf(it[0], it[1])) }
+            TouchPhase.UP -> {
+                val raw = splineDraft ?: return true
+                point?.let { val end = snap(it, exclude = emptySet()); raw += listOf(end.x, end.y) }
+                splineDraft = null
+                val spacing = viewport.millimetresPerPixel() * SPLINE_SPACING_PIXELS
+                val points = Spline.thin(raw, spacing)
+                if (points.size >= 4 && kotlin.math.hypot(points[2] - points[0], points[3] - points[1]) > MIN_SIZE * 10) {
+                    splines.getOrPut(plane) { mutableListOf() } += points
+                }
+            }
+            TouchPhase.CANCEL -> splineDraft = null
+        }
         refresh()
         return true
     }
@@ -589,11 +626,25 @@ class SketchSession(private val viewport: ViewportController) {
     private fun refresh(note: String? = null) {
         revision++
         val entities = sketch?.entities().orEmpty()
-        isEmpty = entities.isEmpty()
+        isEmpty = entities.isEmpty() && splines[plane].isNullOrEmpty()
 
         // Every plane's sketch is shown, not just the one being edited.
         var segments = sketches.entries.fold(FloatArray(0)) { acc, (p, sk) ->
             acc + SketchLines.segments(if (p == plane) entities else sk.entities(), p)
+        }
+        fun polyline(flat: List<Double>, p: SketchPlane): FloatArray {
+            val out = FloatArray(flat.size / 4 * 6)
+            var o = 0
+            for (i in flat.indices step 2) {
+                val w = p.toWorld(flat[i], flat[i + 1])
+                out[o++] = w[0].toFloat(); out[o++] = w[1].toFloat(); out[o++] = w[2].toFloat()
+            }
+            return out
+        }
+        splines.forEach { (p, list) -> list.forEach { segments += polyline(Spline.segments(it), p) } }
+        splineDraft?.let { raw ->
+            val segs = (0 until raw.size / 2 - 1).flatMap { listOf(raw[2 * it], raw[2 * it + 1], raw[2 * it + 2], raw[2 * it + 3]) }
+            segments += polyline(segs, plane)
         }
         snapMarker?.let { marker ->
             val size = viewport.millimetresPerPixel() * MARKER_PIXELS
@@ -676,6 +727,7 @@ class SketchSession(private val viewport: ViewportController) {
 
         private const val POLYGON_SIDES = 6
         private const val DEFAULT_PATTERN = 3
+        private const val SPLINE_SPACING_PIXELS = 40.0
         private const val MAX_PATTERN = 50
         private const val UNDER_DEFINED_SRGB = 0x5AA2FF
         private const val FULLY_DEFINED_SRGB = 0x46C46E

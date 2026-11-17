@@ -99,6 +99,15 @@ Pattern: obyekt ustiga bosib sudraladi; 3 nusxa barmoqqacha teng taqsimlanadi, s
 "Count" maydoni sonini o'zgartiradi (2–50). O'lcham maydonlari ifodalarni qabul qiladi
 (`20+5*2`, `2 cm`, `1in`) — `ui/workspace/src/main/kotlin/com/sharpcad/ui/workspace/Expression.kt`.
 
+Spline: barmoq bilan erkin chiziladi; iz ~40 px oralig'ida nazorat nuqtalariga
+siyraklashtiriladi va ular orqali o'tuvchi Catmull-Rom egri saqlanadi
+(`sketch/src/main/kotlin/com/sharpcad/sketch/Spline.kt`). Splaynlar `SketchSession`
+da alohida turadi (yechuvchida emas) va profilga har oraliqda 16 ta qisqa kesma sifatida
+beriladi.
+
+> ⚠️ Splayn yechuvchiga kirmaydi: unga cheklov qo'yib bo'lmaydi, Trim/Offset/Pattern ishlamaydi
+> va ekstruziya qilingan sirt kichik yassi qirralardan iborat (haqiqiy B-spline emas).
+
 > ⚠️ Trim obyektni o'chirib, qolgan bo'laklarni yangi obyekt sifatida qo'shadi: o'chirilgan
 > obyektning cheklovlari (o'lcham, tutashish) yo'qoladi.
 

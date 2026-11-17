@@ -87,4 +87,5 @@ nom, belgi yoki rasm ko'chirilmaydi.
 | Loft (parallel tekisliklardagi profillar), siljigan qurilish tekisliklari | qilingan (qurilmada sinalmagan) |
 | Sweep (profil kesib o'tuvchi tekislikdagi yo'l bo'ylab) | qilingan (qurilmada sinalmagan) |
 | Eskiz chiziqli massivi (Count bilan); o'lchamlarda ifodalar va birliklar (mm, cm, m, in) | qilingan (qurilmada sinalmagan) |
-| Qolganlari (splayn, zanjir ofset, eskiz massivi, matn, o'zgaruvchilar, gizmo) | rejalashtirilgan |
+| Spline (erkin chizish, silliq egri; profilda kesmalar bilan) | qilingan (qurilmada sinalmagan) |
+| Qolganlari (haqiqiy B-spline, zanjir ofset, eskiz massivi, matn, o'zgaruvchilar, gizmo) | rejalashtirilgan |
