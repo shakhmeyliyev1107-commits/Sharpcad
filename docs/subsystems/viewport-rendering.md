@@ -12,7 +12,7 @@ sources:
   - code: viewport/src/main/materials/cad_shaded.mat
   - code: tools/build-materials.sh
   - code: gradle/libs.versions.toml
-verified_at: 992fb5b
+verified_at: ad36c7d
 ---
 
 # Ko'rinish oynasi va render

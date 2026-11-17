@@ -7,7 +7,7 @@ sources:
   - ext: https://support.shapr3d.com/hc/en-us/articles/9760033847964-Shapr3D-Manual
   - code: document/src/main/kotlin/com/sharpcad/document/ModelBuilder.kt
   - code: app/src/main/kotlin/com/sharpcad/app/ModelController.kt
-verified_at: e1b8dfa
+verified_at: ad36c7d
 ---
 
 # Ish oqimi talablari
@@ -66,9 +66,9 @@ nom, belgi yoki rasm ko'chirilmaydi.
 | Chiziq, to'rtburchak (diagonal), aylana | qilingan |
 | Avtomatik cheklovlar: tutashish, gorizontal/vertikal | qilingan |
 | O'lcham kiritish (uzunlik, radius) | qilingan, ifodalar yo'q |
-| Ekstruziya: hudud tanlash, avtomatik birlashtirish/kesish, simmetrik | yadro va hujjat qatlamida qilingan, UI ulanmoqda |
-| Revolve (tekislik o'qi atrofida) | yadroda qilingan, UI ulanmoqda |
-| Fillet, faska, yuzani surish, bul amallari | yadroda qilingan, UI ulanmoqda |
-| Tarix paneli, bekor qilish/qaytarish | qatlamlar tayyor, UI ulanmoqda |
-| Moslashuvchan menyu (tanlovga qarab asboblar) | ulanmoqda |
+| Ekstruziya: hudud tanlash, avtomatik birlashtirish/kesish, simmetrik | qilingan (qurilmada sinalmagan) |
+| Revolve (tekislik o'qi atrofida) | qilingan (qurilmada sinalmagan) |
+| Fillet, faska, yuzani surish, bul amallari | qilingan (qurilmada sinalmagan) |
+| Tarix paneli, bekor qilish/qaytarish | qilingan (qurilmada sinalmagan) |
+| Moslashuvchan menyu (tanlovga qarab asboblar) | qilingan, oddiy panel shaklida |
 | Qolganlari (yoy, splayn, kesish, ofset, massiv, matn, shell, loft, sweep, kesim ko'rinishi, o'lchash, Items, o'zgaruvchilar, gizmo) | rejalashtirilgan |

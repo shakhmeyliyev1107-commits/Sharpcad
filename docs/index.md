@@ -29,6 +29,7 @@ _(hali sahifa yo'q)_
 - [[kernel-jni]] -- OCCT o'rami, JNI, xato kodlari, mesh buferlari, host testlari
 - [[viewport-rendering]] -- kadr sikli, materiallar, kamera, imo-ishoralar
 - [[sketch-engine]] -- PlaneGCS o'rami, cheklovlar, yopishish, eskiz rejimi
+- [[modeling-history]] -- xususiyatlar tarixi, qayta qurish, avtomatik birlashtirish/kesish, tanlash
 
 ## decisions
 

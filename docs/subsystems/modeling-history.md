@@ -1,0 +1,67 @@
+---
+title: Modellashtirish va tarix
+type: subsystem
+created: 2026-11-17
+updated: 2026-11-17
+sources:
+  - code: kernel/src/main/cpp/src/modeling.cpp
+  - code: document/src/main/kotlin/com/sharpcad/document/Feature.kt
+  - code: document/src/main/kotlin/com/sharpcad/document/ModelBuilder.kt
+  - code: document/src/main/kotlin/com/sharpcad/document/Document.kt
+  - code: app/src/main/kotlin/com/sharpcad/app/ModelController.kt
+  - code: app/src/main/kotlin/com/sharpcad/app/MeshTools.kt
+  - code: app/src/main/kotlin/com/sharpcad/app/WorkspaceState.kt
+verified_at: ad36c7d
+---
+
+# Modellashtirish va tarix
+
+Geometriyaning yagona manbasi — `:document` dagi xususiyatlar (feature) ro'yxati.
+Har bir o'zgarish ro'yxatni almashtiradi va `ModelBuilder` barcha jismlarni noldan
+qayta quradi; natija `Document.state` orqali UI ga keladi. Jism identifikatori — uni
+yaratgan xususiyatning `id` si. Yadro amallari [[kernel-jni]] da, eskiz [[sketch-engine]]
+da, talablar [[manual-requirements]] da.
+
+## Xususiyatlar
+
+Import (STEP), Extrude, Revolve, Fillet, Chamfer, Push/Pull, Boolean. Extrude va
+Revolve eskiz geometriyasining nusxasini (`Profile`) saqlaydi, shuning uchun eskiz
+keyin o'zgarsa model jim o'zgarmaydi. Tanlangan hududlar `Profile.regions` da indeks
+sifatida turadi.
+
+Avtomatik natija (`Operation.AUTO`): yangi jism hech bir jismga tegmasa — yangi jism;
+butunlay jism ichida bo'lsa — kesish; qisman kirsa yoki tegib tursa — birlashtirish.
+Eng yangi jismdan boshlab tekshiriladi.
+
+> ⚠️ Barcha yadro chaqiruvlari bitta `KernelDispatcher` oqimida bajariladi. OCCT
+> obyektlari oqimga xavfsiz emas; `Shape` ni boshqa oqimda ishlatmang.
+
+> ⚠️ Yuza indekslari (`Selection.face`, `PushPullFeature.face`) qayta qurishdan keyin
+> boshqa yuzani ko'rsatishi mumkin (topologik nomlash muammosi). Hozircha shunday
+> qabul qilingan; oldingi xususiyat o'zgarsa, keyingilari xato berishi yoki boshqa
+> yuzaga qo'llanishi mumkin.
+
+> ⚠️ `BuildResult` jismlarga egalik qiladi. Jismni almashtirganda eskisini yoping
+> (`replace`), aks holda native xotira oqib ketadi; boshqa joyda saqlab qolmang.
+
+## Bekor qilish va qaytarish
+
+Butun xususiyat ro'yxatlari stekda saqlanadi (100 tagacha). Yangi o'zgarish qaytarish
+stekini tozalaydi. Import qilingan STEP fayl ilova xotirasiga
+(`filesDir/imports`) ko'chiriladi va har qayta qurishda o'sha yerdan o'qiladi.
+
+## Ilovadagi oqim
+
+`ModelController` tegishni boshqaradi: avval eng yaqin eskiz hududi, keyin jism
+yuzasi tanlanadi; bo'sh joy tanlovni bekor qiladi. Tanlovga qarab panelda mos asboblar
+chiqadi (hudud: Extrude/Revolve; yuza: Push/Pull, fillet, faska, bul amallari).
+Yangi xususiyat qo'shilgach, uning parametrlari darhol tahrir panelida ochiladi.
+
+> ⚠️ Chizish asbobi faol bo'lganda tegish tanlovga yuborilmaydi
+> (`MainActivity`): GestureDetector bitta tegishni barmoq ko'tarilgandan keyin
+> bildiradi, o'shanda chizish allaqachon tugagan bo'ladi.
+
+## Sinov holati
+
+Yadro amallari (C++ va JNI) va `ModelBuilder`/`Document` (haqiqiy yadro bilan, host'da)
+test qilinadi. `ModelController` va panellar faqat qurilmada tekshiriladi.
