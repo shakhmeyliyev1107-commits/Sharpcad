@@ -75,4 +75,7 @@ nom, belgi yoki rasm ko'chirilmaydi.
 | PBR materiallar (100+), ko'rinish rejimlari | qilingan, materiallar saqlanmaydi |
 | 2D chizmalar (4 ko'rinish, masshtab, o'lchamlar, SVG/DXF/PDF) | qilingan (qurilmada sinalmagan) |
 | AR (GLB orqali tashqi ko'ruvchi) | qilingan, ishonchliligi tekshirilmagan |
+| Loyihalar, avtomatik saqlash, oxirgi loyihalar | qilingan (qurilmada sinalmagan) |
+| Mavzu (qorong'i/yorug'), urg'u rangi, chap qo'l rejimi, yozuvlar | qilingan |
+| Benchmark (qurish, bul, eksport/import, aylanish kadri) | qilingan; Perfetto/AGI profili qilinmagan |
 | Qolganlari (yoy, splayn, kesish, ofset, massiv, matn, shell, loft, sweep, kesim ko'rinishi, o'lchash, Items, o'zgaruvchilar, gizmo) | rejalashtirilgan |

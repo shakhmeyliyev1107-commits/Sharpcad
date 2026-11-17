@@ -42,7 +42,7 @@ _(hali sahifa yo'q)_
 
 ## operations
 
-_(hali sahifa yo'q)_
+- [[app-settings-projects-benchmark]] -- loyiha fayllari va avtomatik saqlash, mavzu sozlamalari, benchmark
 
 ## history
 
