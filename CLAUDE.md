@@ -74,3 +74,7 @@ Target: arm64-v8a only, minSdk 29, 8–13 inch tablets. Phone layout out of scop
 - No Shapr3D assets, names or trademarks anywhere in code, resources or store listing.
 - Plan first for any change touching more than three files or adding a dependency.
 - Phases are gated: do not start the next phase without explicit approval.
+
+## Docs
+`docs/` is a wiki maintained by an LLM. Page format, which page to update, and the
+`/docs-sync` workflow live in `docs/CLAUDE.md`. Start at `docs/index.md`.
