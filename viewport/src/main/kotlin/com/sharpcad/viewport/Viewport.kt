@@ -28,9 +28,14 @@ class ViewportController {
      */
     var onSingleTouch: ((phase: TouchPhase, x: Float, y: Float) -> Boolean)? = null
 
+    /** Called for a single tap on the view (selection), in pixels. */
+    var onTap: ((x: Float, y: Float) -> Unit)? = null
+
     private var renderer: ViewportRenderer? = null
     private var model: RenderMesh? = null
     private var overlay: FloatArray? = null
+    private var highlight: RenderMesh? = null
+    private var overlayColor: Int = 0x5AA2FF
 
     /** Shows [mesh] (or clears the model when `null`) and, if [fit], frames it. */
     fun setModel(mesh: RenderMesh?, fit: Boolean = true) {
@@ -55,6 +60,18 @@ class ViewportController {
         renderer?.setOverlayLines(segments)
     }
 
+    /** Colour of the overlay lines as 0xRRGGBB (sketch state: blue under-defined, green fully defined). */
+    fun setOverlayColor(srgb: Int) {
+        overlayColor = srgb
+        renderer?.setOverlayColor(srgb)
+    }
+
+    /** Shows [mesh] in the accent colour on top of the model (selection); `null` clears it. */
+    fun setHighlight(mesh: RenderMesh?) {
+        highlight = mesh
+        renderer?.setHighlight(mesh)
+    }
+
     /** Looks along a fixed direction (radians: [yaw] around +Z, [pitch] above XY) and fits. */
     fun setViewDirection(yaw: Double, pitch: Double) {
         renderer?.setViewDirection(yaw, pitch)
@@ -76,6 +93,8 @@ class ViewportController {
         r.onFrameStats = { stats -> onFrameStats?.invoke(stats) }
         r.setModel(model)
         r.setOverlayLines(overlay)
+        r.setHighlight(highlight)
+        r.setOverlayColor(overlayColor)
         r.fitView()
     }
 
@@ -130,6 +149,10 @@ fun Viewport(
                 }
 
                 override fun onFit() = renderer.fitView()
+
+                override fun onTap(x: Float, y: Float) {
+                    controller.onTap?.invoke(x, y)
+                }
 
                 override fun onSingleTouch(phase: TouchPhase, x: Float, y: Float): Boolean =
                     controller.onSingleTouch?.invoke(phase, x, y) ?: false

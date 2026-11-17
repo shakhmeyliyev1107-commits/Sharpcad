@@ -35,7 +35,13 @@ import com.sharpcad.ui.designsystem.SharpCadColors
 import com.sharpcad.ui.designsystem.SharpCadDimens
 
 /** One value the user can type for the entity just drawn, e.g. "Length". */
-class DimensionField(val label: String, val value: Double)
+class DimensionField(
+    val label: String,
+    val value: Double,
+    val unit: String = "mm",
+    /** Negative values flip the direction (extrude, push/pull); zero is never allowed. */
+    val allowNegative: Boolean = false,
+)
 
 /**
  * Controls shown while sketching: plane choice, drawing tools, and — right after an
@@ -114,7 +120,7 @@ fun SketchControls(
 }
 
 @Composable
-private fun Chip(
+internal fun Chip(
     label: String,
     selected: Boolean = false,
     enabled: Boolean = true,
@@ -147,9 +153,10 @@ private fun Separator() {
 }
 
 @Composable
-private fun DimensionInput(field: DimensionField, onCommit: (Double) -> Unit) {
+internal fun DimensionInput(field: DimensionField, onCommit: (Double) -> Unit) {
     var text by remember { mutableStateOf(formatMillimetres(field.value)) }
-    val parsed = text.replace(',', '.').toDoubleOrNull()?.takeIf { it > 0.0 && it.isFinite() }
+    val parsed = text.replace(',', '.').toDoubleOrNull()
+        ?.takeIf { it.isFinite() && (if (field.allowNegative) it != 0.0 else it > 0.0) }
     val commit = { if (parsed != null) onCommit(parsed) }
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(field.label, color = SharpCadColors.ContentMuted, fontSize = 12.sp)
@@ -171,7 +178,7 @@ private fun DimensionInput(field: DimensionField, onCommit: (Double) -> Unit) {
                 .background(SharpCadColors.Background)
                 .padding(horizontal = 8.dp, vertical = 6.dp),
         )
-        Text("mm", color = SharpCadColors.ContentMuted, fontSize = 12.sp)
+        Text(field.unit, color = SharpCadColors.ContentMuted, fontSize = 12.sp)
         Chip("Set", enabled = parsed != null) { commit() }
     }
 }

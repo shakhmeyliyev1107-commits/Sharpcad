@@ -66,6 +66,8 @@ internal class ViewportRenderer(private val surfaceView: SurfaceView) {
     private val grid: Lines
     private var model: Model? = null
     private var overlay: Lines? = null
+    private var highlight: Lines? = null
+    private val highlightInstance: MaterialInstance
     private var modelBounds: FloatArray? = null
 
     private val uiHelper = UiHelper(UiHelper.ContextErrorPolicy.DONT_CHECK)
@@ -153,6 +155,13 @@ internal class ViewportRenderer(private val surfaceView: SurfaceView) {
             setParameter("color", c[0], c[1], c[2])
         }
 
+        highlightInstance = flatMaterial.createInstance().apply {
+            val c = srgbToLinear(HIGHLIGHT_SRGB)
+            setParameter("color", c[0], c[1], c[2])
+            // Same depth as the faces, which are pushed back: the highlight wins.
+            setPolygonOffset(0f, 0f)
+        }
+
         grid = createGrid()
         scene.addEntity(grid.entity)
         fitView()
@@ -170,7 +179,7 @@ internal class ViewportRenderer(private val surfaceView: SurfaceView) {
         model = null
         modelBounds = null
         if (mesh != null && mesh.vertexCount > 0 && mesh.indexCount > 0) {
-            model = createModel(mesh)
+            model = createModel(mesh, faceInstance, withEdges = true)
             modelBounds = mesh.bounds.copyOf()
         }
         updateSceneRadius()
@@ -189,6 +198,25 @@ internal class ViewportRenderer(private val surfaceView: SurfaceView) {
             require(segments.size % 6 == 0) { "Overlay segments must be pairs of xyz points" }
             overlay = createOverlay(segments)
         }
+        requestRender()
+    }
+
+    /** Replaces the highlighted triangles (selected face or sketch region); `null` clears. */
+    fun setHighlight(mesh: RenderMesh?) {
+        if (destroyed) return
+        highlight?.let { destroyLines(it) }
+        highlight = null
+        if (mesh != null && mesh.vertexCount > 0 && mesh.indexCount > 0) {
+            val part = createModel(mesh, highlightInstance, withEdges = false).faces
+            highlight = part
+        }
+        requestRender()
+    }
+
+    /** Colour of the overlay lines, as 0xRRGGBB sRGB. */
+    fun setOverlayColor(srgb: Int) {
+        val c = srgbToLinear(srgb)
+        overlayInstance.setParameter("color", c[0], c[1], c[2])
         requestRender()
     }
 
@@ -270,6 +298,8 @@ internal class ViewportRenderer(private val surfaceView: SurfaceView) {
         model = null
         overlay?.let { destroyLines(it) }
         overlay = null
+        highlight?.let { destroyLines(it) }
+        highlight = null
         scene.remove(grid.entity)
         engine.destroyEntity(grid.entity)
         engine.destroyVertexBuffer(grid.vertices)
@@ -278,6 +308,7 @@ internal class ViewportRenderer(private val surfaceView: SurfaceView) {
         engine.destroyMaterialInstance(faceInstance)
         engine.destroyMaterialInstance(edgeInstance)
         engine.destroyMaterialInstance(overlayInstance)
+        engine.destroyMaterialInstance(highlightInstance)
         engine.destroyMaterial(overlayMaterial)
         engine.destroyMaterial(vertexColorMaterial)
         engine.destroyMaterial(shadedMaterial)
@@ -351,7 +382,7 @@ internal class ViewportRenderer(private val surfaceView: SurfaceView) {
         return Lines(entity, vertices, indices)
     }
 
-    private fun createModel(mesh: RenderMesh): Model {
+    private fun createModel(mesh: RenderMesh, material: MaterialInstance, withEdges: Boolean): Model {
         val b = mesh.bounds
         val box = Box(
             (b[0] + b[3]) / 2, (b[1] + b[4]) / 2, (b[2] + b[5]) / 2,
@@ -377,14 +408,14 @@ internal class ViewportRenderer(private val surfaceView: SurfaceView) {
         RenderableManager.Builder(1)
             .boundingBox(box)
             .geometry(0, RenderableManager.PrimitiveType.TRIANGLES, faceVertices, faceIndices, 0, mesh.indexCount)
-            .material(0, faceInstance)
+            .material(0, material)
             .castShadows(false)
             .receiveShadows(false)
             .build(engine, faceEntity)
         scene.addEntity(faceEntity)
         val faces = Lines(faceEntity, faceVertices, faceIndices)
 
-        if (mesh.edgeVertexCount == 0) return Model(faces, null)
+        if (!withEdges || mesh.edgeVertexCount == 0) return Model(faces, null)
 
         val edgeVertices = VertexBuffer.Builder()
             .bufferCount(1)
@@ -479,6 +510,7 @@ internal class ViewportRenderer(private val surfaceView: SurfaceView) {
         const val FACE_SRGB = 0xB9C4D6
         const val EDGE_SRGB = 0x11151B
         const val OVERLAY_SRGB = 0x5AA2FF
+        const val HIGHLIGHT_SRGB = 0x3E8BFF
 
         /** A few extra frames after each request so the last state always reaches the screen. */
         const val FRAMES_PER_REQUEST = 3

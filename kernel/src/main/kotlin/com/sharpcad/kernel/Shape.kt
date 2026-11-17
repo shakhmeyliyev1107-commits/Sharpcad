@@ -98,6 +98,9 @@ class Shape internal constructor(private var handle: Long) : AutoCloseable {
     fun revolve(axisOrigin: DoubleArray, axisDirection: DoubleArray, angle: Double): Shape =
         Shape(KernelNative.nativeRevolve(handle, axisOrigin, axisDirection, angle))
 
+    /** Smallest distance to [other] in millimetres; 0 when they touch or overlap. */
+    fun distanceTo(other: Shape): Double = KernelNative.nativeDistance(handle, other.handle)
+
     fun booleanWith(tool: Shape, op: BooleanOp): Shape =
         Shape(KernelNative.nativeBoolean(handle, tool.handle, op.ordinal))
 

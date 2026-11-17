@@ -196,6 +196,17 @@ TEST(Modeling, TessellationReportsFacePerTriangle) {
     }
 }
 
+TEST(Modeling, DistanceBetweenShapes) {
+    const auto a = Shape::makeBox(10, 10, 10);
+    auto in = xyPlane();
+    addRect(in, 15, 0, 20, 5);
+    const auto apart = Shape::profileFromSketch(in)->extrude(0, 0, 1);
+    EXPECT_NEAR(a->distanceTo(*apart), 5.0, 1e-6);
+    auto touching = xyPlane();
+    addRect(touching, 10, 0, 12, 5);
+    EXPECT_NEAR(a->distanceTo(*Shape::profileFromSketch(touching)->extrude(0, 0, 1)), 0.0, 1e-6);
+}
+
 TEST(Modeling, CompoundKeepsAllBodies) {
     const auto a = Shape::makeBox(1, 1, 1);
     const auto b = Shape::makeBox(2, 2, 2);

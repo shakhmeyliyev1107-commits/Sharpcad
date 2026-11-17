@@ -277,6 +277,11 @@ Java_com_sharpcad_kernel_KernelNative_nativeCompound(JNIEnv* env, jclass, jlongA
     });
 }
 
+JNIEXPORT jdouble JNICALL
+Java_com_sharpcad_kernel_KernelNative_nativeDistance(JNIEnv* env, jclass, jlong handle, jlong other) {
+    return guard<jdouble>(env, 0.0, [&] { return shapeFromHandle(handle).distanceTo(shapeFromHandle(other)); });
+}
+
 JNIEXPORT jint JNICALL
 Java_com_sharpcad_kernel_KernelNative_nativeFaceCount(JNIEnv* env, jclass, jlong handle) {
     return guard<jint>(env, 0, [&] { return shapeFromHandle(handle).faceCount(); });

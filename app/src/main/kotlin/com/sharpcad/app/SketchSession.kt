@@ -55,6 +55,30 @@ class SketchSession(private val viewport: ViewportController) {
     /** What each entry of [dimensions] constrains, in the same order. */
     private var dimensionTargets: List<DimensionTarget> = emptyList()
 
+    /** Planes that currently hold sketch geometry. */
+    val sketchedPlanes: List<SketchPlane>
+        get() = sketches.filterValues { it.entities().isNotEmpty() }.keys.toList()
+
+    /**
+     * Lines (x1, y1, x2, y2…) and circles (cx, cy, r…) of the sketch on [plane], in plane
+     * coordinates; used to build profiles for extrude and revolve.
+     */
+    fun geometry(plane: SketchPlane): Pair<List<Double>, List<Double>> {
+        val lines = mutableListOf<Double>()
+        val circles = mutableListOf<Double>()
+        sketches[plane]?.entities()?.forEach { e ->
+            when (e) {
+                is SketchLine -> lines += listOf(e.x1, e.y1, e.x2, e.y2)
+                is SketchCircle -> circles += listOf(e.cx, e.cy, e.radius)
+            }
+        }
+        return lines to circles
+    }
+
+    /** Bumped whenever sketch geometry changes, so cached profiles can be dropped. */
+    var revision by mutableStateOf(0)
+        private set
+
     fun toggle() = if (active) exit() else enter()
 
     fun enter() {
@@ -320,6 +344,7 @@ class SketchSession(private val viewport: ViewportController) {
 
     /** Pushes the current sketch to the viewport and updates the readouts. */
     private fun refresh(note: String? = null) {
+        revision++
         val entities = sketch?.entities().orEmpty()
         isEmpty = entities.isEmpty()
 
@@ -361,6 +386,9 @@ class SketchSession(private val viewport: ViewportController) {
                 "${entities.size} entities$state"
             }
         }
+        // Sketch state colour: green when fully defined, blue while it can still move.
+        val fullyDefined = !isEmpty && runCatching { sketch?.solve()?.degreesOfFreedom }.getOrNull() == 0
+        viewport.setOverlayColor(if (fullyDefined) FULLY_DEFINED_SRGB else UNDER_DEFINED_SRGB)
     }
 
     private class Draft(val tool: SketchTool, val ids: List<Int>, val start: Snap, var end: Snap) {
@@ -378,6 +406,9 @@ class SketchSession(private val viewport: ViewportController) {
 
     companion object {
         val PLANES = listOf(SketchPlane.XY, SketchPlane.XZ, SketchPlane.YZ)
+
+        private const val UNDER_DEFINED_SRGB = 0x5AA2FF
+        private const val FULLY_DEFINED_SRGB = 0x46C46E
 
         /** Matches the viewport grid pitch. */
         private const val GRID_SPACING_MM = 10.0

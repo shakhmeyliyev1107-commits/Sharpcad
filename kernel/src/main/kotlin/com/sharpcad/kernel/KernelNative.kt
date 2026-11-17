@@ -37,6 +37,7 @@ internal object KernelNative {
     @JvmStatic external fun nativeChamfer(handle: Long, distance: Double, face: Int): Long
     @JvmStatic external fun nativePushPull(handle: Long, face: Int, distance: Double): Long
     @JvmStatic external fun nativeCompound(handles: LongArray): Long
+    @JvmStatic external fun nativeDistance(handle: Long, other: Long): Double
     @JvmStatic external fun nativeFaceCount(handle: Long): Int
     @JvmStatic external fun nativeVolume(handle: Long): Double
     @JvmStatic external fun nativePick(handle: Long, origin: DoubleArray, direction: DoubleArray): DoubleArray

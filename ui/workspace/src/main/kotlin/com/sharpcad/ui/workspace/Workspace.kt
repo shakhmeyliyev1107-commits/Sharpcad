@@ -43,6 +43,10 @@ class WorkspaceActions(
     val onImportStep: () -> Unit,
     val onOpenSample: () -> Unit,
     val onFitView: () -> Unit,
+    val onNew: () -> Unit = {},
+    val onExportStep: () -> Unit = {},
+    val onUndo: () -> Unit = {},
+    val onRedo: () -> Unit = {},
 )
 
 /**
@@ -55,6 +59,8 @@ class WorkspaceActions(
  * @param sketchActive highlights the Sketch rail button.
  * @param onSketchToggle called when the Sketch rail button is tapped.
  * @param overlay extra controls drawn over the viewport, below the top bar (sketch tools).
+ * @param historyActive highlights the History rail button.
+ * @param onHistoryToggle called when the History rail button is tapped.
  */
 @Composable
 fun Workspace(
@@ -64,13 +70,17 @@ fun Workspace(
     busy: Boolean,
     sketchActive: Boolean = false,
     onSketchToggle: () -> Unit = {},
+    canUndo: Boolean = false,
+    canRedo: Boolean = false,
+    historyActive: Boolean = false,
+    onHistoryToggle: () -> Unit = {},
     overlay: @Composable BoxScope.() -> Unit = {},
     viewport: @Composable () -> Unit,
 ) {
     Box(Modifier.fillMaxSize().background(SharpCadColors.Background)) {
         viewport()
         Column(Modifier.fillMaxSize().safeDrawingPadding()) {
-            TopBar(projectName, actions, busy)
+            TopBar(projectName, actions, busy, canUndo, canRedo)
             Box(Modifier.fillMaxSize().padding(SharpCadDimens.Gutter)) {
                 ToolRail(
                     LeftRailGroups,
@@ -78,7 +88,12 @@ fun Workspace(
                     actions = mapOf(SKETCH_ITEM to onSketchToggle),
                     active = if (sketchActive) setOf(SKETCH_ITEM) else emptySet(),
                 )
-                ToolRail(RightRailGroups, Modifier.align(Alignment.TopEnd))
+                ToolRail(
+                    RightRailGroups,
+                    Modifier.align(Alignment.TopEnd),
+                    actions = mapOf(HISTORY_ITEM to onHistoryToggle),
+                    active = if (historyActive) setOf(HISTORY_ITEM) else emptySet(),
+                )
                 overlay()
                 if (status.isNotEmpty()) {
                     Text(
@@ -100,7 +115,7 @@ fun Workspace(
 }
 
 @Composable
-private fun TopBar(projectName: String, actions: WorkspaceActions, busy: Boolean) {
+private fun TopBar(projectName: String, actions: WorkspaceActions, busy: Boolean, canUndo: Boolean, canRedo: Boolean) {
     Row(
         Modifier
             .fillMaxWidth()
@@ -110,12 +125,14 @@ private fun TopBar(projectName: String, actions: WorkspaceActions, busy: Boolean
         verticalAlignment = Alignment.CenterVertically,
     ) {
         TopMenu("File") { close ->
+            MenuItem("New", enabled = !busy) { close(); actions.onNew() }
             MenuItem("Import STEP…", enabled = !busy) { close(); actions.onImportStep() }
+            MenuItem("Export STEP…", enabled = !busy) { close(); actions.onExportStep() }
             MenuItem("Open sample part", enabled = !busy) { close(); actions.onOpenSample() }
         }
-        TopMenu("Edit") { _ ->
-            MenuItem("Undo", enabled = false) {}
-            MenuItem("Redo", enabled = false) {}
+        TopMenu("Edit") { close ->
+            MenuItem("Undo", enabled = canUndo) { close(); actions.onUndo() }
+            MenuItem("Redo", enabled = canRedo) { close(); actions.onRedo() }
         }
         TopMenu("Item") { _ -> MenuItem("No item selected", enabled = false) {} }
         TopMenu("View") { close -> MenuItem("Fit to screen") { close(); actions.onFitView() } }
@@ -130,11 +147,11 @@ private fun TopBar(projectName: String, actions: WorkspaceActions, busy: Boolean
             textAlign = TextAlign.Center,
             modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
         )
-        IconButton(onClick = {}, enabled = false) {
-            Icon(Icons.AutoMirrored.Outlined.Undo, "Undo", tint = SharpCadColors.ContentDisabled)
+        IconButton(onClick = actions.onUndo, enabled = canUndo) {
+            Icon(Icons.AutoMirrored.Outlined.Undo, "Undo", tint = if (canUndo) SharpCadColors.Content else SharpCadColors.ContentDisabled)
         }
-        IconButton(onClick = {}, enabled = false) {
-            Icon(Icons.AutoMirrored.Outlined.Redo, "Redo", tint = SharpCadColors.ContentDisabled)
+        IconButton(onClick = actions.onRedo, enabled = canRedo) {
+            Icon(Icons.AutoMirrored.Outlined.Redo, "Redo", tint = if (canRedo) SharpCadColors.Content else SharpCadColors.ContentDisabled)
         }
     }
 }

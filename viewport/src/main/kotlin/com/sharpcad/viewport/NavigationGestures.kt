@@ -21,6 +21,9 @@ internal class NavigationGestures(context: Context, private val listener: Listen
         fun onZoom(factor: Float)
         fun onFit()
 
+        /** A single tap that was not part of a drag or double tap (selection). */
+        fun onTap(x: Float, y: Float)
+
         /**
          * One-finger touch at ([x], [y]) pixels. Return `true` from [TouchPhase.DOWN] to
          * claim the gesture; the return value is ignored for the other phases.
@@ -39,6 +42,12 @@ internal class NavigationGestures(context: Context, private val listener: Listen
     private val doubleTap = GestureDetector(
         context,
         object : GestureDetector.SimpleOnGestureListener() {
+            override fun onSingleTapConfirmed(e: MotionEvent): Boolean {
+                if (claimed) return false
+                listener.onTap(e.x, e.y)
+                return true
+            }
+
             override fun onDoubleTap(e: MotionEvent): Boolean {
                 if (claimed) return false // a drawing tool owns one-finger input
                 listener.onFit()

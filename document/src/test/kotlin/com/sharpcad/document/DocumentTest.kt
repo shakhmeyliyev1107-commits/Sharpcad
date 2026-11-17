@@ -43,6 +43,27 @@ class DocumentTest {
     }
 
     @Test
+    fun autoOperationCutsJoinsOrCreates() {
+        val base = box(1, 10.0, 10.0, 10.0)
+        fun extrude(x0: Double, x1: Double, from: PlaneSpec, d: Double, symmetric: Boolean = false) =
+            ExtrudeFeature(2, Profile(from, rect(x0, 2.0, x1, 8.0), emptyList()), d, Operation.AUTO, symmetric = symmetric)
+        val top = PlaneSpec("top", listOf(0.0, 0.0, 10.0), listOf(1.0, 0.0, 0.0), listOf(0.0, 1.0, 0.0))
+        // Down from the top face, inside the box: a pocket.
+        assertEquals(1000.0 - 6.0 * 6.0 * 4.0, volumes(listOf(base, extrude(2.0, 8.0, top, -4.0))).getValue(1), 1e-6)
+        // Up from the top face, touching: joined.
+        assertEquals(1000.0 + 6.0 * 6.0 * 4.0, volumes(listOf(base, extrude(2.0, 8.0, top, 4.0))).getValue(1), 1e-6)
+        // Far away: a new body.
+        assertEquals(2, volumes(listOf(base, extrude(30.0, 40.0, top, 4.0))).size)
+        // Symmetric doubles the height around the profile.
+        val free = ExtrudeFeature(1, Profile(PlaneSpec.XY, rect(0.0, 0.0, 10.0, 10.0), emptyList()), 3.0, symmetric = true)
+        ModelBuilder.build(listOf(free)).use { r ->
+            val b = r.bodies.getValue(1).boundingBox()
+            assertEquals(-3.0, b.minZ, 1e-6)
+            assertEquals(3.0, b.maxZ, 1e-6)
+        }
+    }
+
+    @Test
     fun regionsSelectWhichPartsAreExtruded() {
         val profile = Profile(PlaneSpec.XY, rect(0.0, 0.0, 40.0, 40.0), listOf(20.0, 20.0, 5.0))
         val whole = volumes(listOf(ExtrudeFeature(1, profile, 10.0))).getValue(1)

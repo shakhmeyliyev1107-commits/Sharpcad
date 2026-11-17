@@ -49,7 +49,14 @@ object ModelBuilder {
                 val n = feature.profile.plane.normal
                 val d = feature.distance
                 require(d != 0.0) { "Extrude distance must not be zero" }
-                val solid = profileShape(feature.profile).use { it.extrude(n[0] * d, n[1] * d, n[2] * d) }
+                val solid = profileShape(feature.profile).use { profile ->
+                    val forward = profile.extrude(n[0] * d, n[1] * d, n[2] * d)
+                    if (!feature.symmetric) {
+                        forward
+                    } else {
+                        forward.use { f -> profile.extrude(-n[0] * d, -n[1] * d, -n[2] * d).use { b -> f.booleanWith(b, BooleanOp.UNION) } }
+                    }
+                }
                 combine(feature.id, solid, feature.operation, feature.target, bodies)
             }
             is RevolveFeature -> {
@@ -81,13 +88,20 @@ object ModelBuilder {
     }
 
     /** Adds [solid] as a new body, or merges it into [target] (default: the newest body). */
-    private fun combine(id: Long, solid: Shape, operation: Operation, target: Long?, bodies: LinkedHashMap<Long, Shape>) {
+    private fun combine(id: Long, solid: Shape, requested: Operation, target: Long?, bodies: LinkedHashMap<Long, Shape>) {
+        var operation = requested
+        var targetBody = target
+        if (operation == Operation.AUTO) {
+            val (op, body) = autoOperation(solid, bodies)
+            operation = op
+            targetBody = body
+        }
         if (operation == Operation.NEW_BODY) {
             bodies[id] = solid
             return
         }
         solid.use {
-            val targetId = target ?: bodies.keys.lastOrNull()
+            val targetId = targetBody ?: bodies.keys.lastOrNull()
                 ?: throw IllegalArgumentException("${operation.label} needs an existing body")
             val op = when (operation) {
                 Operation.JOIN -> BooleanOp.UNION
@@ -97,6 +111,31 @@ object ModelBuilder {
             replace(targetId, bodies) { body -> body.booleanWith(solid, op) }
         }
     }
+
+    /**
+     * Chooses what an automatic extrude/revolve does, newest body first: a solid lying
+     * entirely inside a body cuts it, one that overlaps or touches joins it, and one that
+     * meets no body becomes a new body.
+     */
+    private fun autoOperation(solid: Shape, bodies: Map<Long, Shape>): Pair<Operation, Long?> {
+        val solidVolume = solid.volume
+        for ((id, body) in bodies.entries.reversed()) {
+            val common = try {
+                body.booleanWith(solid, BooleanOp.INTERSECT).use { it.volume }
+            } catch (e: KernelException) {
+                0.0
+            }
+            if (common > solidVolume * AUTO_EPSILON) {
+                return if (common >= solidVolume * (1 - AUTO_EPSILON)) Operation.CUT to id else Operation.JOIN to id
+            }
+            val touching = try { body.distanceTo(solid) < TOUCH_MM } catch (e: KernelException) { false }
+            if (touching) return Operation.JOIN to id
+        }
+        return Operation.NEW_BODY to null
+    }
+
+    private const val AUTO_EPSILON = 1e-6
+    private const val TOUCH_MM = 1e-4
 
     private fun replace(id: Long, bodies: LinkedHashMap<Long, Shape>, transform: (Shape) -> Shape) {
         val old = bodies[id] ?: throw IllegalArgumentException("Body no longer exists")

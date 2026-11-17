@@ -46,6 +46,8 @@ data class Profile(
 
 /** How a feature's new solid combines with the existing body it targets. */
 enum class Operation(val label: String) {
+    /** Decided from the geometry: cut when inside a body, join when touching, else new. */
+    AUTO("Auto"),
     NEW_BODY("New body"),
     JOIN("Join"),
     CUT("Cut"),
@@ -76,10 +78,12 @@ data class ExtrudeFeature(
     override val id: Long,
     val profile: Profile,
     val distance: Double,
-    val operation: Operation = Operation.NEW_BODY,
+    val operation: Operation = Operation.AUTO,
     val target: Long? = null,
+    /** Extends [distance] to both sides of the profile. */
+    val symmetric: Boolean = false,
 ) : Feature {
-    override val label: String get() = "Extrude ${formatMm(distance)} mm"
+    override val label: String get() = "Extrude ${formatMm(distance)} mm" + if (symmetric) " ↔" else ""
 }
 
 /** Revolves [profile] around one of its plane axes by [angleDegrees]. */
@@ -88,7 +92,7 @@ data class RevolveFeature(
     val profile: Profile,
     val axis: RevolveAxis,
     val angleDegrees: Double,
-    val operation: Operation = Operation.NEW_BODY,
+    val operation: Operation = Operation.AUTO,
     val target: Long? = null,
 ) : Feature {
     override val label: String get() = "Revolve ${formatMm(angleDegrees)}°"

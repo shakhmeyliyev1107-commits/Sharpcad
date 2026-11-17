@@ -49,6 +49,9 @@ internal class RailItem(val label: String, val icon: ImageVector, val selected: 
 /** Label of the rail item that toggles sketch mode. */
 internal const val SKETCH_ITEM = "Sketch"
 
+/** Label of the rail item that toggles the history panel. */
+internal const val HISTORY_ITEM = "History"
+
 internal val LeftRailGroups: List<List<RailItem>> = listOf(
     listOf(
         RailItem("Modeling", Icons.Outlined.ViewInAr, selected = true),
@@ -79,7 +82,7 @@ internal val RightRailGroups: List<List<RailItem>> = listOf(
     ),
     listOf(
         RailItem("Screenshot", Icons.Outlined.CameraAlt),
-        RailItem("History", Icons.Outlined.History),
+        RailItem(HISTORY_ITEM, Icons.Outlined.History),
     ),
 )
 

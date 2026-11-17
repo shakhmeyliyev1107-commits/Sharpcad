@@ -14,6 +14,7 @@
 #include <BRepClass_FaceClassifier.hxx>
 #include <BRepFilletAPI_MakeChamfer.hxx>
 #include <BRepFilletAPI_MakeFillet.hxx>
+#include <BRepExtrema_DistShapeShape.hxx>
 #include <BRepGProp.hxx>
 #include <BRepGProp_Face.hxx>
 #include <BRepPrimAPI_MakePrism.hxx>
@@ -306,6 +307,14 @@ std::unique_ptr<Shape> Shape::compound(const std::vector<const Shape*>& shapes) 
     auto impl = std::make_unique<Impl>();
     impl->shape = compound;
     return std::unique_ptr<Shape>(new Shape(std::move(impl)));
+}
+
+double Shape::distanceTo(const Shape& other) const {
+    return guarded("distanceTo", [&] {
+        BRepExtrema_DistShapeShape dist(impl_->shape, other.impl_->shape);
+        if (!dist.IsDone()) throw KernelError(ErrorCode::OcctFailure, "distance failed");
+        return dist.Value();
+    });
 }
 
 int Shape::faceCount() const { return facesOf(impl_->shape).Extent(); }
