@@ -249,6 +249,13 @@ internal class ViewportRenderer(private val surfaceView: SurfaceView) {
         requestRender()
     }
 
+    /** Background colour as 0xRRGGBB sRGB. */
+    fun setBackground(srgb: Int) {
+        val c = srgbToLinear(srgb)
+        skybox.setColor(c[0], c[1], c[2], 1f)
+        requestRender()
+    }
+
     /** Shows faces, edges or both. */
     fun setDisplayMode(mode: DisplayMode) {
         displayMode = mode

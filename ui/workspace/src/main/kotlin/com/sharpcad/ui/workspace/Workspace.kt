@@ -84,6 +84,11 @@ fun Workspace(
     onMaterialsToggle: () -> Unit = {},
     onDisplayMode: () -> Unit = {},
     onDrawings: () -> Unit = {},
+    onAppearance: () -> Unit = {},
+    appearanceActive: Boolean = false,
+    /** Left-handed layout: tools on the right, settings on the left. */
+    toolsOnRight: Boolean = false,
+    showLabels: Boolean = false,
     overlay: @Composable BoxScope.() -> Unit = {},
     viewport: @Composable () -> Unit,
 ) {
@@ -94,15 +99,17 @@ fun Workspace(
             Box(Modifier.fillMaxSize().padding(SharpCadDimens.Gutter)) {
                 ToolRail(
                     LeftRailGroups,
-                    Modifier.align(Alignment.TopStart),
+                    Modifier.align(if (toolsOnRight) Alignment.TopEnd else Alignment.TopStart),
+                    showLabels = showLabels,
                     actions = mapOf(SKETCH_ITEM to onSketchToggle, VISUALIZATION_ITEM to onMaterialsToggle, DRAWINGS_ITEM to onDrawings),
                     active = setOfNotNull(SKETCH_ITEM.takeIf { sketchActive }, VISUALIZATION_ITEM.takeIf { materialsActive }),
                 )
                 ToolRail(
                     RightRailGroups,
-                    Modifier.align(Alignment.TopEnd),
-                    actions = mapOf(HISTORY_ITEM to onHistoryToggle, DISPLAY_ITEM to onDisplayMode),
-                    active = if (historyActive) setOf(HISTORY_ITEM) else emptySet(),
+                    Modifier.align(if (toolsOnRight) Alignment.TopStart else Alignment.TopEnd),
+                    showLabels = showLabels,
+                    actions = mapOf(HISTORY_ITEM to onHistoryToggle, DISPLAY_ITEM to onDisplayMode, APPEARANCE_ITEM to onAppearance),
+                    active = setOfNotNull(HISTORY_ITEM.takeIf { historyActive }, APPEARANCE_ITEM.takeIf { appearanceActive }),
                 )
                 overlay()
                 if (status.isNotEmpty()) {

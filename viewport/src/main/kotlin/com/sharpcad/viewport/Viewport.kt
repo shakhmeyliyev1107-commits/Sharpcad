@@ -37,6 +37,7 @@ class ViewportController {
     private var highlight: RenderMesh? = null
     private var overlayColor: Int = 0x5AA2FF
     private var displayMode = DisplayMode.SHADED_EDGES
+    private var background = 0x1B1F26
 
     /** Shows [mesh] (or clears the model when `null`) and, if [fit], frames it. */
     fun setModel(mesh: RenderMesh?, fit: Boolean = true) {
@@ -59,6 +60,12 @@ class ViewportController {
     fun setOverlayLines(segments: FloatArray?) {
         overlay = segments
         renderer?.setOverlayLines(segments)
+    }
+
+    /** Background colour as 0xRRGGBB (follows the app theme). */
+    fun setBackground(srgb: Int) {
+        background = srgb
+        renderer?.setBackground(srgb)
     }
 
     /** Benchmark: spins the camera once over [frames] frames, then reports frame pacing. */
@@ -109,6 +116,7 @@ class ViewportController {
         r.setHighlight(highlight)
         r.setOverlayColor(overlayColor)
         r.setDisplayMode(displayMode)
+        r.setBackground(background)
         r.fitView()
     }
 

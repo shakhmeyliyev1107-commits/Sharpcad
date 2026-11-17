@@ -53,6 +53,7 @@ internal const val SKETCH_ITEM = "Sketch"
 internal const val HISTORY_ITEM = "History"
 internal const val VISUALIZATION_ITEM = "Visualization"
 internal const val DRAWINGS_ITEM = "Drawings"
+internal const val APPEARANCE_ITEM = "Appearance"
 internal const val DISPLAY_ITEM = "Display mode"
 
 internal val LeftRailGroups: List<List<RailItem>> = listOf(
@@ -80,7 +81,7 @@ internal val RightRailGroups: List<List<RailItem>> = listOf(
         RailItem("Snap settings", Icons.Outlined.GridOn),
         RailItem("Units", Icons.Outlined.Tune),
         RailItem("Views", Icons.Outlined.Widgets),
-        RailItem("Appearance", Icons.Outlined.Palette),
+        RailItem(APPEARANCE_ITEM, Icons.Outlined.Palette),
         RailItem(DISPLAY_ITEM, Icons.Outlined.Visibility),
     ),
     listOf(
@@ -100,10 +101,11 @@ internal fun ToolRail(
     modifier: Modifier = Modifier,
     actions: Map<String, () -> Unit> = emptyMap(),
     active: Set<String> = emptySet(),
+    showLabels: Boolean = false,
 ) {
     Column(
         modifier = modifier
-            .width(SharpCadDimens.RailWidth)
+            .width(if (showLabels) 76.dp else SharpCadDimens.RailWidth)
             .clip(RoundedCornerShape(SharpCadDimens.PanelRadius))
             .background(SharpCadColors.Panel.copy(alpha = 0.94f))
             .verticalScroll(rememberScrollState())
@@ -118,13 +120,14 @@ internal fun ToolRail(
                     color = SharpCadColors.Divider,
                 )
             }
-            group.forEach { RailButton(it, it.selected || it.label in active, actions[it.label]) }
+            group.forEach { RailButton(it, it.selected || it.label in active, actions[it.label], showLabels) }
         }
     }
 }
 
 @Composable
-private fun RailButton(item: RailItem, highlighted: Boolean, onClick: (() -> Unit)?) {
+private fun RailButton(item: RailItem, highlighted: Boolean, onClick: (() -> Unit)?, showLabel: Boolean) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
     Box(
         modifier = Modifier
             .size(SharpCadDimens.RailButton)
@@ -144,5 +147,14 @@ private fun RailButton(item: RailItem, highlighted: Boolean, onClick: (() -> Uni
             },
             modifier = Modifier.size(SharpCadDimens.RailIcon),
         )
+    }
+    if (showLabel) {
+        androidx.compose.material3.Text(
+            item.label,
+            color = SharpCadColors.ContentMuted,
+            fontSize = androidx.compose.ui.unit.TextUnit(9f, androidx.compose.ui.unit.TextUnitType.Sp),
+            maxLines = 1,
+        )
+    }
     }
 }

@@ -48,6 +48,7 @@ private fun WorkspaceScreen() {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val viewport = remember { ViewportController() }
+    val settings = remember { AppSettings(context, viewport) }
     val sketch = remember { SketchSession(viewport) }
     val document = remember { Document() }
     val model = remember { ModelController(scope, viewport, document, sketch) }
@@ -110,6 +111,10 @@ private fun WorkspaceScreen() {
         onMaterialsToggle = model::toggleMaterials,
         onDisplayMode = model::cycleDisplayMode,
         onDrawings = { model.openDrawing(state.projectName) },
+        onAppearance = settings::toggle,
+        appearanceActive = settings.open,
+        toolsOnRight = settings.toolsOnRight,
+        showLabels = settings.showLabels,
         overlay = {
             // Between the rails, clear of both.
             Column(
@@ -130,6 +135,14 @@ private fun WorkspaceScreen() {
                         dimensions = sketch.dimensions,
                         onDimension = sketch::setDimension,
                         message = sketch.message,
+                    )
+                }
+                if (settings.open) {
+                    ParameterPanel(
+                        title = "Appearance", fields = emptyList(), onField = { _, _ -> },
+                        choices = settings.choices, onChoice = settings::choose,
+                        actions = settings.actions, message = "",
+                        modifier = Modifier.padding(top = 8.dp).widthIn(max = 560.dp),
                     )
                 }
                 state.benchmarkReport?.let { report ->
@@ -163,8 +176,9 @@ private fun WorkspaceScreen() {
                     currentId = model.currentMaterialId,
                     onPick = model::applyMaterial,
                     subtitle = model.materialTarget,
-                    // Right of the left rail.
-                    modifier = Modifier.align(Alignment.TopStart).padding(start = 64.dp),
+                    // Beside the tool rail.
+                    modifier = if (settings.toolsOnRight) Modifier.align(Alignment.TopEnd).padding(end = 64.dp)
+                    else Modifier.align(Alignment.TopStart).padding(start = 64.dp),
                 )
             }
             if (model.historyOpen) {
@@ -172,8 +186,9 @@ private fun WorkspaceScreen() {
                     items = model.historyItems,
                     selectedId = model.editingId,
                     onSelect = model::edit,
-                    // Left of the right rail.
-                    modifier = Modifier.align(Alignment.TopEnd).padding(end = 64.dp),
+                    // Beside the settings rail.
+                    modifier = if (settings.toolsOnRight) Modifier.align(Alignment.TopStart).padding(start = 64.dp)
+                    else Modifier.align(Alignment.TopEnd).padding(end = 64.dp),
                 )
             }
         },
