@@ -460,12 +460,15 @@ class ModelController(
     }
 
     /** A body drag while the Move panel is open: on a world plane facing the camera. */
-    private class MoveDrag(val original: com.sharpcad.document.MoveFeature, val normal: Int, val start: DoubleArray) {
+    private class MoveDrag(val original: com.sharpcad.document.MoveFeature, val normal: Int, val start: DoubleArray, val downX: Float) {
         var pending: com.sharpcad.document.MoveFeature? = null
         var running = false
     }
 
     private var moveDrag: MoveDrag? = null
+
+    /** Move panel: one-finger drag on the body rotates about the chosen axis instead. */
+    private var dragRotates by mutableStateOf(false)
 
     private fun beginMoveDrag(x: Float, y: Float): MoveDrag? {
         val f = editingFeature() as? com.sharpcad.document.MoveFeature ?: return null
@@ -478,10 +481,17 @@ class ModelController(
         val hit = DoubleArray(3) { o[it] + t * d[it] }
         // Slide on the world plane most square to the view, through the touched point.
         val normal = (0..2).maxBy { kotlin.math.abs(d[it]) }
-        return MoveDrag(f, normal, hit)
+        return MoveDrag(f, normal, hit, x)
     }
 
     private fun moveTo(m: MoveDrag, x: Float, y: Float) {
+        if (dragRotates) {
+            val o = m.original
+            val degrees = com.sharpcad.viewport.AxisDrag.snap((x - m.downX) * ROTATE_DEG_PER_PX, ROTATE_SNAP_DEG)
+            queueMove(m, o.copy(angleDegrees = o.angleDegrees + degrees))
+            dragReadout = "Rotate ${formatMm(o.angleDegrees + degrees)}°"
+            return
+        }
         val ray = viewport.screenRay(x, y) ?: return
         val k = m.normal
         if (kotlin.math.abs(ray[3 + k]) < 1e-9) return
@@ -491,6 +501,10 @@ class ModelController(
         val o = m.original
         val f = o.copy(dx = o.dx + delta[0], dy = o.dy + delta[1], dz = o.dz + delta[2])
         dragReadout = "Move ${formatMm(f.dx)}, ${formatMm(f.dy)}, ${formatMm(f.dz)}"
+        queueMove(m, f)
+    }
+
+    private fun queueMove(m: MoveDrag, f: com.sharpcad.document.MoveFeature) {
         m.pending = f
         if (m.running) return
         m.running = true
@@ -779,6 +793,7 @@ class ModelController(
                 fields += DimensionField("Z", f.dz, allowNegative = true)
                 fields += DimensionField("Rotate", f.angleDegrees, unit = "°", allowNegative = true)
                 choices += ChoiceField("Axis", AXES, f.axis.label)
+                choices += ChoiceField("Drag", DRAG_MODES, if (dragRotates) DRAG_MODES[1] else DRAG_MODES[0])
             }
             is com.sharpcad.document.MirrorFeature -> {
                 choices += ChoiceField("Across", MIRROR_PLANES, mirrorLabel(f.plane))
@@ -852,7 +867,10 @@ class ModelController(
                 else -> operation?.let { f.copy(operation = it) }
             }
             is BooleanFeature -> BooleanOp.entries.firstOrNull { it.name.lowercase() == option }?.let { f.copy(op = it) }
-            is com.sharpcad.document.MoveFeature -> axisOf(option)?.let { f.copy(axis = it) }
+            is com.sharpcad.document.MoveFeature -> if (index == 1) {
+                dragRotates = option == DRAG_MODES[1]
+                null
+            } else axisOf(option)?.let { f.copy(axis = it) }
             is com.sharpcad.document.MirrorFeature -> when (index) {
                 0 -> MIRROR_PLANES.indexOf(option).takeIf { it >= 0 }?.let { f.copy(plane = com.sharpcad.document.WorldAxis.entries[it]) }
                 else -> f.copy(keepOriginal = option == KEEP[0])
@@ -927,6 +945,9 @@ class ModelController(
     companion object {
         const val DEFAULT_DISTANCE = 10.0
         private const val DRAG_SLOP_PX = 12f
+        private const val ROTATE_DEG_PER_PX = 0.5
+        private const val ROTATE_SNAP_DEG = 5.0
+        private val DRAG_MODES = listOf("Move", "Rotate")
         /** A tap this close to an edge (in pixels) picks the edge rather than the face. */
         private const val EDGE_PICK_PX = 10.0
 

@@ -59,6 +59,7 @@ internal object Strings {
         "Drawing" to ("Chizma" to "Чертёж"),
         "Drawn without automatic constraints (they conflicted)" to ("Avtomatik bog'lanishlarsiz chizildi (ziddiyat bor edi)" to "Нарисовано без автоматических связей (был конфликт)"),
         "Ebony" to ("Qora daraxt" to "Эбеновое дерево"),
+        "Drag" to ("Sudrash" to "Перетаскивание"),
         "Edge" to ("Qirra" to "Ребро"),
         "edge" to ("qirra" to "ребро"),
         "Edit" to ("Tahrir" to "Правка"),
