@@ -126,6 +126,7 @@ object ModelBuilder {
     private fun profileShape(profile: Profile): Shape {
         val all = Kernel.profileFromSketch(
             profile.plane.frame(), profile.lines.toDoubleArray(), profile.circles.toDoubleArray(), profile.arcs.toDoubleArray(),
+            profile.splines.toDoubleArray(),
         )
         val regions = profile.regions ?: return all
         return all.use { it.subset(regions) }

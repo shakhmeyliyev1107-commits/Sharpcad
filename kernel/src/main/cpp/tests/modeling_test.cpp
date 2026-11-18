@@ -348,3 +348,17 @@ TEST(Modeling, PickEdgeAndBlendOneEdge) {
     EXPECT_EQ(bevelled->faceCount(), 7);
     expectError(ErrorCode::InvalidArgument, [&] { box->blendEdge(1.0, 99, false); });
 }
+
+TEST(Modeling, SplineClosesAProfileSmoothly) {
+    // A straight base line plus a spline arching over it from (0,0) to (20,0).
+    SketchProfileInput in{{0, 0, 0}, {1, 0, 0}, {0, 1, 0}, {0, 0, 20, 0}, {}, {}, {4, 0, 0, 5, 8, 15, 8, 20, 0}};
+    const auto profile = Shape::profileFromSketch(in);
+    EXPECT_EQ(profile->faceCount(), 1);
+    const auto solid = profile->extrude(0, 0, 5);
+    // Smooth: the solid has the base, top, bottom and one curved side face, not many flats.
+    EXPECT_EQ(solid->faceCount(), 4);
+    EXPECT_GT(solid->volume(), 0.0);
+
+    SketchProfileInput bad{{0, 0, 0}, {1, 0, 0}, {0, 1, 0}, {}, {}, {}, {9, 0, 0}};
+    expectError(ErrorCode::InvalidArgument, [&] { Shape::profileFromSketch(bad); });
+}

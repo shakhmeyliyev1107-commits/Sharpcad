@@ -30,6 +30,7 @@ struct SketchProfileInput {
     std::vector<double> lines;    ///< x1, y1, x2, y2 per line
     std::vector<double> circles;  ///< cx, cy, radius per circle
     std::vector<double> arcs;     ///< cx, cy, radius, start angle, end angle per arc (ccw, radians)
+    std::vector<double> splines;  ///< per spline: point count n, then n (x, y) points it passes through
 };
 
 enum class BooleanOp : int { Union = 0, Subtract = 1, Intersect = 2 };

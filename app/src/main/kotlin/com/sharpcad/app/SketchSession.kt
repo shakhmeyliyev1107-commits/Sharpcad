@@ -24,7 +24,8 @@ import kotlin.math.abs
 import kotlin.math.hypot
 
 /** Sketch geometry as flat arrays for the kernel (see Profile). */
-data class SketchGeometry(val lines: List<Double>, val circles: List<Double>, val arcs: List<Double>)
+/** [splines]: per spline a point count n then n (x, y) points, as the kernel takes them. */
+data class SketchGeometry(val lines: List<Double>, val circles: List<Double>, val arcs: List<Double>, val splines: List<Double> = emptyList())
 
 enum class SketchTool(val label: String) {
     LINE("Line"),
@@ -102,8 +103,9 @@ class SketchSession(private val viewport: ViewportController) {
                 is com.sharpcad.sketch.SketchArc -> arcs += listOf(e.cx, e.cy, e.radius, e.startAngle, e.endAngle)
             }
         }
-        splines[plane]?.forEach { lines += Spline.segments(it) }
-        return SketchGeometry(lines, circles, arcs)
+        val curves = mutableListOf<Double>()
+        splines[plane]?.forEach { pts -> curves += (pts.size / 2).toDouble(); curves += pts }
+        return SketchGeometry(lines, circles, arcs, curves)
     }
 
     /** Bumped whenever sketch geometry changes, so cached profiles can be dropped. */

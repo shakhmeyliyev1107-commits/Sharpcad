@@ -207,12 +207,13 @@ JNIEXPORT jlong JNICALL
 Java_com_sharpcad_kernel_KernelNative_nativeProfileFromSketch(JNIEnv* env, jclass, jdoubleArray origin,
                                                               jdoubleArray xAxis, jdoubleArray yAxis,
                                                               jdoubleArray lines, jdoubleArray circles,
-                                                              jdoubleArray arcs) {
+                                                              jdoubleArray arcs, jdoubleArray splines) {
     return guard<jlong>(env, 0, [&] {
         auto in = planeInput(env, origin, xAxis, yAxis);
         in.lines = toDoubles(env, lines);
         in.circles = toDoubles(env, circles);
         in.arcs = toDoubles(env, arcs);
+        in.splines = toDoubles(env, splines);
         return release(Shape::profileFromSketch(in));
     });
 }

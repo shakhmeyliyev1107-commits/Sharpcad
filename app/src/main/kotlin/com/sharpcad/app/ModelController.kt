@@ -596,8 +596,8 @@ class ModelController(
             val uv = plane.intersect(origin, direction) ?: continue
             val world = plane.toWorld(uv[0], uv[1])
             val distance = kotlin.math.sqrt((0 until 3).sumOf { (world[it] - origin[it]).let { d -> d * d } })
-            val (lines, circles, arcs) = sketches.geometry(plane)
-            val index = document.regionAt(planeSpec(plane), lines, circles, uv[0], uv[1], arcs)
+            val (lines, circles, arcs, splines) = sketches.geometry(plane)
+            val index = document.regionAt(planeSpec(plane), lines, circles, uv[0], uv[1], arcs, splines)
             if (index >= 0 && (best == null || distance < best.second)) best = (plane to index) to distance
         }
         return best
@@ -615,8 +615,8 @@ class ModelController(
             return
         }
         regionSelection = RegionSelection(plane, regions, sketches.revision)
-        val (lines, circles, arcs) = sketches.geometry(plane)
-        val mesh = document.profileRegions(planeSpec(plane), lines, circles, arcs)?.mesh
+        val (lines, circles, arcs, splines) = sketches.geometry(plane)
+        val mesh = document.profileRegions(planeSpec(plane), lines, circles, arcs, splines)?.mesh
         viewport.setHighlight(mesh?.let { MeshTools.facesOf(it, regions) })
     }
 
@@ -638,8 +638,8 @@ class ModelController(
             return
         }
         val profiles = planes.map { p ->
-            val (lines, circles, arcs) = sketches.geometry(p)
-            Profile(planeSpec(p), lines, circles, if (p == r.plane) r.regions.sorted().take(1) else null, arcs)
+            val (lines, circles, arcs, splines) = sketches.geometry(p)
+            Profile(planeSpec(p), lines, circles, if (p == r.plane) r.regions.sorted().take(1) else null, arcs, splines)
         }
         regionSelection = null
         viewport.setHighlight(null)
@@ -659,13 +659,13 @@ class ModelController(
             note = "Sweep needs a path: draw lines/arcs on a crossing plane (e.g. XZ for an XY profile)"
             return
         }
-        val (lines, circles, arcs) = sketches.geometry(r.plane)
+        val (lines, circles, arcs, splines) = sketches.geometry(r.plane)
         regionSelection = null
         viewport.setHighlight(null)
         launchEdit {
             document.add(
                 com.sharpcad.document.SweepFeature(
-                    document.newId(), Profile(planeSpec(r.plane), lines, circles, r.regions.sorted().take(1), arcs),
+                    document.newId(), Profile(planeSpec(r.plane), lines, circles, r.regions.sorted().take(1), arcs, splines),
                     planeSpec(pathPlane), path.lines, path.arcs,
                 ),
             )
@@ -674,10 +674,10 @@ class ModelController(
 
     private fun solidFromRegions(revolve: Boolean) {
         val r = regionSelection ?: return
-        val (lines, circles, arcs) = sketches.geometry(r.plane)
+        val (lines, circles, arcs, splines) = sketches.geometry(r.plane)
         regionSelection = null
         viewport.setHighlight(null)
-        addFromProfile(Profile(planeSpec(r.plane), lines, circles, r.regions.sorted(), arcs), revolve)
+        addFromProfile(Profile(planeSpec(r.plane), lines, circles, r.regions.sorted(), arcs, splines), revolve)
     }
 
     /** Volume and face area of the selection, filled in asynchronously. */

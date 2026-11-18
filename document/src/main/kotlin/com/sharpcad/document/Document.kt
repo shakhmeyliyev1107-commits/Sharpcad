@@ -106,10 +106,10 @@ class Document(private val dispatcher: CoroutineDispatcher = KernelDispatcher) :
      * Profile regions of a sketch: tessellated planar faces, used to show and pick
      * regions before extruding. Returns `null` when the sketch encloses nothing.
      */
-    suspend fun profileRegions(plane: PlaneSpec, lines: List<Double>, circles: List<Double>, arcs: List<Double> = emptyList()): ProfileRegions? =
+    suspend fun profileRegions(plane: PlaneSpec, lines: List<Double>, circles: List<Double>, arcs: List<Double> = emptyList(), splines: List<Double> = emptyList()): ProfileRegions? =
         withContext(dispatcher) {
             try {
-                com.sharpcad.kernel.Kernel.profileFromSketch(plane.frame(), lines.toDoubleArray(), circles.toDoubleArray(), arcs.toDoubleArray())
+                com.sharpcad.kernel.Kernel.profileFromSketch(plane.frame(), lines.toDoubleArray(), circles.toDoubleArray(), arcs.toDoubleArray(), splines.toDoubleArray())
                     .use { ProfileRegions(it.faceCount, it.tessellate(REGION_DEFLECTION)) }
             } catch (e: com.sharpcad.kernel.KernelException) {
                 null
@@ -117,10 +117,10 @@ class Document(private val dispatcher: CoroutineDispatcher = KernelDispatcher) :
         }
 
     /** Region index at plane point ([u], [v]), or -1. */
-    suspend fun regionAt(plane: PlaneSpec, lines: List<Double>, circles: List<Double>, u: Double, v: Double, arcs: List<Double> = emptyList()): Int =
+    suspend fun regionAt(plane: PlaneSpec, lines: List<Double>, circles: List<Double>, u: Double, v: Double, arcs: List<Double> = emptyList(), splines: List<Double> = emptyList()): Int =
         withContext(dispatcher) {
             try {
-                com.sharpcad.kernel.Kernel.profileFromSketch(plane.frame(), lines.toDoubleArray(), circles.toDoubleArray(), arcs.toDoubleArray())
+                com.sharpcad.kernel.Kernel.profileFromSketch(plane.frame(), lines.toDoubleArray(), circles.toDoubleArray(), arcs.toDoubleArray(), splines.toDoubleArray())
                     .use { it.regionAt(plane.frame(), u, v) }
             } catch (e: com.sharpcad.kernel.KernelException) {
                 -1

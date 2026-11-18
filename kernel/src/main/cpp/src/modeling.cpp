@@ -9,6 +9,9 @@
 #include <BRepAdaptor_Curve.hxx>
 #include <BRepAdaptor_Surface.hxx>
 #include <GCPnts_QuasiUniformDeflection.hxx>
+#include <GeomAPI_Interpolate.hxx>
+#include <Geom_BSplineCurve.hxx>
+#include <TColgp_HArray1OfPnt.hxx>
 #include <HLRAlgo_Projector.hxx>
 #include <HLRBRep_Algo.hxx>
 #include <HLRBRep_HLRToShape.hxx>
@@ -136,6 +139,28 @@ TopTools_ListOfShape sketchEdges(const SketchProfileInput& in, const gp_Dir& nor
         const gp_Ax2 axes(planePoint(in, in.arcs[i], in.arcs[i + 1]), normal,
                           gp_Dir(in.xAxis[0], in.xAxis[1], in.xAxis[2]));
         edgeList.Append(BRepBuilderAPI_MakeEdge(gp_Circ(axes, r), in.arcs[i + 3], in.arcs[i + 4]).Edge());
+    }
+    // Smooth curves through the drawn points; a spline ending where it starts is periodic.
+    for (size_t i = 0; i < in.splines.size();) {
+        const double raw = in.splines[i];
+        require(std::isfinite(raw) && raw >= 2 && i + 1 + 2 * static_cast<size_t>(raw) <= in.splines.size(),
+                "Malformed spline array");
+        const int n = static_cast<int>(raw);
+        std::vector<gp_Pnt> pts;
+        for (int k = 0; k < n; ++k) {
+            const gp_Pnt p = planePoint(in, in.splines[i + 1 + 2 * k], in.splines[i + 2 + 2 * k]);
+            if (pts.empty() || p.Distance(pts.back()) > kTiny) pts.push_back(p);
+        }
+        i += 1 + 2 * static_cast<size_t>(n);
+        const bool closed = pts.size() > 3 && pts.front().Distance(pts.back()) < 1e-6;
+        if (closed) pts.pop_back();
+        if (pts.size() < 2) continue;
+        Handle(TColgp_HArray1OfPnt) arr = new TColgp_HArray1OfPnt(1, static_cast<int>(pts.size()));
+        for (size_t k = 0; k < pts.size(); ++k) arr->SetValue(static_cast<int>(k) + 1, pts[k]);
+        GeomAPI_Interpolate interp(arr, closed, 1e-7);
+        interp.Perform();
+        if (!interp.IsDone()) throw KernelError(ErrorCode::OcctFailure, "Spline interpolation failed");
+        edgeList.Append(BRepBuilderAPI_MakeEdge(interp.Curve()).Edge());
     }
     return edgeList;
 }

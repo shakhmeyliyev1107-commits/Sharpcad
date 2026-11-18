@@ -51,6 +51,8 @@ data class Profile(
     val regions: List<Int>? = null,
     /** cx, cy, radius, start angle, end angle per arc (radians, counter-clockwise). */
     val arcs: List<Double> = emptyList(),
+    /** Per spline: point count n, then n (x, y) points (interpolated B-spline). */
+    val splines: List<Double> = emptyList(),
 )
 
 /** How a feature's new solid combines with the existing body it targets. */
