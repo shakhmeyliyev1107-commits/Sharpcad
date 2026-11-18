@@ -15,7 +15,7 @@ sources:
   - code: kernel/src/main/kotlin/com/sharpcad/kernel/KernelNative.kt
   - code: app/src/main/kotlin/com/sharpcad/app/WorkspaceState.kt
   - code: document/src/main/kotlin/com/sharpcad/document/MeshExport.kt
-verified_at: b9234ce
+verified_at: ad8edbe
 ---
 
 # Modellashtirish va tarix
@@ -129,7 +129,7 @@ Transform — tanlangan jismga Move; Measure — modelda ikki nuqta orasidagi ma
 (nuqta = `Document.pick` urilish nuqtasi, chiziq eskiz overlay'ida); Snap settings —
 eskizda yopishishni yoqish/o'chirish (`SketchSession.toggleSnapping`); Views — Ustdan/Old/
 O'ngdan/Izometrik; Screenshot — `PixelCopy` bilan Pictures/SharpCAD ga PNG
-(`WorkspaceState.screenshot`). Search, Tools, Units hali ulanmagan.
+(`WorkspaceState.screenshot`). Search/Tools va Units — [[localization]] sahifasida.
 
 > ⚠️ Add va Measure ham `closePanels()` ro'yxatida: yangi yon panel qo'shsangiz uni ham
 > shu yerga qo'shing, aks holda panellar yana bir-birining ustiga chiqadi.

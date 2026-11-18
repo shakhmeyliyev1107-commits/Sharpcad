@@ -1,9 +1,11 @@
 ---
-title: Interfeys tillari
+title: Interfeys tillari va birliklar
 type: subsystem
 created: 2026-11-18
 updated: 2026-11-18
 sources:
+  - code: ui/designsystem/src/main/kotlin/com/sharpcad/ui/designsystem/Units.kt
+  - code: app/src/main/kotlin/com/sharpcad/app/CommandPanel.kt
   - code: ui/designsystem/src/main/kotlin/com/sharpcad/ui/designsystem/Tr.kt
   - code: ui/designsystem/src/main/kotlin/com/sharpcad/ui/designsystem/Strings.kt
   - code: ui/designsystem/src/test/kotlin/com/sharpcad/ui/designsystem/TrTest.kt
@@ -13,7 +15,7 @@ sources:
   - code: ui/workspace/src/main/kotlin/com/sharpcad/ui/workspace/MaterialPanel.kt
   - code: ui/workspace/src/main/kotlin/com/sharpcad/ui/workspace/Rails.kt
   - code: ui/workspace/src/main/kotlin/com/sharpcad/ui/workspace/Workspace.kt
-verified_at: b9234ce
+verified_at: ad8edbe
 ---
 
 # Interfeys tillari
@@ -35,3 +37,21 @@ o'zgarishsiz ko'rsatiladi. Lug'at — `Strings.table` (inglizcha → (o'zbekcha,
 
 > ⚠️ Yangi yozuv qo'shsangiz, `Strings.table` ga ham kalitni aynan shu inglizcha matn
 > bilan qo'shing; aks holda u barcha tillarda inglizcha ko'rinadi (xato bermaydi).
+
+## Birliklar (mm / sm / dyuym)
+
+Units rail tugmasi ko'rsatish birligini almashtiradi (`AppSettings.cycleUnits`, saqlanadi).
+Model doim millimetrda; faqat uzunlik maydonlari (`DimensionField.unit == "mm"`) va
+o'lchash/sudrash ko'rsatkichlari `Units` orqali ko'rsatiladi. Maydonga oddiy son yozilsa,
+u tanlangan birlikda hisoblanadi; `2cm` kabi qo'shimchali yozuv o'z birligida qoladi.
+
+> ⚠️ Birlik qo'shimchasi yoki o'zgaruvchi (harf) bor ifoda millimetr deb qabul qilinadi
+> va ko'paytirilmaydi (`DimensionInput`): `w/2` da `w` mm'da saqlangan.
+
+> ⚠️ Xususiyat yorliqlari va status satri hali `formatMm` bilan mm'da qoladi.
+
+## Search / Tools
+
+Ikkala tugma ham buyruqlar panelini ochadi (`CommandPanel`): barcha buyruqlar chip
+ko'rinishida, inglizcha yoki joriy tildagi nom bo'yicha filtrlanadi; ro'yxat
+`MainActivity` dagi `railMap` + qo'shimcha buyruqlardan tuziladi.
