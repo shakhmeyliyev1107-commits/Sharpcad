@@ -117,14 +117,16 @@ data class RevolveFeature(
 /** Rounds the edges of [face] of [body], or all its edges when [face] is -1. */
 @Serializable
 @SerialName("fillet")
-data class FilletFeature(override val id: Long, val body: Long, val radius: Double, val face: Int = -1) : Feature {
+/** [edge] ≥ 0 rounds only that edge (and ignores [face]). */
+data class FilletFeature(override val id: Long, val body: Long, val radius: Double, val face: Int = -1, val edge: Int = -1) : Feature {
     override val label: String get() = "Fillet ${formatMm(radius)} mm"
 }
 
 /** Bevels the edges of [face] of [body], or all its edges when [face] is -1. */
 @Serializable
 @SerialName("chamfer")
-data class ChamferFeature(override val id: Long, val body: Long, val distance: Double, val face: Int = -1) : Feature {
+/** [edge] ≥ 0 bevels only that edge (and ignores [face]). */
+data class ChamferFeature(override val id: Long, val body: Long, val distance: Double, val face: Int = -1, val edge: Int = -1) : Feature {
     override val label: String get() = "Chamfer ${formatMm(distance)} mm"
 }
 

@@ -325,3 +325,26 @@ TEST(Sweep, SquareAlongStraightPath) {
     path.lines = {0, 0, 0, 10};  // straight up z
     EXPECT_NEAR(Shape::profileFromSketch(profile)->sweep(path)->volume(), 40.0, 1e-3);
 }
+
+TEST(Modeling, PickEdgeAndBlendOneEdge) {
+    const auto box = Shape::makeBox(10, 10, 10);
+    // Looking down at the top face, aim just inside the edge y = 0, z = 10.
+    const double origin[3] = {5, 0.2, 100};
+    const double down[3] = {0, 0, -1};
+    const int edge = box->pickEdge(origin, down, 0.5);
+    ASSERT_GE(edge, 0);
+    const auto points = box->edgePoints(edge);
+    ASSERT_GE(points.size(), 6u);
+    for (size_t i = 0; i < points.size(); i += 3) {
+        EXPECT_NEAR(points[i + 1], 0.0, 1e-6);
+        EXPECT_NEAR(points[i + 2], 10.0, 1e-6);
+    }
+    EXPECT_EQ(box->pickEdge(origin, down, 0.1), -1);
+
+    const auto rounded = box->blendEdge(2.0, edge, false);
+    EXPECT_EQ(rounded->faceCount(), 7);
+    EXPECT_LT(rounded->volume(), box->volume());
+    const auto bevelled = box->blendEdge(2.0, edge, true);
+    EXPECT_EQ(bevelled->faceCount(), 7);
+    expectError(ErrorCode::InvalidArgument, [&] { box->blendEdge(1.0, 99, false); });
+}

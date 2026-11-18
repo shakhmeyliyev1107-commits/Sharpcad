@@ -95,8 +95,8 @@ internal object MeshTools {
         return RenderMesh(positions, normals, index, direct(0), bounds)
     }
     /**
-     * Nearest ray parameter t where origin + t·direction hits a triangle of [face], or
-     * `null`. Möller–Trumbore on the face's triangles; runs on the caller's thread.
+     * Nearest ray parameter t where origin + t·direction hits a triangle of [face] (any
+     * face when negative), or `null`. Möller–Trumbore on the face's triangles; runs on the caller's thread.
      */
     fun rayHitFace(mesh: Mesh, face: Int, origin: DoubleArray, direction: DoubleArray): Double? {
         val triFaces = mesh.triangleFaces.duplicate().order(ByteOrder.nativeOrder()).asIntBuffer()
@@ -105,7 +105,7 @@ internal object MeshTools {
         var best: Double? = null
         val p = Array(3) { DoubleArray(3) }
         for (t in 0 until triFaces.capacity()) {
-            if (triFaces.get(t) != face) continue
+            if (face >= 0 && triFaces.get(t) != face) continue
             for (k in 0 until 3) {
                 val v = idx.get(t * 3 + k)
                 for (c in 0 until 3) p[k][c] = pos.get(v * 3 + c).toDouble()

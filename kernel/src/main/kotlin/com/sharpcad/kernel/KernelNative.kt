@@ -51,5 +51,8 @@ internal object KernelNative {
     @JvmStatic external fun nativeMirrored(handle: Long, origin: DoubleArray, normal: DoubleArray): Long
     @JvmStatic external fun nativeFaceCount(handle: Long): Int
     @JvmStatic external fun nativeVolume(handle: Long): Double
+    @JvmStatic external fun nativeBlendEdge(handle: Long, size: Double, edge: Int, chamfer: Boolean): Long
+    @JvmStatic external fun nativePickEdge(handle: Long, origin: DoubleArray, direction: DoubleArray, tolerance: Double): Int
+    @JvmStatic external fun nativeEdgePoints(handle: Long, edge: Int): DoubleArray
     @JvmStatic external fun nativePick(handle: Long, origin: DoubleArray, direction: DoubleArray): DoubleArray
 }

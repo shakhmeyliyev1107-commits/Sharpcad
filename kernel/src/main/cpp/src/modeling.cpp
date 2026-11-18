@@ -516,4 +516,86 @@ PickHit Shape::pick(const double origin[3], const double direction[3]) const {
     });
 }
 
+namespace {
+TopTools_IndexedMapOfShape edgesOf(const TopoDS_Shape& shape) {
+    TopTools_IndexedMapOfShape edges;
+    TopExp::MapShapes(shape, TopAbs_EDGE, edges);
+    return edges;
+}
+
+const TopoDS_Edge& edgeAt(const TopTools_IndexedMapOfShape& edges, int index) {
+    if (index < 0 || index >= edges.Extent()) throw KernelError(ErrorCode::InvalidArgument, "Edge index out of range");
+    return TopoDS::Edge(edges(index + 1));
+}
+}  // namespace
+
+std::unique_ptr<Shape> Shape::blendEdge(double size, int edge, bool chamfer) const {
+    require(std::isfinite(size) && size > kTiny, "Size must be positive");
+    return guarded("blendEdge", [&] {
+        const auto edges = edgesOf(impl_->shape);
+        const TopoDS_Edge& e = edgeAt(edges, edge);
+        TopoDS_Shape result;
+        if (chamfer) {
+            BRepFilletAPI_MakeChamfer algo(impl_->shape);
+            algo.Add(size, e);
+            algo.Build();
+            if (!algo.IsDone()) throw KernelError(ErrorCode::OcctFailure, "Chamfer failed: distance too large?");
+            result = algo.Shape();
+        } else {
+            BRepFilletAPI_MakeFillet algo(impl_->shape);
+            algo.Add(size, e);
+            algo.Build();
+            if (!algo.IsDone()) throw KernelError(ErrorCode::OcctFailure, "Fillet failed: radius too large?");
+            result = algo.Shape();
+        }
+        auto impl = std::make_unique<Impl>();
+        impl->shape = result;
+        return std::unique_ptr<Shape>(new Shape(std::move(impl)));
+    });
+}
+
+int Shape::pickEdge(const double origin[3], const double direction[3], double tolerance) const {
+    require(finite3(origin) && finite3(direction), "Ray must be finite");
+    const gp_Vec dir(direction[0], direction[1], direction[2]);
+    require(dir.Magnitude() > kTiny, "Ray direction must not be zero");
+    require(std::isfinite(tolerance) && tolerance > 0, "Tolerance must be positive");
+    return guarded("pickEdge", [&]() -> int {
+        const gp_Pnt o(origin[0], origin[1], origin[2]);
+        const gp_Dir d(dir);
+        const TopoDS_Edge ray = BRepBuilderAPI_MakeEdge(o, o.Translated(gp_Vec(d) * 1e6));
+        const auto edges = edgesOf(impl_->shape);
+        int best = -1;
+        double bestAlong = 0, bestGap = 0;
+        for (int i = 1; i <= edges.Extent(); ++i) {
+            BRepExtrema_DistShapeShape dist(edges(i), ray);
+            if (!dist.IsDone() || dist.NbSolution() < 1) continue;
+            const double gap = dist.Value();
+            if (gap > tolerance) continue;
+            const double along = gp_Vec(o, dist.PointOnShape2(1)).Dot(gp_Vec(d));
+            // Prefer the edge nearer the viewer; within a tolerance band the tighter fit wins.
+            if (best < 0 || along < bestAlong - tolerance || (std::abs(along - bestAlong) <= tolerance && gap < bestGap)) {
+                best = i - 1;
+                bestAlong = along;
+                bestGap = gap;
+            }
+        }
+        return best;
+    });
+}
+
+std::vector<double> Shape::edgePoints(int edge) const {
+    return guarded("edgePoints", [&] {
+        const auto edges = edgesOf(impl_->shape);
+        BRepAdaptor_Curve curve(edgeAt(edges, edge));
+        GCPnts_QuasiUniformDeflection points(curve, 0.05);
+        std::vector<double> out;
+        if (!points.IsDone()) return out;
+        for (int i = 1; i <= points.NbPoints(); ++i) {
+            const gp_Pnt p = points.Value(i);
+            out.insert(out.end(), {p.X(), p.Y(), p.Z()});
+        }
+        return out;
+    });
+}
+
 }  // namespace cad::kernel

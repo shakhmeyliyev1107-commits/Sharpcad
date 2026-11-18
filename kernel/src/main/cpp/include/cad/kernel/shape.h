@@ -101,6 +101,15 @@ public:
     /// Bevels edges: those of face `face`, or all edges when face is -1.
     std::unique_ptr<Shape> chamfer(double distance, int face = -1) const;
 
+    /// Rounds (or bevels, when `chamfer`) the single edge `edge` (index into the shape's edges).
+    std::unique_ptr<Shape> blendEdge(double size, int edge, bool chamfer) const;
+
+    /// Edge nearest the ray within `tolerance` (closest along the ray on ties), or -1.
+    int pickEdge(const double origin[3], const double direction[3], double tolerance) const;
+
+    /// Edge `edge` sampled as consecutive points x,y,z (deflection 0.05 mm).
+    std::vector<double> edgePoints(int edge) const;
+
     /// Moves a planar face along its outward normal: positive adds material, negative cuts.
     std::unique_ptr<Shape> pushPull(int face, double distance) const;
 

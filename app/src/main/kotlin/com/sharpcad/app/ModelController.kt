@@ -66,6 +66,9 @@ class ModelController(
         private set
     var regionSelection by mutableStateOf<RegionSelection?>(null)
         private set
+    /** A picked edge of a body, with its points for highlighting. */
+    var edgeSelection by mutableStateOf<Document.EdgeHit?>(null)
+        private set
     var editingId by mutableStateOf<Long?>(null)
         private set
     var historyOpen by mutableStateOf(false)
@@ -292,6 +295,16 @@ class ModelController(
         val origin = doubleArrayOf(ray[0], ray[1], ray[2])
         val direction = doubleArrayOf(ray[3], ray[4], ray[5])
         scope.launch {
+            if (pendingBoolean == null) {
+                val tolerance = viewport.millimetresPerPixel() * EDGE_PICK_PX
+                val edge = if (tolerance > 0) {
+                    try { document.pickEdge(origin, direction, tolerance) } catch (e: KernelException) { null }
+                } else null
+                if (edge != null) {
+                    selectEdge(edge)
+                    return@launch
+                }
+            }
             val hit = try {
                 document.pick(origin, direction)
             } catch (e: KernelException) {
@@ -334,12 +347,17 @@ class ModelController(
     /**
      * One-finger input outside sketching. A drag that starts on the selected face pushes or
      * pulls it along its normal, live; lifting opens the Push/Pull panel for an exact value.
-     * Returns false (orbit as usual) when the touch is not on the selected face.
+     * While the Move panel is open, dragging the moved body slides it on the world plane
+     * facing the camera. Returns false (orbit as usual) when the touch hits neither.
      */
     fun onDrag(phase: com.sharpcad.viewport.TouchPhase, x: Float, y: Float): Boolean {
         when (phase) {
             com.sharpcad.viewport.TouchPhase.DOWN -> {
                 faceDrag = null
+                moveDrag = null
+                edgeDrag = null
+                beginMoveDrag(x, y)?.let { moveDrag = it; return true }
+                beginEdgeDrag(x, y)?.let { edgeDrag = it; return true }
                 val s = selection ?: return false
                 if (pendingBoolean != null) return false
                 val body = state.bodies.firstOrNull { it.bodyId == s.bodyId } ?: return false
@@ -353,20 +371,140 @@ class ModelController(
                 faceDrag = FaceDrag(s.bodyId, s.face, anchor, n, start, x, y)
                 return true
             }
-            com.sharpcad.viewport.TouchPhase.MOVE -> faceDrag?.let { dragTo(it, x, y) }
-            com.sharpcad.viewport.TouchPhase.UP -> faceDrag?.let { g ->
+            com.sharpcad.viewport.TouchPhase.MOVE -> edgeDrag?.let { edgeTo(it, x, y) } ?: moveDrag?.let { moveTo(it, x, y) } ?: faceDrag?.let { dragTo(it, x, y) }
+            com.sharpcad.viewport.TouchPhase.UP -> edgeDrag?.let { g ->
+                edgeTo(g, x, y)
+                edgeDrag = null
+                dragReadout = null
+                g.featureId?.let { id -> editingId = id }
+            } ?: moveDrag?.let { m ->
+                moveTo(m, x, y)
+                moveDrag = null
+                dragReadout = null
+            } ?: faceDrag?.let { g ->
                 dragTo(g, x, y)
                 faceDrag = null
                 dragReadout = null
                 g.featureId?.let { id -> editingId = id }
             }
-            com.sharpcad.viewport.TouchPhase.CANCEL -> faceDrag?.let { g ->
+            com.sharpcad.viewport.TouchPhase.CANCEL -> edgeDrag?.let { g ->
+                edgeDrag = null
+                dragReadout = null
+                g.featureId?.let { id -> launchEdit { document.remove(id) } }
+            } ?: moveDrag?.let { m ->
+                moveDrag = null
+                dragReadout = null
+                launchEdit { document.amend(m.original) }
+            } ?: faceDrag?.let { g ->
                 faceDrag = null
                 dragReadout = null
                 g.featureId?.let { id -> launchEdit { document.remove(id) } }
             }
         }
         return true
+    }
+
+    /** Dragging the selected edge: the radius grows with the drag length on screen. */
+    private class EdgeDrag(val edge: Document.EdgeHit, val downX: Float, val downY: Float) {
+        var featureId: Long? = null
+        var pending: Double? = null
+        var running = false
+    }
+
+    private var edgeDrag: EdgeDrag? = null
+
+    private fun beginEdgeDrag(x: Float, y: Float): EdgeDrag? {
+        val e = edgeSelection ?: return null
+        val ray = viewport.screenRay(x, y) ?: return null
+        val tolerance = viewport.millimetresPerPixel() * EDGE_PICK_PX * 2
+        val p = e.points
+        val near = (0 until p.size / 3).any { i ->
+            // Distance from the edge point to the ray line.
+            val v = DoubleArray(3) { p[i * 3 + it] - ray[it] }
+            val t = v[0] * ray[3] + v[1] * ray[4] + v[2] * ray[5]
+            val len2 = ray[3] * ray[3] + ray[4] * ray[4] + ray[5] * ray[5]
+            val dx = v[0] - t / len2 * ray[3]; val dy = v[1] - t / len2 * ray[4]; val dz = v[2] - t / len2 * ray[5]
+            dx * dx + dy * dy + dz * dz <= tolerance * tolerance
+        }
+        return if (near) EdgeDrag(e, x, y) else null
+    }
+
+    private fun edgeTo(g: EdgeDrag, x: Float, y: Float) {
+        val px = kotlin.math.hypot(x - g.downX, y - g.downY)
+        if (g.featureId == null && px < DRAG_SLOP_PX) return
+        val step = if (viewport.millimetresPerPixel() > 0.2) 0.5 else 0.1
+        val radius = com.sharpcad.viewport.AxisDrag.snap((px - DRAG_SLOP_PX) * viewport.millimetresPerPixel(), step).coerceAtLeast(step)
+        dragReadout = "Fillet ${formatMm(radius)}"
+        g.pending = radius
+        if (g.running) return
+        g.running = true
+        launchEdit {
+            try {
+                while (true) {
+                    val next = g.pending ?: break
+                    g.pending = null
+                    val id = g.featureId
+                    if (id == null) {
+                        val f = FilletFeature(document.newId(), g.edge.bodyId, next, edge = g.edge.edge)
+                        clearSelection()
+                        document.add(f)
+                        g.featureId = f.id
+                    } else {
+                        document.amend(FilletFeature(id, g.edge.bodyId, next, edge = g.edge.edge))
+                    }
+                }
+            } finally {
+                g.running = false
+            }
+        }
+    }
+
+    /** A body drag while the Move panel is open: on a world plane facing the camera. */
+    private class MoveDrag(val original: com.sharpcad.document.MoveFeature, val normal: Int, val start: DoubleArray) {
+        var pending: com.sharpcad.document.MoveFeature? = null
+        var running = false
+    }
+
+    private var moveDrag: MoveDrag? = null
+
+    private fun beginMoveDrag(x: Float, y: Float): MoveDrag? {
+        val f = editingFeature() as? com.sharpcad.document.MoveFeature ?: return null
+        val shownId = if (f.copy) f.id else f.body
+        val body = state.bodies.firstOrNull { it.bodyId == shownId } ?: return null
+        val ray = viewport.screenRay(x, y) ?: return null
+        val o = doubleArrayOf(ray[0], ray[1], ray[2])
+        val d = doubleArrayOf(ray[3], ray[4], ray[5])
+        val t = MeshTools.rayHitFace(body.mesh, -1, o, d) ?: return null
+        val hit = DoubleArray(3) { o[it] + t * d[it] }
+        // Slide on the world plane most square to the view, through the touched point.
+        val normal = (0..2).maxBy { kotlin.math.abs(d[it]) }
+        return MoveDrag(f, normal, hit)
+    }
+
+    private fun moveTo(m: MoveDrag, x: Float, y: Float) {
+        val ray = viewport.screenRay(x, y) ?: return
+        val k = m.normal
+        if (kotlin.math.abs(ray[3 + k]) < 1e-9) return
+        val t = (m.start[k] - ray[k]) / ray[3 + k]
+        val step = if (viewport.millimetresPerPixel() > 0.2) 1.0 else 0.1
+        val delta = DoubleArray(3) { if (it == k) 0.0 else com.sharpcad.viewport.AxisDrag.snap(ray[it] + t * ray[3 + it] - m.start[it], step) }
+        val o = m.original
+        val f = o.copy(dx = o.dx + delta[0], dy = o.dy + delta[1], dz = o.dz + delta[2])
+        dragReadout = "Move ${formatMm(f.dx)}, ${formatMm(f.dy)}, ${formatMm(f.dz)}"
+        m.pending = f
+        if (m.running) return
+        m.running = true
+        launchEdit {
+            try {
+                while (true) {
+                    val next = m.pending ?: break
+                    m.pending = null
+                    document.amend(next)
+                }
+            } finally {
+                m.running = false
+            }
+        }
     }
 
     private fun dragTo(g: FaceDrag, x: Float, y: Float) {
@@ -404,7 +542,26 @@ class ModelController(
         }
     }
 
+    private fun selectEdge(edge: Document.EdgeHit?) {
+        if (edge != null) {
+            select(null)
+            regionSelection = null
+            editingId = null
+        }
+        edgeSelection = edge
+        sketches.setHighlightLines(edge?.let { e ->
+            val p = e.points
+            val n = p.size / 3
+            FloatArray(maxOf(0, n - 1) * 6) { i ->
+                val seg = i / 6
+                val k = i % 6
+                p[(seg + k / 3) * 3 + k % 3].toFloat()
+            }
+        })
+    }
+
     fun clearSelection() {
+        if (edgeSelection != null) selectEdge(null)
         select(null)
         regionSelection = null
     }
@@ -527,6 +684,7 @@ class ModelController(
         if (value != null) {
             editingId = null
             regionSelection = null
+            if (edgeSelection != null) selectEdge(null)
         }
         val mesh = value?.let { s -> state.bodies.firstOrNull { it.bodyId == s.bodyId } }
         viewport.setHighlight(mesh?.let { MeshTools.facesOf(it.mesh, setOf(value.face)) })
@@ -551,6 +709,17 @@ class ModelController(
                         PanelAction("Deselect") { clearSelection(); viewport.setHighlight(null) },
                     ),
                     "${r.plane.name} · $count region${if (count == 1) "" else "s"} · tap more regions to add",
+                )
+            }
+            edgeSelection?.let { e ->
+                return PanelModel(
+                    "Edge", emptyList(), emptyList(),
+                    listOf(
+                        PanelAction("Fillet", accent = true) { addAndEdit(FilletFeature(document.newId(), e.bodyId, 1.0, edge = e.edge)) },
+                        PanelAction("Chamfer") { addAndEdit(ChamferFeature(document.newId(), e.bodyId, 1.0, edge = e.edge)) },
+                        PanelAction("Deselect") { clearSelection() },
+                    ),
+                    "${bodyName(e.bodyId)} · edge ${e.edge + 1} · drag the edge to round it",
                 )
             }
             val s = selection ?: return null
@@ -758,6 +927,8 @@ class ModelController(
     companion object {
         const val DEFAULT_DISTANCE = 10.0
         private const val DRAG_SLOP_PX = 12f
+        /** A tap this close to an edge (in pixels) picks the edge rather than the face. */
+        private const val EDGE_PICK_PX = 10.0
 
         /** A region this close behind a face still wins: sketches drawn on a face lie on it. */
         private const val REGION_PRIORITY_MM = 1e-3

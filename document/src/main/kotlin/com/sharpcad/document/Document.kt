@@ -135,6 +135,24 @@ class Document(private val dispatcher: CoroutineDispatcher = KernelDispatcher) :
         }
     }
 
+    /** A picked edge: body, edge index and its points (x,y,z triples). */
+    data class EdgeHit(val bodyId: Long, val edge: Int, val points: DoubleArray)
+
+    /** Nearest edge of any body within [tolerance] mm of the ray, or `null`. */
+    suspend fun pickEdge(origin: DoubleArray, direction: DoubleArray, tolerance: Double): EdgeHit? = lock.withLock {
+        withContext(dispatcher) {
+            val bodies = built?.bodies ?: return@withContext null
+            // Only edges on the nearest visible face's body, else the first body with a hit.
+            val front = bodies.mapNotNull { (id, shape) -> shape.pick(origin, direction)?.let { id to it.distance } }.minByOrNull { it.second }
+            val order = bodies.entries.sortedBy { if (it.key == front?.first) 0 else 1 }
+            for ((id, shape) in order) {
+                val edge = try { shape.pickEdge(origin, direction, tolerance) } catch (e: com.sharpcad.kernel.KernelException) { -1 }
+                if (edge >= 0) return@withContext EdgeHit(id, edge, shape.edgePoints(edge))
+            }
+            null
+        }
+    }
+
     /** Writes all bodies to one STEP file. Returns false when there is nothing to export. */
     suspend fun exportStep(path: String): Boolean = exportExact(path, iges = false)
 

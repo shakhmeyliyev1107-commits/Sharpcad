@@ -113,6 +113,19 @@ class DocumentTest {
     }
 
     @Test
+    fun filletAndChamferOneEdge() {
+        val base = box(1, 20.0, 20.0, 20.0)
+        val edge = ModelBuilder.build(listOf(base)).use { r ->
+            r.bodies.getValue(1).pickEdge(doubleArrayOf(10.0, 0.2, 100.0), doubleArrayOf(0.0, 0.0, -1.0), 0.5)
+        }
+        assertTrue(edge >= 0)
+        val all = volumes(listOf(base, FilletFeature(2, 1, 2.0))).getValue(1)
+        val one = volumes(listOf(base, FilletFeature(2, 1, 2.0, edge = edge))).getValue(1)
+        assertTrue(one < 8000.0 && one > all)
+        assertTrue(volumes(listOf(base, ChamferFeature(2, 1, 2.0, edge = edge))).getValue(1) < 8000.0)
+    }
+
+    @Test
     fun failingFeatureIsReportedAndSkipped() {
         val features = listOf(box(1, 10.0, 10.0, 10.0), FilletFeature(2, 1, radius = 50.0), box(3, 1.0, 1.0, 1.0))
         ModelBuilder.build(features).use { r ->

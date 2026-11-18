@@ -678,6 +678,14 @@ class SketchSession(private val viewport: ViewportController) {
     }
 
     /** Pushes the current sketch to the viewport and updates the readouts. */
+    /** Extra model-space line segments drawn with the sketch overlay (a picked edge). */
+    private var highlightLines = FloatArray(0)
+
+    fun setHighlightLines(segments: FloatArray?) {
+        highlightLines = segments ?: FloatArray(0)
+        refresh()
+    }
+
     private fun refresh(note: String? = null) {
         revision++
         val entities = sketch?.entities().orEmpty()
@@ -705,6 +713,7 @@ class SketchSession(private val viewport: ViewportController) {
             val size = viewport.millimetresPerPixel() * MARKER_PIXELS
             segments += SketchLines.marker(marker.x, marker.y, size, plane)
         }
+        segments += highlightLines
         viewport.setOverlayLines(segments.takeIf { it.isNotEmpty() })
 
         dimensions = dimensionTargets.mapNotNull { target ->

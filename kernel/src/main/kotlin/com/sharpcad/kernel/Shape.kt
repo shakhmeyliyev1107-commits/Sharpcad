@@ -140,6 +140,16 @@ class Shape internal constructor(private var handle: Long) : AutoCloseable {
     fun pushPull(face: Int, distance: Double): Shape = Shape(KernelNative.nativePushPull(handle, face, distance))
 
     /** Nearest face hit by a ray, or `null` when it misses. */
+    /** Rounds (or bevels, when [chamfer]) the single edge [edge]. */
+    fun blendEdge(size: Double, edge: Int, chamfer: Boolean): Shape = Shape(KernelNative.nativeBlendEdge(handle, size, edge, chamfer))
+
+    /** Index of the edge nearest the ray within [tolerance] mm, or -1. */
+    fun pickEdge(origin: DoubleArray, direction: DoubleArray, tolerance: Double): Int =
+        KernelNative.nativePickEdge(handle, origin, direction, tolerance)
+
+    /** Points along edge [edge] as x,y,z triples. */
+    fun edgePoints(edge: Int): DoubleArray = KernelNative.nativeEdgePoints(handle, edge)
+
     fun pick(origin: DoubleArray, direction: DoubleArray): PickHit? {
         val raw = KernelNative.nativePick(handle, origin, direction)
         val face = raw[0].toInt()

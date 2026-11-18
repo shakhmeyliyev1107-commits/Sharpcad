@@ -70,8 +70,8 @@ object ModelBuilder {
                 }
                 combine(feature.id, solid, feature.operation, feature.target, bodies)
             }
-            is FilletFeature -> replace(feature.body, bodies) { it.fillet(feature.radius, feature.face) }
-            is ChamferFeature -> replace(feature.body, bodies) { it.chamfer(feature.distance, feature.face) }
+            is FilletFeature -> replace(feature.body, bodies) { if (feature.edge >= 0) it.blendEdge(feature.radius, feature.edge, false) else it.fillet(feature.radius, feature.face) }
+            is ChamferFeature -> replace(feature.body, bodies) { if (feature.edge >= 0) it.blendEdge(feature.distance, feature.edge, true) else it.chamfer(feature.distance, feature.face) }
             is PushPullFeature -> replace(feature.body, bodies) { it.pushPull(feature.face, feature.distance) }
             is MoveFeature -> {
                 val source = bodies[feature.body] ?: throw IllegalArgumentException("Body no longer exists")

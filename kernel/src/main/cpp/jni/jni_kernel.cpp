@@ -406,4 +406,31 @@ Java_com_sharpcad_kernel_KernelNative_nativePick(JNIEnv* env, jclass, jlong hand
     });
 }
 
+JNIEXPORT jlong JNICALL
+Java_com_sharpcad_kernel_KernelNative_nativeBlendEdge(JNIEnv* env, jclass, jlong handle, jdouble size, jint edge,
+                                                      jboolean chamfer) {
+    return guard<jlong>(env, 0, [&] { return release(shapeFromHandle(handle).blendEdge(size, edge, chamfer)); });
+}
+
+JNIEXPORT jint JNICALL
+Java_com_sharpcad_kernel_KernelNative_nativePickEdge(JNIEnv* env, jclass, jlong handle, jdoubleArray origin,
+                                                     jdoubleArray direction, jdouble tolerance) {
+    return guard<jint>(env, -1, [&]() -> jint {
+        double o[3], d[3];
+        toVec3(env, origin, o);
+        toVec3(env, direction, d);
+        return shapeFromHandle(handle).pickEdge(o, d, tolerance);
+    });
+}
+
+JNIEXPORT jdoubleArray JNICALL
+Java_com_sharpcad_kernel_KernelNative_nativeEdgePoints(JNIEnv* env, jclass, jlong handle, jint edge) {
+    return guard<jdoubleArray>(env, nullptr, [&]() -> jdoubleArray {
+        const auto points = shapeFromHandle(handle).edgePoints(edge);
+        jdoubleArray out = env->NewDoubleArray(static_cast<jsize>(points.size()));
+        if (out) env->SetDoubleArrayRegion(out, 0, static_cast<jsize>(points.size()), points.data());
+        return out;
+    });
+}
+
 }  // extern "C"
