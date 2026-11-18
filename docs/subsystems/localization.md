@@ -15,7 +15,7 @@ sources:
   - code: ui/workspace/src/main/kotlin/com/sharpcad/ui/workspace/MaterialPanel.kt
   - code: ui/workspace/src/main/kotlin/com/sharpcad/ui/workspace/Rails.kt
   - code: ui/workspace/src/main/kotlin/com/sharpcad/ui/workspace/Workspace.kt
-verified_at: a99096b
+verified_at: 87deb1d
 ---
 
 # Interfeys tillari

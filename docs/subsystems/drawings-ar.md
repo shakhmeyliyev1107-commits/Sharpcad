@@ -10,7 +10,7 @@ sources:
   - code: app/src/main/kotlin/com/sharpcad/app/DrawingScreen.kt
   - code: app/src/main/kotlin/com/sharpcad/app/ArLauncher.kt
   - code: app/src/main/AndroidManifest.xml
-verified_at: a99096b
+verified_at: 87deb1d
 ---
 
 # 2D chizmalar va AR

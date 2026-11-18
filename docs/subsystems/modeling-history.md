@@ -15,7 +15,7 @@ sources:
   - code: kernel/src/main/kotlin/com/sharpcad/kernel/KernelNative.kt
   - code: app/src/main/kotlin/com/sharpcad/app/WorkspaceState.kt
   - code: document/src/main/kotlin/com/sharpcad/document/MeshExport.kt
-verified_at: a99096b
+verified_at: 87deb1d
 ---
 
 # Modellashtirish va tarix
@@ -120,6 +120,20 @@ yuzadan ustun (`Shape.pickEdge`, ajratilgan qirra eskiz overlay'i orqali chizila
 
 > ⚠️ Qirra va yuza indekslari xususiyatda saqlanadi; oldingi xususiyat topologiyani
 > o'zgartirsa, indeks boshqa qirraga tushishi mumkin (yuza uchun ham shunday).
+
+## Hole va Draft
+
+Hole — yuzada oxirgi bosilgan nuqtada (`ModelController.lastHitPoint`) yuza normaliga
+teskari yo'nalishda silindrsimon teshik: berk (chuqurlik) yoki teshib o'tuvchi
+(`ModelBuilder.drill`, jismdan SUBTRACT). Draft — yuzani dunyo o'qi bo'ylab tortish
+yo'nalishida burchakka qiyalatadi; neytral tekislik jismning shu o'qdagi eng past nuqtasi
+(`Shape.draft`, `BRepOffsetAPI_DraftAngle`).
+
+> ⚠️ Teshik silindri yuzadan 0.1 mm tashqaridan boshlanadi: yuza bilan ustma-ust
+> boshlansa bul amali tekis yuzalarda ishonchsiz bo'ladi.
+
+> ⚠️ Tortish yo'nalishiga perpendikulyar yuzani (masalan Z o'qida ustki yuzani) qiyalatib
+> bo'lmaydi — yadro xato beradi; yon yuzalarni tanlang yoki o'qni almashtiring.
 
 ## Split va Scale
 
