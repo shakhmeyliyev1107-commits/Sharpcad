@@ -18,7 +18,7 @@ sources:
   - code: ui/workspace/src/main/kotlin/com/sharpcad/ui/workspace/SketchControls.kt
   - code: app/build.gradle.kts
   - code: tools/fetch-sketch-deps.sh
-verified_at: 7485bb4
+verified_at: bf03536
 ---
 
 # Eskiz dvigateli va eskiz rejimi
@@ -124,6 +124,13 @@ yadroda davriy B-spline bo'ladi.
 
 > ⚠️ Slot yoylari teng radius va urinish bog'lanishisiz qo'shiladi: radiusni o'zgartirish
 > faqat bitta (uzoq) yoyga ta'sir qiladi. Ellips splayn kabi yechuvchidan tashqarida.
+
+Project: eskiz rejimida jism qirrasini bosish uni joriy tekislikka proyeksiyalaydi —
+`ModelController.projectEdgeAt` qirrani tanlaydi (`Document.pickEdge`), `SketchSession.addProjected`
+nuqtalarni tekislik o'qlariga proyeksiyalab, ketma-ket coincident chiziqlar qo'shadi.
+
+> ⚠️ Proyeksiya jism bilan bog'lanmaydi: jism keyin o'zgarsa chiziqlar yangilanmaydi.
+> Egri qirralar mayda chiziqlarga bo'linadi (0.05 mm og'ish).
 
 Text: matn eskiz panelidagi maydonga yoziladi; tekislikka bosish asos chizig'i boshini,
 yuqoriga sudrash balandlikni belgilaydi (oddiy bosish — 10 mm). Harf konturlari tizim
