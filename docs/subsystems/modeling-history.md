@@ -2,7 +2,7 @@
 title: Modellashtirish va tarix
 type: subsystem
 created: 2026-11-17
-updated: 2026-11-17
+updated: 2026-11-18
 sources:
   - code: kernel/src/main/cpp/src/modeling.cpp
   - code: document/src/main/kotlin/com/sharpcad/document/Feature.kt
@@ -10,9 +10,11 @@ sources:
   - code: document/src/main/kotlin/com/sharpcad/document/Document.kt
   - code: app/src/main/kotlin/com/sharpcad/app/ModelController.kt
   - code: app/src/main/kotlin/com/sharpcad/app/MeshTools.kt
+  - code: viewport/src/main/kotlin/com/sharpcad/viewport/AxisDrag.kt
+  - code: kernel/src/main/kotlin/com/sharpcad/kernel/KernelNative.kt
   - code: app/src/main/kotlin/com/sharpcad/app/WorkspaceState.kt
   - code: document/src/main/kotlin/com/sharpcad/document/MeshExport.kt
-verified_at: 8f33ddb
+verified_at: 3f524a0
 ---
 
 # Modellashtirish va tarix
@@ -90,6 +92,32 @@ Yangi xususiyat qo'shilgach, uning parametrlari darhol tahrir panelida ochiladi.
 > ⚠️ Chizish asbobi faol bo'lganda tegish tanlovga yuborilmaydi
 > (`MainActivity`): GestureDetector bitta tegishni barmoq ko'tarilgandan keyin
 > bildiradi, o'shanda chizish allaqachon tugagan bo'ladi.
+
+## To'g'ridan-to'g'ri tahrirlash (sudrash)
+
+Eskiz rejimi o'chiq bo'lsa, bir barmoqli tegish `ModelController.onDrag` ga boradi
+(`MainActivity` dagi `viewport.onSingleTouch`):
+
+- tanlangan yuzadan sudrash — yuza normali bo'ylab Push/Pull; masofa ekran nuri va
+  normal chizig'ining eng yaqin nuqtasidan olinadi (`AxisDrag.along`);
+- tanlangan qirradan sudrash — shu qirraning Fillet radiusi (ekrandagi sudrash uzunligi × mm/piksel);
+- Move paneli ochiq bo'lsa, jismni sudrash — kameraga eng tik dunyo tekisligida siljitish.
+
+Birinchi harakatda xususiyat `Document.add` bilan qo'shiladi, keyingilari
+`Document.amend` (undo qadamisiz) bilan yangilanadi; barmoq ko'tarilganda aniq qiymat
+uchun panel ochiladi. Qirra tanlash: tegish qirradan 10 pikselgacha bo'lsa, qirra
+yuzadan ustun (`Shape.pickEdge`, ajratilgan qirra eskiz overlay'i orqali chiziladi).
+
+> ⚠️ `viewport.onSingleTouch` bitta slot: uni faqat `MainActivity` o'rnatadi va
+> eskiz faolligiga qarab `SketchSession.onTouch` yoki `ModelController.onDrag` ga
+> yo'naltiradi. `SketchSession` uni o'zi qayta yozmasin, aks holda sudrash ishlamay qoladi.
+
+> ⚠️ DOWN da tegishni egallash (true qaytarish) sinxron hal qilinadi: yadroga murojaat
+> qilib bo'lmaydi, shuning uchun yuza/jism urilishi Kotlin'da mesh uchburchaklari bo'yicha
+> tekshiriladi (`MeshTools.rayHitFace`). Aks holda bo'sh joydan aylantirish o'g'irlanadi.
+
+> ⚠️ Qirra va yuza indekslari xususiyatda saqlanadi; oldingi xususiyat topologiyani
+> o'zgartirsa, indeks boshqa qirraga tushishi mumkin (yuza uchun ham shunday).
 
 ## Sinov holati
 

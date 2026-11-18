@@ -11,7 +11,7 @@ sources:
   - code: kernel/src/main/kotlin/com/sharpcad/kernel/Shape.kt
   - code: kernel/build.gradle.kts
   - code: tools/build-occt.sh
-verified_at: bac5213
+verified_at: 3f524a0
 ---
 
 # Geometriya yadrosi va JNI chegarasi
