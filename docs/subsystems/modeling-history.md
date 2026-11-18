@@ -15,7 +15,7 @@ sources:
   - code: kernel/src/main/kotlin/com/sharpcad/kernel/KernelNative.kt
   - code: app/src/main/kotlin/com/sharpcad/app/WorkspaceState.kt
   - code: document/src/main/kotlin/com/sharpcad/document/MeshExport.kt
-verified_at: ad8edbe
+verified_at: a99096b
 ---
 
 # Modellashtirish va tarix
@@ -120,6 +120,17 @@ yuzadan ustun (`Shape.pickEdge`, ajratilgan qirra eskiz overlay'i orqali chizila
 
 > ⚠️ Qirra va yuza indekslari xususiyatda saqlanadi; oldingi xususiyat topologiyani
 > o'zgartirsa, indeks boshqa qirraga tushishi mumkin (yuza uchun ham shunday).
+
+## Split va Scale
+
+Split — jismni dunyo tekisligi (XY/XZ/YZ, `offset` mm) bilan ikkiga bo'ladi: musbat
+tomondagi qism jism id'sini saqlaydi, qolgani yangi jism (xususiyat id'si). Ichida
+yarim fazo qutisi bilan INTERSECT va SUBTRACT (`ModelBuilder`). Scale — jismni bounding
+box markazi atrofida bir xil masshtablash (`Shape.scaled`).
+
+> ⚠️ Split tekisligi jism chegarasidan tashqarida bo'lsa xususiyat xato beradi
+> ("The plane does not cross the body"), bo'sh jism yaratilmaydi. Tekislik tanlovi
+> almashganda offset jismning shu o'qdagi markaziga qo'yiladi (`ModelController.setChoice`).
 
 ## Rail tugmalari (Add, Transform, Measure, Views, Screenshot)
 
