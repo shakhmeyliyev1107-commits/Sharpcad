@@ -18,6 +18,7 @@ class ProjectStoreTest {
         FilletFeature(4, body = 2, radius = 1.5, face = 3),
         ChamferFeature(5, body = 2, distance = 0.5),
         PushPullFeature(6, body = 2, face = 1, distance = 2.0),
+        FilletFeature(8, body = 2, radius = 1.0, edge = 3),
         BooleanFeature(7, target = 2, tool = 3, op = BooleanOp.INTERSECT),
     )
 
@@ -25,7 +26,7 @@ class ProjectStoreTest {
     fun everyFeatureTypeRoundTrips() {
         val root = Files.createTempDirectory("projects").toFile()
         val store = ProjectStore(root)
-        val data = ProjectData(name = "Bracket ü", features = every(), materials = mapOf(2L to "metal.gold_polished"))
+        val data = ProjectData(name = "Bracket ü", features = every(), materials = mapOf(2L to "metal.gold_polished"), variables = mapOf("w" to 20.0))
         val id = store.newId()
         store.save(id, data)
         assertEquals(data, store.load(id))

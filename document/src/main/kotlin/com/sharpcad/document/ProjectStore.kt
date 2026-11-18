@@ -17,6 +17,8 @@ data class ProjectData(
     val bodyNames: Map<Long, String> = emptyMap(),
     /** Ids of hidden bodies. */
     val hidden: Set<Long> = emptySet(),
+    /** Named values typed in size fields (`w=20`), in millimetres. */
+    val variables: Map<String, Double> = emptyMap(),
 ) {
     companion object {
         const val FORMAT = 1

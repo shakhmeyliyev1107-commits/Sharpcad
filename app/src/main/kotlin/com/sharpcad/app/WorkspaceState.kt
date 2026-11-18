@@ -84,6 +84,7 @@ class WorkspaceState(
             errorLine = ""
             model.restoreMaterials(data.materials)
             model.restoreItems(data.bodyNames, data.hidden)
+            com.sharpcad.ui.workspace.Expression.variables.apply { clear(); putAll(data.variables) }
             model.reset(data.features)
         }
     }
@@ -93,6 +94,7 @@ class WorkspaceState(
         projectId = store.newId()
         projectName = "Untitled"
         errorLine = ""
+        com.sharpcad.ui.workspace.Expression.variables.clear()
         model.restoreMaterials(emptyMap())
         model.reset(emptyList())
     }
@@ -106,6 +108,7 @@ class WorkspaceState(
             val data = com.sharpcad.document.ProjectData(
                 name = projectName, features = model.state.features, materials = model.materialsSnapshot(),
                 bodyNames = model.namesSnapshot(), hidden = model.hiddenSnapshot(),
+                variables = com.sharpcad.ui.workspace.Expression.variables.toMap(),
             )
             try {
                 withContext(Dispatchers.IO) { store.save(id, data) }
@@ -255,6 +258,7 @@ class WorkspaceState(
                 projectId = store.newId()
                 projectName = name.substringBeforeLast('.')
                 frameLine = ""
+                com.sharpcad.ui.workspace.Expression.variables.clear()
                 model.restoreMaterials(emptyMap())
                 model.reset(listOf(ImportFeature(1, stored.path, name.substringBeforeLast('.'))))
             } catch (e: IOException) {
