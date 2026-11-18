@@ -4,6 +4,7 @@ type: subsystem
 created: 2026-11-17
 updated: 2026-11-18
 sources:
+  - code: app/src/main/kotlin/com/sharpcad/app/TextOutline.kt
   - code: sketch/src/main/cpp/src/sketch.cpp
   - code: sketch/src/main/cpp/include/cad/sketch/sketch.h
   - code: sketch/src/main/cpp/jni/jni_sketch.cpp
@@ -17,7 +18,7 @@ sources:
   - code: ui/workspace/src/main/kotlin/com/sharpcad/ui/workspace/SketchControls.kt
   - code: app/build.gradle.kts
   - code: tools/fetch-sketch-deps.sh
-verified_at: 41b9a3d
+verified_at: 4226854
 ---
 
 # Eskiz dvigateli va eskiz rejimi
@@ -115,6 +116,14 @@ yopiq/davriy) — `kernel/src/main/cpp/src/modeling.cpp` dagi `sketchEdges`.
 > ⚠️ Ekrandagi Catmull-Rom chizig'i va yadrodagi B-spline bir xil nuqtalardan o'tadi, lekin
 > oraliqda biroz farq qiladi; hudud ajratilishi (yadro) chiziqdan sal chetga chiqishi mumkin.
 > Sweep yo'li splaynni hali qabul qilmaydi.
+
+Text: matn eskiz panelidagi maydonga yoziladi; tekislikka bosish asos chizig'i boshini,
+yuqoriga sudrash balandlikni belgilaydi (oddiy bosish — 10 mm). Harf konturlari tizim
+shriftidan (`Paint.getTextPath`, `PathMeasure` bilan namunalanadi) yopiq siniq chiziqlar
+sifatida olinadi va profilga kesmalar bo'lib boradi (`TextOutline`), yechuvchidan tashqarida.
+
+> ⚠️ Matn konturlari yechuvchiga kirmaydi va keyin tahrirlanmaydi (matnni o'zgartirish uchun
+> Clear qilib qayta yozing). `TextOutline` Android API'ga bog'liq, host testida tekshirilmaydi.
 
 > ⚠️ Trim obyektni o'chirib, qolgan bo'laklarni yangi obyekt sifatida qo'shadi: o'chirilgan
 > obyektning cheklovlari (o'lcham, tutashish) yo'qoladi.
