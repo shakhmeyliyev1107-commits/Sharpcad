@@ -14,7 +14,7 @@ sources:
   - code: kernel/src/main/kotlin/com/sharpcad/kernel/KernelNative.kt
   - code: app/src/main/kotlin/com/sharpcad/app/WorkspaceState.kt
   - code: document/src/main/kotlin/com/sharpcad/document/MeshExport.kt
-verified_at: b02c6fc
+verified_at: 896a018
 ---
 
 # Modellashtirish va tarix
@@ -101,7 +101,8 @@ Eskiz rejimi o'chiq bo'lsa, bir barmoqli tegish `ModelController.onDrag` ga bora
 - tanlangan yuzadan sudrash — yuza normali bo'ylab Push/Pull; masofa ekran nuri va
   normal chizig'ining eng yaqin nuqtasidan olinadi (`AxisDrag.along`);
 - tanlangan qirradan sudrash — shu qirraning Fillet radiusi (ekrandagi sudrash uzunligi × mm/piksel);
-- Move paneli ochiq bo'lsa, jismni sudrash — kameraga eng tik dunyo tekisligida siljitish.
+- Move paneli ochiq bo'lsa, jismni sudrash — kameraga eng tik dunyo tekisligida siljitish;
+  paneldagi "Drag: Rotate" tanlansa, gorizontal sudrash tanlangan o'q atrofida buradi (0.5°/piksel, 5° qadam).
 
 Birinchi harakatda xususiyat `Document.add` bilan qo'shiladi, keyingilari
 `Document.amend` (undo qadamisiz) bilan yangilanadi; barmoq ko'tarilganda aniq qiymat
