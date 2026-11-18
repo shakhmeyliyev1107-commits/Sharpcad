@@ -694,10 +694,19 @@ class SketchSession(private val viewport: ViewportController) {
         )
     }
 
+    /** Snapping to points, lines and the grid; off places points exactly under the finger. */
+    var snapping by mutableStateOf(true)
+        private set
+
+    fun toggleSnapping() {
+        snapping = !snapping
+        refresh(if (snapping) "Snapping on" else "Snapping off")
+    }
+
     private fun snap(point: DoubleArray, exclude: Set<Int>): Snap {
-        val tolerance = viewport.millimetresPerPixel() * SNAP_PIXELS
+        val tolerance = if (snapping) viewport.millimetresPerPixel() * SNAP_PIXELS else 0.0
         return Snapper.snap(
-            point[0], point[1], sketch?.entities().orEmpty(), tolerance, GRID_SPACING_MM, exclude,
+            point[0], point[1], sketch?.entities().orEmpty(), tolerance, GRID_SPACING_MM.takeIf { snapping }, exclude,
         )
     }
 

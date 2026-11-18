@@ -290,6 +290,15 @@ internal class ViewportRenderer(private val surfaceView: SurfaceView) {
     }
 
     /** Points the camera along a fixed direction (radians) and frames the scene. */
+    /** Copies the current frame into a bitmap; [done] runs on the main thread (null on failure). */
+    fun capture(done: (android.graphics.Bitmap?) -> Unit) {
+        if (width <= 0 || height <= 0) return done(null)
+        val bitmap = android.graphics.Bitmap.createBitmap(width, height, android.graphics.Bitmap.Config.ARGB_8888)
+        android.view.PixelCopy.request(surfaceView, bitmap, { result ->
+            done(if (result == android.view.PixelCopy.SUCCESS) bitmap else null)
+        }, android.os.Handler(android.os.Looper.getMainLooper()))
+    }
+
     fun setViewDirection(yaw: Double, pitch: Double) {
         camera.setView(yaw, pitch)
         fitView()

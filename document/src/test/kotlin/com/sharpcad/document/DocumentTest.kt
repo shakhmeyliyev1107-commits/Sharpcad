@@ -113,6 +113,15 @@ class DocumentTest {
     }
 
     @Test
+    fun primitivesFromTheAddPanel() {
+        val h = 10.0
+        val sphere = RevolveFeature(1, Profile(PlaneSpec.XY, listOf(-h, 0.0, h, 0.0), emptyList(), arcs = listOf(0.0, 0.0, h, 0.0, PI)), RevolveAxis.U, 360.0, Operation.NEW_BODY)
+        assertEquals(4.0 / 3.0 * PI * h * h * h, volumes(listOf(sphere)).getValue(1), 1.0)
+        val cylinder = ExtrudeFeature(2, Profile(PlaneSpec.XY, emptyList(), listOf(0.0, 0.0, h)), 20.0, Operation.NEW_BODY)
+        assertEquals(PI * h * h * 20.0, volumes(listOf(cylinder)).getValue(2), 1e-3)
+    }
+
+    @Test
     fun filletAndChamferOneEdge() {
         val base = box(1, 20.0, 20.0, 20.0)
         val edge = ModelBuilder.build(listOf(base)).use { r ->

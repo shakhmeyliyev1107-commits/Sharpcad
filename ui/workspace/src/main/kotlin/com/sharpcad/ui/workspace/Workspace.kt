@@ -94,6 +94,9 @@ fun Workspace(
     /** Left-handed layout: tools on the right, settings on the left. */
     toolsOnRight: Boolean = false,
     showLabels: Boolean = false,
+    /** Further rail buttons by label (Add, Transform, Measure …) and which are highlighted. */
+    railActions: Map<String, () -> Unit> = emptyMap(),
+    railActive: Set<String> = emptySet(),
     overlay: @Composable BoxScope.() -> Unit = {},
     viewport: @Composable () -> Unit,
 ) {
@@ -109,18 +112,18 @@ fun Workspace(
                     actions = mapOf(
                         SKETCH_ITEM to onSketchToggle, VISUALIZATION_ITEM to onMaterialsToggle,
                         DRAWINGS_ITEM to onDrawings, SECTION_ITEM to onSection, ITEMS_ITEM to onItems,
-                    ),
+                    ) + railActions,
                     active = setOfNotNull(
                         SKETCH_ITEM.takeIf { sketchActive }, VISUALIZATION_ITEM.takeIf { materialsActive },
                         SECTION_ITEM.takeIf { sectionActive }, ITEMS_ITEM.takeIf { itemsActive },
-                    ),
+                    ) + railActive,
                 )
                 ToolRail(
                     RightRailGroups,
                     Modifier.align(if (toolsOnRight) Alignment.TopStart else Alignment.TopEnd),
                     showLabels = showLabels,
-                    actions = mapOf(HISTORY_ITEM to onHistoryToggle, DISPLAY_ITEM to onDisplayMode, APPEARANCE_ITEM to onAppearance),
-                    active = setOfNotNull(HISTORY_ITEM.takeIf { historyActive }, APPEARANCE_ITEM.takeIf { appearanceActive }),
+                    actions = mapOf(HISTORY_ITEM to onHistoryToggle, DISPLAY_ITEM to onDisplayMode, APPEARANCE_ITEM to onAppearance) + railActions,
+                    active = setOfNotNull(HISTORY_ITEM.takeIf { historyActive }, APPEARANCE_ITEM.takeIf { appearanceActive }) + railActive,
                 )
                 overlay()
                 if (status.isNotEmpty()) {

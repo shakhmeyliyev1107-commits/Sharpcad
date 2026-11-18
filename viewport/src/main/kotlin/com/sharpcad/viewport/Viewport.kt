@@ -100,6 +100,11 @@ class ViewportController {
     }
 
     /** Looks along a fixed direction (radians: [yaw] around +Z, [pitch] above XY) and fits. */
+    /** The current frame as a bitmap, delivered on the main thread; null before layout or on failure. */
+    fun capture(done: (android.graphics.Bitmap?) -> Unit) {
+        renderer?.capture(done) ?: done(null)
+    }
+
     fun setViewDirection(yaw: Double, pitch: Double) {
         renderer?.setViewDirection(yaw, pitch)
     }

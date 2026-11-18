@@ -13,7 +13,10 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -54,6 +57,7 @@ private fun WorkspaceScreen() {
     val document = remember { Document() }
     val model = remember { ModelController(scope, viewport, document, sketch) }
     val state = remember { WorkspaceState(context, scope, viewport, model) }
+    var viewIndex by remember { mutableStateOf(-1) }
     DisposableEffect(Unit) {
         // Taps select sketch regions and faces; drawing tools claim one-finger drags first.
         viewport.onTap = { x, y -> if (sketch.tool == null) model.onTap(x, y) }
@@ -101,6 +105,8 @@ private fun WorkspaceScreen() {
 
     // Side panels share the screen: opening one closes the others so they never stack.
     fun closePanels() {
+        if (model.addOpen) model.toggleAdd()
+        if (model.measuring) model.toggleMeasure()
         if (model.materialsOpen) model.toggleMaterials()
         if (model.itemsOpen) model.toggleItems()
         if (model.historyOpen) model.toggleHistory()
@@ -133,6 +139,20 @@ private fun WorkspaceScreen() {
         appearanceActive = settings.open,
         toolsOnRight = settings.toolsOnRight,
         showLabels = settings.showLabels,
+        railActions = mapOf(
+            "Add" to exclusive(model.addOpen, model::toggleAdd),
+            "Transform" to model::transformSelected,
+            "Measure" to exclusive(model.measuring, model::toggleMeasure),
+            "Snap settings" to { sketch.toggleSnapping(); state.flash(if (sketch.snapping) "Snapping on" else "Snapping off") },
+            "Views" to {
+                viewIndex = (viewIndex + 1) % STANDARD_VIEWS.size
+                val (name, yaw, pitch) = STANDARD_VIEWS[viewIndex]
+                viewport.setViewDirection(Math.toRadians(yaw), Math.toRadians(pitch))
+                state.flash(name)
+            },
+            "Screenshot" to state::screenshot,
+        ),
+        railActive = setOfNotNull("Add".takeIf { model.addOpen }, "Measure".takeIf { model.measuring }, "Snap settings".takeIf { sketch.snapping }),
         overlay = {
             // Between the rails, clear of both.
             Column(
@@ -239,3 +259,11 @@ private fun WorkspaceScreen() {
     }
     }
 }
+
+/** Standard views for the Views rail button: name, yaw and pitch in degrees. */
+private val STANDARD_VIEWS = listOf(
+    Triple("Top", -90.0, 89.0),
+    Triple("Front", -90.0, 0.0),
+    Triple("Right view", 0.0, 0.0),
+    Triple("Isometric", -60.0, 30.0),
+)

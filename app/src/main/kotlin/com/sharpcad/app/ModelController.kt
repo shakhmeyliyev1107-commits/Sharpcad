@@ -295,6 +295,11 @@ class ModelController(
         val origin = doubleArrayOf(ray[0], ray[1], ray[2])
         val direction = doubleArrayOf(ray[3], ray[4], ray[5])
         scope.launch {
+            if (measuring) {
+                val hit = try { document.pick(origin, direction) } catch (e: KernelException) { null } ?: return@launch
+                addMeasurePoint(DoubleArray(3) { origin[it] + hit.distance * direction[it] })
+                return@launch
+            }
             if (pendingBoolean == null) {
                 val tolerance = viewport.millimetresPerPixel() * EDGE_PICK_PX
                 val edge = if (tolerance > 0) {
@@ -325,6 +330,77 @@ class ModelController(
             }
             pendingBoolean = null
             select(hit?.let { Selection(it.bodyId, it.face) })
+        }
+    }
+
+    // ---- Add, transform, measure --------------------------------------------------
+
+    private enum class Primitive { BOX, CYLINDER, SPHERE }
+
+    var addOpen by mutableStateOf(false)
+        private set
+
+    fun toggleAdd() {
+        addOpen = !addOpen
+        if (addOpen) { measuring = false; clearSelection(); editingId = null }
+    }
+
+    private fun addPrimitive(kind: Primitive) {
+        addOpen = false
+        val h = PRIMITIVE_SIZE / 2
+        val xy = PlaneSpec.XY
+        val feature: Feature = when (kind) {
+            Primitive.BOX -> ExtrudeFeature(
+                document.newId(),
+                Profile(xy, listOf(-h, -h, h, -h, h, -h, h, h, h, h, -h, h, -h, h, -h, -h), emptyList()),
+                PRIMITIVE_SIZE, Operation.NEW_BODY,
+            )
+            Primitive.CYLINDER -> ExtrudeFeature(document.newId(), Profile(xy, emptyList(), listOf(0.0, 0.0, h)), PRIMITIVE_SIZE, Operation.NEW_BODY)
+            // A half disc above the X axis, revolved a full turn about it.
+            Primitive.SPHERE -> RevolveFeature(
+                document.newId(),
+                Profile(xy, listOf(-h, 0.0, h, 0.0), emptyList(), arcs = listOf(0.0, 0.0, h, 0.0, Math.PI)),
+                RevolveAxis.U, 360.0, Operation.NEW_BODY,
+            )
+        }
+        addAndEdit(feature)
+    }
+
+    /** Transform rail button: moves the selected body (opens the Move panel). */
+    fun transformSelected() {
+        val body = selection?.bodyId ?: edgeSelection?.bodyId
+        if (body == null) {
+            note = "Select a body first, then tap Transform"
+            return
+        }
+        addAndEdit(com.sharpcad.document.MoveFeature(document.newId(), body))
+    }
+
+    var measuring by mutableStateOf(false)
+        private set
+    private val measurePoints = mutableListOf<DoubleArray>()
+    private var measureReadout by mutableStateOf("")
+
+    fun toggleMeasure() {
+        measuring = !measuring
+        measurePoints.clear()
+        measureReadout = ""
+        sketches.setHighlightLines(null)
+        if (measuring) { addOpen = false; clearSelection(); editingId = null }
+    }
+
+    private fun addMeasurePoint(p: DoubleArray) {
+        if (measurePoints.size >= 2) measurePoints.clear()
+        measurePoints += p
+        if (measurePoints.size == 2) {
+            val (a, b) = measurePoints
+            val d = DoubleArray(3) { b[it] - a[it] }
+            val dist = kotlin.math.sqrt(d[0] * d[0] + d[1] * d[1] + d[2] * d[2])
+            measureReadout = "Distance ${formatMm(dist)} mm · dx ${formatMm(d[0])} · dy ${formatMm(d[1])} · dz ${formatMm(d[2])}"
+            sketches.setHighlightLines(floatArrayOf(a[0].toFloat(), a[1].toFloat(), a[2].toFloat(), b[0].toFloat(), b[1].toFloat(), b[2].toFloat()))
+        } else {
+            measureReadout = "Tap the second point"
+            sketches.setHighlightLines(null)
         }
     }
 
@@ -709,6 +785,25 @@ class ModelController(
     /** The panel to show: the feature being edited, else tools for the selection. */
     val panel: PanelModel?
         get() {
+            if (measuring) {
+                return PanelModel(
+                    "Measure", emptyList(), emptyList(),
+                    listOf(PanelAction("Clear") { measurePoints.clear(); measureReadout = ""; sketches.setHighlightLines(null) }, PanelAction("Done", accent = true) { toggleMeasure() }),
+                    measureReadout.ifEmpty { "Tap two points on the model" },
+                )
+            }
+            if (addOpen) {
+                return PanelModel(
+                    "Add", emptyList(), emptyList(),
+                    listOf(
+                        PanelAction("Box", accent = true) { addPrimitive(Primitive.BOX) },
+                        PanelAction("Cylinder") { addPrimitive(Primitive.CYLINDER) },
+                        PanelAction("Sphere") { addPrimitive(Primitive.SPHERE) },
+                        PanelAction("Close") { addOpen = false },
+                    ),
+                    "New solid at the origin; edit its size afterwards",
+                )
+            }
             val editing = editingId?.let { id -> state.features.firstOrNull { it.id == id } }
             if (editing != null) return editorFor(editing)
             regionSelection?.let { r ->
@@ -944,6 +1039,7 @@ class ModelController(
 
     companion object {
         const val DEFAULT_DISTANCE = 10.0
+        private const val PRIMITIVE_SIZE = 20.0
         private const val DRAG_SLOP_PX = 12f
         private const val ROTATE_DEG_PER_PX = 0.5
         private const val ROTATE_SNAP_DEG = 5.0

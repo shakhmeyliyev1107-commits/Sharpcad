@@ -55,6 +55,36 @@ class WorkspaceState(
                 .joinToString("\n")
         }
 
+    /** Shows a one-line message in the status readout. */
+    fun flash(message: String) {
+        errorLine = message
+    }
+
+    /** Saves the current view as a PNG in Pictures/SharpCAD. */
+    fun screenshot() {
+        viewport.capture { bitmap ->
+            if (bitmap == null) {
+                errorLine = "Screenshot failed"
+                return@capture
+            }
+            scope.launch {
+                val ok = withContext(Dispatchers.IO) {
+                    runCatching {
+                        val values = android.content.ContentValues().apply {
+                            put(android.provider.MediaStore.Images.Media.DISPLAY_NAME, "SharpCAD-${System.currentTimeMillis()}.png")
+                            put(android.provider.MediaStore.Images.Media.MIME_TYPE, "image/png")
+                            put(android.provider.MediaStore.Images.Media.RELATIVE_PATH, "Pictures/SharpCAD")
+                        }
+                        val resolver = appContext.contentResolver
+                        val uri = resolver.insert(android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)!!
+                        resolver.openOutputStream(uri)!!.use { bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it) }
+                    }.isSuccess
+                }
+                errorLine = if (ok) "Screenshot saved to Pictures/SharpCAD" else "Screenshot failed"
+            }
+        }
+    }
+
     init {
         viewport.onFrameStats = ::onFrameStats
         model.onChanged = ::scheduleSave
