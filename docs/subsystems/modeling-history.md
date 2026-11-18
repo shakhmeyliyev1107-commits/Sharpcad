@@ -14,7 +14,7 @@ sources:
   - code: kernel/src/main/kotlin/com/sharpcad/kernel/KernelNative.kt
   - code: app/src/main/kotlin/com/sharpcad/app/WorkspaceState.kt
   - code: document/src/main/kotlin/com/sharpcad/document/MeshExport.kt
-verified_at: 896a018
+verified_at: 41b9a3d
 ---
 
 # Modellashtirish va tarix

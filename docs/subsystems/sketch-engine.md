@@ -2,7 +2,7 @@
 title: Eskiz dvigateli va eskiz rejimi
 type: subsystem
 created: 2026-11-17
-updated: 2026-11-17
+updated: 2026-11-18
 sources:
   - code: sketch/src/main/cpp/src/sketch.cpp
   - code: sketch/src/main/cpp/include/cad/sketch/sketch.h
@@ -17,7 +17,7 @@ sources:
   - code: ui/workspace/src/main/kotlin/com/sharpcad/ui/workspace/SketchControls.kt
   - code: app/build.gradle.kts
   - code: tools/fetch-sketch-deps.sh
-verified_at: 8011234
+verified_at: 41b9a3d
 ---
 
 # Eskiz dvigateli va eskiz rejimi
@@ -105,11 +105,16 @@ maydonlarda ishlatiladi (`w/2`). O'lcham maydonlari ifodalarni qabul qiladi
 Spline: barmoq bilan erkin chiziladi; iz ~40 px oralig'ida nazorat nuqtalariga
 siyraklashtiriladi va ular orqali o'tuvchi Catmull-Rom egri saqlanadi
 (`sketch/src/main/kotlin/com/sharpcad/sketch/Spline.kt`). Splaynlar `SketchSession`
-da alohida turadi (yechuvchida emas) va profilga har oraliqda 16 ta qisqa kesma sifatida
-beriladi.
+da alohida turadi (yechuvchida emas). Ekranda Catmull-Rom chizig'i ko'rsatiladi, profilga
+esa nuqtalarning o'zi (`SketchGeometry.splines`: soni, keyin x,y) beriladi va yadro ular
+orqali haqiqiy B-spline quradi (`GeomAPI_Interpolate`, boshi va oxiri ustma-ust bo'lsa
+yopiq/davriy) — `kernel/src/main/cpp/src/modeling.cpp` dagi `sketchEdges`.
 
-> ⚠️ Splayn yechuvchiga kirmaydi: unga cheklov qo'yib bo'lmaydi, Trim/Offset/Pattern ishlamaydi
-> va ekstruziya qilingan sirt kichik yassi qirralardan iborat (haqiqiy B-spline emas).
+> ⚠️ Splayn yechuvchiga kirmaydi: unga cheklov qo'yib bo'lmaydi, Trim/Offset/Pattern ishlamaydi.
+
+> ⚠️ Ekrandagi Catmull-Rom chizig'i va yadrodagi B-spline bir xil nuqtalardan o'tadi, lekin
+> oraliqda biroz farq qiladi; hudud ajratilishi (yadro) chiziqdan sal chetga chiqishi mumkin.
+> Sweep yo'li splaynni hali qabul qilmaydi.
 
 > ⚠️ Trim obyektni o'chirib, qolgan bo'laklarni yangi obyekt sifatida qo'shadi: o'chirilgan
 > obyektning cheklovlari (o'lcham, tutashish) yo'qoladi.
