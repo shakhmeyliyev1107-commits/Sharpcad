@@ -326,6 +326,13 @@ TEST(Sweep, SquareAlongStraightPath) {
     EXPECT_NEAR(Shape::profileFromSketch(profile)->sweep(path)->volume(), 40.0, 1e-3);
 }
 
+TEST(Modeling, ScaledMultipliesVolumeByCube) {
+    const auto box = Shape::makeBox(10, 10, 10);
+    const double c[3] = {5, 5, 5};
+    EXPECT_NEAR(box->scaled(c, 2.0)->volume(), 8000.0, 1e-6);
+    expectError(ErrorCode::InvalidArgument, [&] { box->scaled(c, 0.0); });
+}
+
 TEST(Modeling, PickEdgeAndBlendOneEdge) {
     const auto box = Shape::makeBox(10, 10, 10);
     // Looking down at the top face, aim just inside the edge y = 0, z = 10.

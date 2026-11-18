@@ -371,6 +371,16 @@ Java_com_sharpcad_kernel_KernelNative_nativeMoved(JNIEnv* env, jclass, jlong han
 }
 
 JNIEXPORT jlong JNICALL
+Java_com_sharpcad_kernel_KernelNative_nativeScaled(JNIEnv* env, jclass, jlong handle, jdoubleArray center,
+                                                   jdouble factor) {
+    return guard<jlong>(env, 0, [&] {
+        double c[3];
+        toVec3(env, center, c);
+        return release(shapeFromHandle(handle).scaled(c, factor));
+    });
+}
+
+JNIEXPORT jlong JNICALL
 Java_com_sharpcad_kernel_KernelNative_nativeMirrored(JNIEnv* env, jclass, jlong handle, jdoubleArray origin,
                                                      jdoubleArray normal) {
     return guard<jlong>(env, 0, [&] {

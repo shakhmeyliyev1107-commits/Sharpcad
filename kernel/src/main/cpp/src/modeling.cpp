@@ -515,6 +515,19 @@ std::unique_ptr<Shape> Shape::mirrored(const double origin[3], const double norm
     });
 }
 
+std::unique_ptr<Shape> Shape::scaled(const double center[3], double factor) const {
+    require(finite3(center), "Centre must be finite");
+    require(std::isfinite(factor) && factor > kTiny, "Scale factor must be positive");
+    return guarded("scaled", [&] {
+        gp_Trsf scale;
+        scale.SetScale(gp_Pnt(center[0], center[1], center[2]), factor);
+        BRepBuilderAPI_Transform algo(impl_->shape, scale, Standard_True);
+        auto impl = std::make_unique<Impl>();
+        impl->shape = algo.Shape();
+        return std::unique_ptr<Shape>(new Shape(std::move(impl)));
+    });
+}
+
 int Shape::faceCount() const { return facesOf(impl_->shape).Extent(); }
 
 double Shape::volume() const {

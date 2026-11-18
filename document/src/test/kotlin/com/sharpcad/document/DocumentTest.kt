@@ -113,6 +113,16 @@ class DocumentTest {
     }
 
     @Test
+    fun splitAndScale() {
+        val base = box(1, 10.0, 10.0, 10.0)
+        val split = volumes(listOf(base, SplitFeature(2, 1, WorldAxis.Z, 4.0)))
+        assertEquals(600.0, split.getValue(1), 1e-6) // above z = 4
+        assertEquals(400.0, split.getValue(2), 1e-6)
+        ModelBuilder.build(listOf(base, SplitFeature(2, 1, WorldAxis.Z, 40.0))).use { assertTrue(it.errors.containsKey(2)) }
+        assertEquals(8000.0, volumes(listOf(base, ScaleFeature(2, 1, 2.0))).getValue(1), 1e-6)
+    }
+
+    @Test
     fun primitivesFromTheAddPanel() {
         val h = 10.0
         val sphere = RevolveFeature(1, Profile(PlaneSpec.XY, listOf(-h, 0.0, h, 0.0), emptyList(), arcs = listOf(0.0, 0.0, h, 0.0, PI)), RevolveAxis.U, 360.0, Operation.NEW_BODY)

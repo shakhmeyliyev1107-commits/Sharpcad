@@ -144,6 +144,9 @@ public:
     /// Mirror image across the plane through `origin` with normal `normal`.
     std::unique_ptr<Shape> mirrored(const double origin[3], const double normal[3]) const;
 
+    /// Copy scaled uniformly by `factor` (> 0) about `center`.
+    std::unique_ptr<Shape> scaled(const double center[3], double factor) const;
+
     int faceCount() const;
     double volume() const;
 

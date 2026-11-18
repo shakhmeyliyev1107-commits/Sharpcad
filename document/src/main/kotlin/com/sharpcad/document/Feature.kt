@@ -204,6 +204,23 @@ data class MirrorFeature(override val id: Long, val body: Long, val plane: World
     override val label: String get() = "Mirror"
 }
 
+/** Scales [body] by [factor] about its bounding-box centre. */
+@Serializable
+@SerialName("scale")
+data class ScaleFeature(override val id: Long, val body: Long, val factor: Double = 2.0) : Feature {
+    override val label: String get() = "Scale ×${formatMm(factor)}"
+}
+
+/**
+ * Cuts [body] in two with the world plane whose normal is [plane] at [offset] mm. The part
+ * on the positive side keeps [body]'s id; the other part becomes a new body ([id]).
+ */
+@Serializable
+@SerialName("split")
+data class SplitFeature(override val id: Long, val body: Long, val plane: WorldAxis = WorldAxis.Z, val offset: Double = 0.0) : Feature {
+    override val label: String get() = "Split"
+}
+
 /**
  * Copies [body] [count] − 1 times: in a line along [axis] every [spacing] mm, or
  * ([circular]) around [axis] through the origin over [angleDegrees]. Copies are new bodies.

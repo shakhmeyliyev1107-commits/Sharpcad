@@ -80,6 +80,31 @@ object ModelBuilder {
                 val moved = source.moved(centre, feature.axis.vector, feature.angleDegrees * PI / 180, feature.dx, feature.dy, feature.dz)
                 if (feature.copy) bodies[feature.id] = moved else { bodies[feature.body] = moved; source.close() }
             }
+            is ScaleFeature -> replace(feature.body, bodies) { s ->
+                val b = s.boundingBox()
+                s.scaled(doubleArrayOf((b.minX + b.maxX) / 2, (b.minY + b.maxY) / 2, (b.minZ + b.maxZ) / 2), feature.factor)
+            }
+            is SplitFeature -> {
+                val source = bodies[feature.body] ?: throw IllegalArgumentException("Body no longer exists")
+                val b = source.boundingBox()
+                val pad = 10.0
+                val lo = doubleArrayOf(b.minX - pad, b.minY - pad, b.minZ - pad)
+                val hi = doubleArrayOf(b.maxX + pad, b.maxY + pad, b.maxZ + pad)
+                val k = feature.plane.ordinal
+                require(feature.offset > lo[k] + pad && feature.offset < hi[k] - pad) { "The plane does not cross the body" }
+                lo[k] = feature.offset
+                // Half-space box on the positive side of the plane.
+                val half = Kernel.makeBox(hi[0] - lo[0], hi[1] - lo[1], hi[2] - lo[2]).use { box ->
+                    box.moved(doubleArrayOf(0.0, 0.0, 0.0), doubleArrayOf(0.0, 0.0, 1.0), 0.0, lo[0], lo[1], lo[2])
+                }
+                half.use { h ->
+                    val positive = source.booleanWith(h, com.sharpcad.kernel.BooleanOp.INTERSECT)
+                    val negative = try { source.booleanWith(h, com.sharpcad.kernel.BooleanOp.SUBTRACT) } catch (e: Exception) { positive.close(); throw e }
+                    bodies[feature.body] = positive
+                    bodies[feature.id] = negative
+                    source.close()
+                }
+            }
             is MirrorFeature -> {
                 val source = bodies[feature.body] ?: throw IllegalArgumentException("Body no longer exists")
                 val mirrored = source.mirrored(doubleArrayOf(0.0, 0.0, 0.0), feature.plane.vector)

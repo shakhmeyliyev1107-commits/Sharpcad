@@ -367,6 +367,15 @@ class ModelController(
         addAndEdit(feature)
     }
 
+    /** Centre of a body's displayed mesh bounds, or null. */
+    private fun bodyCentre(bodyId: Long): DoubleArray? =
+        state.bodies.firstOrNull { it.bodyId == bodyId }?.bounds?.let { b -> DoubleArray(3) { (b[it] + b[it + 3]) / 2 } }
+
+    /** A split across the body's middle, on the XY plane (normal Z). */
+    private fun splitThroughCentre(bodyId: Long) = com.sharpcad.document.SplitFeature(
+        document.newId(), bodyId, com.sharpcad.document.WorldAxis.Z, bodyCentre(bodyId)?.get(2) ?: 0.0,
+    )
+
     /** Transform rail button: moves the selected body (opens the Move panel). */
     fun transformSelected() {
         val body = selection?.bodyId ?: edgeSelection?.bodyId
@@ -845,6 +854,8 @@ class ModelController(
             PanelAction("Copy") { addAndEdit(com.sharpcad.document.MoveFeature(document.newId(), s.bodyId, dx = 10.0, copy = true)) },
             PanelAction("Mirror") { addAndEdit(com.sharpcad.document.MirrorFeature(document.newId(), s.bodyId, com.sharpcad.document.WorldAxis.X)) },
             PanelAction("Pattern") { addAndEdit(com.sharpcad.document.PatternFeature(document.newId(), s.bodyId)) },
+            PanelAction("Split") { addAndEdit(splitThroughCentre(s.bodyId)) },
+            PanelAction("Scale") { addAndEdit(com.sharpcad.document.ScaleFeature(document.newId(), s.bodyId)) },
             PanelAction("Shell (open face)") { addAndEdit(com.sharpcad.document.ShellFeature(document.newId(), s.bodyId, s.face, 1.0)) },
             PanelAction("Fillet face") { addAndEdit(FilletFeature(document.newId(), s.bodyId, 1.0, s.face)) },
             PanelAction("Chamfer face") { addAndEdit(ChamferFeature(document.newId(), s.bodyId, 1.0, s.face)) },
@@ -890,6 +901,11 @@ class ModelController(
                 fields += DimensionField("Rotate", f.angleDegrees, unit = "°", allowNegative = true)
                 choices += ChoiceField("Axis", AXES, f.axis.label)
                 choices += ChoiceField("Drag", DRAG_MODES, if (dragRotates) DRAG_MODES[1] else DRAG_MODES[0])
+            }
+            is com.sharpcad.document.ScaleFeature -> fields += DimensionField("Factor", f.factor, unit = "×")
+            is com.sharpcad.document.SplitFeature -> {
+                fields += DimensionField("Offset", f.offset, allowNegative = true)
+                choices += ChoiceField("Plane", MIRROR_PLANES, mirrorLabel(f.plane))
             }
             is com.sharpcad.document.MirrorFeature -> {
                 choices += ChoiceField("Across", MIRROR_PLANES, mirrorLabel(f.plane))
@@ -943,6 +959,8 @@ class ModelController(
             is ChamferFeature -> f.copy(distance = value)
             is PushPullFeature -> f.copy(distance = if (f.distance < 0) -value else value)
             is com.sharpcad.document.ShellFeature -> f.copy(thickness = value)
+            is com.sharpcad.document.ScaleFeature -> f.copy(factor = value)
+            is com.sharpcad.document.SplitFeature -> f.copy(offset = value)
             else -> return
         }
         note = ""
@@ -967,6 +985,10 @@ class ModelController(
                 dragRotates = option == DRAG_MODES[1]
                 null
             } else axisOf(option)?.let { f.copy(axis = it) }
+            is com.sharpcad.document.SplitFeature -> MIRROR_PLANES.indexOf(option).takeIf { it >= 0 }?.let { i ->
+                val axis = com.sharpcad.document.WorldAxis.entries[i]
+                f.copy(plane = axis, offset = bodyCentre(f.body)?.get(i) ?: f.offset)
+            }
             is com.sharpcad.document.MirrorFeature -> when (index) {
                 0 -> MIRROR_PLANES.indexOf(option).takeIf { it >= 0 }?.let { f.copy(plane = com.sharpcad.document.WorldAxis.entries[it]) }
                 else -> f.copy(keepOriginal = option == KEEP[0])

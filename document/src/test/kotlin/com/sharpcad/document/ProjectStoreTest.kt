@@ -19,6 +19,8 @@ class ProjectStoreTest {
         ChamferFeature(5, body = 2, distance = 0.5),
         PushPullFeature(6, body = 2, face = 1, distance = 2.0),
         FilletFeature(8, body = 2, radius = 1.0, edge = 3),
+        ScaleFeature(9, body = 2, factor = 1.5),
+        SplitFeature(10, body = 2, plane = WorldAxis.X, offset = 3.0),
         BooleanFeature(7, target = 2, tool = 3, op = BooleanOp.INTERSECT),
     )
 

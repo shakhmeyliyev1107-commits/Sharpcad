@@ -140,6 +140,9 @@ class Shape internal constructor(private var handle: Long) : AutoCloseable {
     fun pushPull(face: Int, distance: Double): Shape = Shape(KernelNative.nativePushPull(handle, face, distance))
 
     /** Nearest face hit by a ray, or `null` when it misses. */
+    /** Copy scaled by [factor] about [center]. */
+    fun scaled(center: DoubleArray, factor: Double): Shape = Shape(KernelNative.nativeScaled(handle, center, factor))
+
     /** Rounds (or bevels, when [chamfer]) the single edge [edge]. */
     fun blendEdge(size: Double, edge: Int, chamfer: Boolean): Shape = Shape(KernelNative.nativeBlendEdge(handle, size, edge, chamfer))
 
