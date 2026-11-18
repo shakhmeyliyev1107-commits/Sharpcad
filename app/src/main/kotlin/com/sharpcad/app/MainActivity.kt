@@ -58,6 +58,8 @@ private fun WorkspaceScreen() {
     val model = remember { ModelController(scope, viewport, document, sketch) }
     val state = remember { WorkspaceState(context, scope, viewport, model) }
     var viewIndex by remember { mutableStateOf(-1) }
+    var commandsOpen by remember { mutableStateOf(false) }
+    var commandQuery by remember { mutableStateOf("") }
     DisposableEffect(Unit) {
         // Taps select sketch regions and faces; drawing tools claim one-finger drags first.
         viewport.onTap = { x, y -> if (sketch.tool == null) model.onTap(x, y) }
@@ -114,6 +116,39 @@ private fun WorkspaceScreen() {
         if (settings.open) settings.toggle()
     }
     fun exclusive(isOpen: Boolean, toggle: () -> Unit): () -> Unit = { if (!isOpen) closePanels(); toggle() }
+    val railMap: Map<String, () -> Unit> = mapOf(
+        "Add" to exclusive(model.addOpen, model::toggleAdd),
+        "Transform" to model::transformSelected,
+        "Measure" to exclusive(model.measuring, model::toggleMeasure),
+        "Snap settings" to { sketch.toggleSnapping(); state.flash(if (sketch.snapping) "Snapping on" else "Snapping off") },
+        "Views" to {
+            viewIndex = (viewIndex + 1) % STANDARD_VIEWS.size
+            val (name, yaw, pitch) = STANDARD_VIEWS[viewIndex]
+            viewport.setViewDirection(Math.toRadians(yaw), Math.toRadians(pitch))
+            state.flash(name)
+        },
+        "Screenshot" to state::screenshot,
+        "Units" to { state.flash("Units: " + settings.cycleUnits()) },
+        "Search" to { commandsOpen = !commandsOpen; commandQuery = "" },
+        "Tools" to { commandsOpen = !commandsOpen; commandQuery = "" },
+    )
+    // Every command by name, for Search/Tools.
+    val commands: List<Pair<String, () -> Unit>> = railMap.filterKeys { it != "Search" && it != "Tools" }.toList() + listOf(
+        "Sketch" to sketch::toggle,
+        "Materials" to model::toggleMaterials,
+        "History" to model::toggleHistory,
+        "Section" to model::toggleSection,
+        "Items" to model::toggleItems,
+        "Drawings" to { model.openDrawing(state.projectName) },
+        "Display mode" to model::cycleDisplayMode,
+        "Appearance" to settings::toggle,
+        "Undo" to model::undo,
+        "Redo" to model::redo,
+        "Fit to screen" to state::fitView,
+        "Open sample part" to state::openSample,
+        "New" to state::newModel,
+        "View in AR" to { (context as? android.app.Activity)?.let(state::viewInAr) ?: Unit },
+    )
     val anyPanel = model.materialsOpen || model.itemsOpen || model.historyOpen || model.sectionOn || settings.open
     Box(Modifier.fillMaxSize()) {
     Workspace(
@@ -139,26 +174,17 @@ private fun WorkspaceScreen() {
         appearanceActive = settings.open,
         toolsOnRight = settings.toolsOnRight,
         showLabels = settings.showLabels,
-        railActions = mapOf(
-            "Add" to exclusive(model.addOpen, model::toggleAdd),
-            "Transform" to model::transformSelected,
-            "Measure" to exclusive(model.measuring, model::toggleMeasure),
-            "Snap settings" to { sketch.toggleSnapping(); state.flash(if (sketch.snapping) "Snapping on" else "Snapping off") },
-            "Views" to {
-                viewIndex = (viewIndex + 1) % STANDARD_VIEWS.size
-                val (name, yaw, pitch) = STANDARD_VIEWS[viewIndex]
-                viewport.setViewDirection(Math.toRadians(yaw), Math.toRadians(pitch))
-                state.flash(name)
-            },
-            "Screenshot" to state::screenshot,
-        ),
-        railActive = setOfNotNull("Add".takeIf { model.addOpen }, "Measure".takeIf { model.measuring }, "Snap settings".takeIf { sketch.snapping }),
+        railActions = railMap,
+        railActive = setOfNotNull("Search".takeIf { commandsOpen }, "Add".takeIf { model.addOpen }, "Measure".takeIf { model.measuring }, "Snap settings".takeIf { sketch.snapping }),
         overlay = {
             // Between the rails, clear of both.
             Column(
                 Modifier.align(Alignment.TopCenter).padding(horizontal = 64.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
+                if (commandsOpen) {
+                    CommandPanel(commandQuery, { commandQuery = it }, commands, onClose = { commandsOpen = false })
+                }
                 if (sketch.active) {
                     SketchControls(
                         planes = SketchSession.PLANES.map { it.name },

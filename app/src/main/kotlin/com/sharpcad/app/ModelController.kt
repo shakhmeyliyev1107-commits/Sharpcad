@@ -19,6 +19,7 @@ import com.sharpcad.document.PushPullFeature
 import com.sharpcad.document.RevolveAxis
 import com.sharpcad.document.RevolveFeature
 import com.sharpcad.document.formatMm
+import com.sharpcad.ui.designsystem.Units as U
 import com.sharpcad.kernel.BooleanOp
 import com.sharpcad.kernel.KernelException
 import com.sharpcad.sketch.SketchPlane
@@ -396,7 +397,7 @@ class ModelController(
             val (a, b) = measurePoints
             val d = DoubleArray(3) { b[it] - a[it] }
             val dist = kotlin.math.sqrt(d[0] * d[0] + d[1] * d[1] + d[2] * d[2])
-            measureReadout = "Distance ${formatMm(dist)} mm · dx ${formatMm(d[0])} · dy ${formatMm(d[1])} · dz ${formatMm(d[2])}"
+            measureReadout = "Distance ${U.format(dist)} · dx ${U.number(d[0])} · dy ${U.number(d[1])} · dz ${U.number(d[2])}"
             sketches.setHighlightLines(floatArrayOf(a[0].toFloat(), a[1].toFloat(), a[2].toFloat(), b[0].toFloat(), b[1].toFloat(), b[2].toFloat()))
         } else {
             measureReadout = "Tap the second point"
@@ -510,7 +511,7 @@ class ModelController(
         if (g.featureId == null && px < DRAG_SLOP_PX) return
         val step = if (viewport.millimetresPerPixel() > 0.2) 0.5 else 0.1
         val radius = com.sharpcad.viewport.AxisDrag.snap((px - DRAG_SLOP_PX) * viewport.millimetresPerPixel(), step).coerceAtLeast(step)
-        dragReadout = "Fillet ${formatMm(radius)}"
+        dragReadout = "Fillet ${U.format(radius)}"
         g.pending = radius
         if (g.running) return
         g.running = true
@@ -576,7 +577,7 @@ class ModelController(
         val delta = DoubleArray(3) { if (it == k) 0.0 else com.sharpcad.viewport.AxisDrag.snap(ray[it] + t * ray[3 + it] - m.start[it], step) }
         val o = m.original
         val f = o.copy(dx = o.dx + delta[0], dy = o.dy + delta[1], dz = o.dz + delta[2])
-        dragReadout = "Move ${formatMm(f.dx)}, ${formatMm(f.dy)}, ${formatMm(f.dz)}"
+        dragReadout = "Move ${U.number(f.dx)}, ${U.number(f.dy)}, ${U.number(f.dz)} ${U.current.label}"
         queueMove(m, f)
     }
 
@@ -605,7 +606,7 @@ class ModelController(
         ) ?: return
         val step = if (viewport.millimetresPerPixel() > 0.2) 1.0 else 0.1
         val distance = com.sharpcad.viewport.AxisDrag.snap(s - g.start, step)
-        dragReadout = "Push/Pull ${formatMm(distance)}"
+        dragReadout = "Push/Pull ${U.format(distance)}"
         if (kotlin.math.abs(distance) < 1e-6 || distance == g.last) return
         g.pending = distance
         if (g.running) return

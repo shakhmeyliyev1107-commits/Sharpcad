@@ -49,7 +49,7 @@ object Tr {
 
     private val WORD_NUMBER = Regex("""^([^\d]+?) ([-−]?[\d].*)$""")
     private val NUMBER_WORD = Regex("""^([\d][\d,.]*) (.+)$""")
-    private val PREFIXES = listOf("Open: ", "Export ", "Applies to ", "Drawing ")
+    private val PREFIXES = listOf("Open: ", "Export ", "Applies to ", "Drawing ", "Units: ")
 }
 
 /** Shorthand for [Tr.tr]. */

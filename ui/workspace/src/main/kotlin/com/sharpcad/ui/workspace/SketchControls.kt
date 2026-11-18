@@ -173,8 +173,12 @@ private fun Separator() {
 
 @Composable
 internal fun DimensionInput(field: DimensionField, onCommit: (Double) -> Unit) {
-    var text by remember { mutableStateOf(formatMillimetres(field.value)) }
+    // Length fields show and take the chosen display unit; a bare number means that unit.
+    val length = field.unit == "mm"
+    val unit = com.sharpcad.ui.designsystem.Units.current
+    var text by remember(unit) { mutableStateOf(if (length) com.sharpcad.ui.designsystem.Units.number(field.value) else formatMillimetres(field.value)) }
     val parsed = Expression.evaluate(text)
+        ?.let { if (length && text.none { c -> c.isLetter() }) it * unit.millimetres else it }
         ?.takeIf { it.isFinite() && (if (field.allowNegative) it != 0.0 else it > 0.0) }
     val commit = {
         if (parsed != null) {
@@ -206,7 +210,7 @@ internal fun DimensionInput(field: DimensionField, onCommit: (Double) -> Unit) {
                 .background(SharpCadColors.Background)
                 .padding(horizontal = 8.dp, vertical = 6.dp),
         )
-        Text(field.unit, color = SharpCadColors.ContentMuted, fontSize = 12.sp)
+        Text(if (length) unit.label else field.unit, color = SharpCadColors.ContentMuted, fontSize = 12.sp)
         Chip("Set", enabled = parsed != null) { commit() }
     }
 }

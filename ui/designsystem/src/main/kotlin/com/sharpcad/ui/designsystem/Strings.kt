@@ -240,6 +240,7 @@ internal object Strings {
         "Isometric" to ("Izometrik" to "Изометрия"),
         "Screenshot saved to Pictures/SharpCAD" to ("Skrinshot Pictures/SharpCAD ga saqlandi" to "Снимок сохранён в Pictures/SharpCAD"),
         "Screenshot failed" to ("Skrinshot olinmadi" to "Не удалось сделать снимок"),
+        "Units:" to ("Birlik:" to "Единицы:"),
         "View" to ("Ko'rinish" to "Вид"),
         "Views" to ("Ko'rinishlar" to "Виды"),
         "Visual" to ("Vizual" to "Визуал"),

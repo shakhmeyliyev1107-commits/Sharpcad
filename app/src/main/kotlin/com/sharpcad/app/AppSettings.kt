@@ -7,6 +7,8 @@ import androidx.compose.runtime.setValue
 import com.sharpcad.ui.designsystem.Language
 import com.sharpcad.ui.designsystem.SharpCadColors
 import com.sharpcad.ui.designsystem.Tr
+import com.sharpcad.ui.designsystem.LengthUnit
+import com.sharpcad.ui.designsystem.Units
 import com.sharpcad.ui.workspace.ChoiceField
 import com.sharpcad.ui.workspace.PanelAction
 import com.sharpcad.viewport.ViewportController
@@ -26,6 +28,7 @@ class AppSettings(context: Context, private val viewport: ViewportController) {
         val device = java.util.Locale.getDefault().language
         val saved = prefs.getString(KEY_LANGUAGE, null) ?: Language.entries.firstOrNull { it.code == device }?.code ?: Language.EN.code
         Tr.language = Language.entries.firstOrNull { it.code == saved } ?: Language.EN
+        Units.current = LengthUnit.entries.firstOrNull { it.name == prefs.getString(KEY_UNITS, null) } ?: LengthUnit.MM
         apply()
     }
 
@@ -43,6 +46,13 @@ class AppSettings(context: Context, private val viewport: ViewportController) {
         )
 
     val actions: List<PanelAction> get() = listOf(PanelAction("Done", accent = true) { open = false })
+
+    /** Units rail button: mm → cm → in → mm, remembered. */
+    fun cycleUnits(): String {
+        Units.current = LengthUnit.entries[(Units.current.ordinal + 1) % LengthUnit.entries.size]
+        prefs.edit().putString(KEY_UNITS, Units.current.name).apply()
+        return Units.current.label
+    }
 
     fun choose(index: Int, option: String) {
         when (index) {
@@ -68,6 +78,7 @@ class AppSettings(context: Context, private val viewport: ViewportController) {
         const val KEY_RIGHT = "toolsOnRight"
         const val KEY_LABELS = "labels"
         const val KEY_LANGUAGE = "language"
+        const val KEY_UNITS = "units"
         val THEMES = listOf("Dark", "Light")
         val SIDES = listOf("Left", "Right")
         val LABELS = listOf("Hidden", "Shown")
