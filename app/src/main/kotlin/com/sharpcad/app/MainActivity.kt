@@ -63,6 +63,7 @@ private fun WorkspaceScreen() {
     DisposableEffect(Unit) {
         // Taps select sketch regions and faces; drawing tools claim one-finger drags first.
         viewport.onTap = { x, y -> if (sketch.tool == null) model.onTap(x, y) }
+        sketch.onProjectTap = model::projectEdgeAt
         // While sketching, drawing tools get one-finger input; otherwise a drag on the
         // selected face pushes or pulls it.
         viewport.onSingleTouch = { phase, x, y -> if (sketch.active) sketch.onTouch(phase, x, y) else model.onDrag(phase, x, y) }

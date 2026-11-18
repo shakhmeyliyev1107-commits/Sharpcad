@@ -42,6 +42,7 @@ enum class SketchTool(val label: String) {
     CIRCULAR("Circular pattern"),
     SPLINE("Spline"),
     TEXT("Text"),
+    PROJECT("Project"),
     HORIZONTAL("Horizontal"),
     VERTICAL("Vertical"),
     EQUAL("Equal"),
@@ -228,6 +229,10 @@ class SketchSession(private val viewport: ViewportController) {
         if (activeTool == SketchTool.SPLINE) return splineTouch(phase, x, y)
         if (activeTool == SketchTool.TEXT) return textTouch(phase, x, y)
         if (activeTool == SketchTool.ELLIPSE) return ellipseTouch(phase, x, y)
+        if (activeTool == SketchTool.PROJECT) {
+            if (phase == TouchPhase.UP) onProjectTap?.invoke(x, y)
+            return true
+        }
         return try {
             when (phase) {
                 TouchPhase.DOWN -> begin(activeTool, x, y)
@@ -326,7 +331,7 @@ class SketchSession(private val viewport: ViewportController) {
             SketchTool.SLOT -> slotTo(s, d.ids, d.start.x, d.start.y, end.x, end.y)
             SketchTool.OFFSET -> offsetTo(d, end)
             SketchTool.PATTERN, SketchTool.CIRCULAR -> patternTo(d, end)
-            SketchTool.TRIM, SketchTool.SPLINE, SketchTool.TEXT, SketchTool.ELLIPSE, SketchTool.HORIZONTAL, SketchTool.VERTICAL, SketchTool.EQUAL,
+            SketchTool.TRIM, SketchTool.SPLINE, SketchTool.TEXT, SketchTool.ELLIPSE, SketchTool.PROJECT, SketchTool.HORIZONTAL, SketchTool.VERTICAL, SketchTool.EQUAL,
             SketchTool.PARALLEL, SketchTool.PERPENDICULAR -> Unit
             SketchTool.POLYGON -> {
                 // Regular polygon: start is the centre, end one vertex.
@@ -529,6 +534,33 @@ class SketchSession(private val viewport: ViewportController) {
         s.setPoint(PointRef(top, PointRole.START), x2 + nx, y2 + ny)
         s.setPoint(PointRef(top, PointRole.END), x1 + nx, y1 + ny)
         s.setArc(near, x1, y1, r, a + Math.PI, a + 2 * Math.PI)
+    }
+
+    /** Project tool: the app picks a body edge under the tap and calls [addProjected]. */
+    var onProjectTap: ((x: Float, y: Float) -> Unit)? = null
+
+    /** Adds a model-space polyline (x,y,z …) flattened onto the current plane as lines. */
+    fun addProjected(points: DoubleArray) {
+        val n = points.size / 3
+        if (n < 2) return refresh("Tap an edge of a body")
+        val s = sketches.getOrPut(plane) { Sketch() }
+        val o = plane.origin
+        fun uv(i: Int): Pair<Double, Double> {
+            val d = DoubleArray(3) { points[i * 3 + it] - o[it] }
+            return (d[0] * plane.xAxis[0] + d[1] * plane.xAxis[1] + d[2] * plane.xAxis[2]) to
+                (d[0] * plane.yAxis[0] + d[1] * plane.yAxis[1] + d[2] * plane.yAxis[2])
+        }
+        var prev: Int? = null
+        var last = uv(0)
+        for (i in 1 until n) {
+            val next = uv(i)
+            if (hypot(next.first - last.first, next.second - last.second) < MIN_SIZE) continue
+            val line = s.addLine(last.first, last.second, next.first, next.second)
+            prev?.let { s.addCoincident(PointRef(it, PointRole.END), PointRef(line, PointRole.START)) }
+            prev = line
+            last = next
+        }
+        refresh(if (prev == null) "That edge is edge-on to this plane" else null)
     }
 
     private var ellipseStart: DoubleArray? = null
@@ -856,6 +888,7 @@ class SketchSession(private val viewport: ViewportController) {
         message = note ?: when {
             !active -> ""
             tool == SketchTool.TEXT -> "Tap to place the text; drag up to set its height"
+            tool == SketchTool.PROJECT -> "Tap an edge of a body"
             draft != null -> snapMarker?.let { "snap: ${it.kind.name.lowercase()}" } ?: ""
             isEmpty -> if (tool == null) "Pick a tool, then drag with one finger" else "Drag with one finger to draw"
             else -> {

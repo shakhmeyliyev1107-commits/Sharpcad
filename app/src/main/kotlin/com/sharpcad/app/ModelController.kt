@@ -391,6 +391,18 @@ class ModelController(
         document.newId(), bodyId, com.sharpcad.document.WorldAxis.Z, bodyCentre(bodyId)?.get(2) ?: 0.0,
     )
 
+    /** Sketch Project tool: finds the body edge under the tap and hands its points to the sketch. */
+    fun projectEdgeAt(x: Float, y: Float) {
+        val ray = viewport.screenRay(x, y) ?: return
+        val tolerance = viewport.millimetresPerPixel() * EDGE_PICK_PX * 1.5
+        scope.launch {
+            val edge = try {
+                document.pickEdge(doubleArrayOf(ray[0], ray[1], ray[2]), doubleArrayOf(ray[3], ray[4], ray[5]), tolerance)
+            } catch (e: KernelException) { null }
+            sketches.addProjected(edge?.points ?: DoubleArray(0))
+        }
+    }
+
     /** Transform rail button: moves the selected body (opens the Move panel). */
     fun transformSelected() {
         val body = selection?.bodyId ?: edgeSelection?.bodyId
