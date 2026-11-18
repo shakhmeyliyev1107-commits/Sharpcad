@@ -15,7 +15,7 @@ sources:
   - code: document/src/main/kotlin/com/sharpcad/document/Materials.kt
   - code: tools/build-materials.sh
   - code: gradle/libs.versions.toml
-verified_at: 3f524a0
+verified_at: b9234ce
 ---
 
 # Ko'rinish oynasi va render

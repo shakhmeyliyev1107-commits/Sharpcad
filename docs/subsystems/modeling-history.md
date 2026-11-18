@@ -4,6 +4,7 @@ type: subsystem
 created: 2026-11-17
 updated: 2026-11-18
 sources:
+  - code: app/src/main/kotlin/com/sharpcad/app/MainActivity.kt
   - code: kernel/src/main/cpp/src/modeling.cpp
   - code: document/src/main/kotlin/com/sharpcad/document/Feature.kt
   - code: document/src/main/kotlin/com/sharpcad/document/ModelBuilder.kt
@@ -14,7 +15,7 @@ sources:
   - code: kernel/src/main/kotlin/com/sharpcad/kernel/KernelNative.kt
   - code: app/src/main/kotlin/com/sharpcad/app/WorkspaceState.kt
   - code: document/src/main/kotlin/com/sharpcad/document/MeshExport.kt
-verified_at: 41b9a3d
+verified_at: b9234ce
 ---
 
 # Modellashtirish va tarix
@@ -119,6 +120,22 @@ yuzadan ustun (`Shape.pickEdge`, ajratilgan qirra eskiz overlay'i orqali chizila
 
 > ⚠️ Qirra va yuza indekslari xususiyatda saqlanadi; oldingi xususiyat topologiyani
 > o'zgartirsa, indeks boshqa qirraga tushishi mumkin (yuza uchun ham shunday).
+
+## Rail tugmalari (Add, Transform, Measure, Views, Screenshot)
+
+`MainActivity` qo'shimcha rail tugmalarini `Workspace(railActions = …)` orqali ulaydi:
+Add — kub/silindr/shar (`ModelController.addPrimitive`, yangi jism, keyin tahrir paneli);
+Transform — tanlangan jismga Move; Measure — modelda ikki nuqta orasidagi masofa
+(nuqta = `Document.pick` urilish nuqtasi, chiziq eskiz overlay'ida); Snap settings —
+eskizda yopishishni yoqish/o'chirish (`SketchSession.toggleSnapping`); Views — Ustdan/Old/
+O'ngdan/Izometrik; Screenshot — `PixelCopy` bilan Pictures/SharpCAD ga PNG
+(`WorkspaceState.screenshot`). Search, Tools, Units hali ulanmagan.
+
+> ⚠️ Add va Measure ham `closePanels()` ro'yxatida: yangi yon panel qo'shsangiz uni ham
+> shu yerga qo'shing, aks holda panellar yana bir-birining ustiga chiqadi.
+
+> ⚠️ Shar `RevolveAxis.U` atrofida XY dagi yarim doiradan quriladi; U o'qi tekislikning
+> X o'qi bo'ylab boshlang'ich nuqtadan o'tadi (`DocumentTest.primitivesFromTheAddPanel`).
 
 ## Sinov holati
 
