@@ -1,5 +1,6 @@
 package com.sharpcad.ui.workspace
 
+import com.sharpcad.ui.designsystem.tr
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -57,8 +58,8 @@ fun ItemsPanel(
         modifier.width(240.dp).clip(RoundedCornerShape(SharpCadDimens.PanelRadius)).background(SharpCadColors.Panel).padding(8.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        Text("Items", color = SharpCadColors.Content, fontSize = 13.sp, fontWeight = FontWeight.Medium)
-        if (items.isEmpty()) Text("No bodies yet", color = SharpCadColors.ContentMuted, fontSize = 12.sp)
+        Text(tr("Items"), color = SharpCadColors.Content, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+        if (items.isEmpty()) Text(tr("No bodies yet"), color = SharpCadColors.ContentMuted, fontSize = 12.sp)
         LazyColumn(Modifier.heightIn(max = 360.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             items(items, key = { it.id }) { item ->
                 Row(

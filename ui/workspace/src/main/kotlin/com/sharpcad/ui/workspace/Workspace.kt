@@ -1,5 +1,6 @@
 package com.sharpcad.ui.workspace
 
+import com.sharpcad.ui.designsystem.tr
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -124,7 +125,7 @@ fun Workspace(
                 overlay()
                 if (status.isNotEmpty()) {
                     Text(
-                        text = status,
+                        text = tr(status),
                         color = SharpCadColors.ContentMuted,
                         fontFamily = FontFamily.Monospace,
                         fontSize = 11.sp,
@@ -199,7 +200,7 @@ private fun TopMenu(label: String, content: @Composable (close: () -> Unit) -> U
     var open by remember { mutableStateOf(false) }
     Box {
         TextButton(onClick = { open = true }, contentPadding = PaddingValues(horizontal = 10.dp)) {
-            Text(label, color = SharpCadColors.Content, fontSize = 13.sp)
+            Text(tr(label), color = SharpCadColors.Content, fontSize = 13.sp)
         }
         DropdownMenu(
             expanded = open,
@@ -214,7 +215,7 @@ private fun TopMenu(label: String, content: @Composable (close: () -> Unit) -> U
 @Composable
 private fun MenuItem(label: String, enabled: Boolean = true, onClick: () -> Unit) {
     DropdownMenuItem(
-        text = { Text(label, fontSize = 13.sp) },
+        text = { Text(tr(label), fontSize = 13.sp) },
         enabled = enabled,
         onClick = onClick,
     )

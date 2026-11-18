@@ -1,5 +1,6 @@
 package com.sharpcad.ui.workspace
 
+import com.sharpcad.ui.designsystem.tr
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -152,7 +153,7 @@ private fun RailButton(item: RailItem, highlighted: Boolean, onClick: (() -> Uni
     }
     if (showLabel) {
         androidx.compose.material3.Text(
-            item.label,
+            tr(item.label),
             color = SharpCadColors.ContentMuted,
             fontSize = androidx.compose.ui.unit.TextUnit(9f, androidx.compose.ui.unit.TextUnitType.Sp),
             maxLines = 1,

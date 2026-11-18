@@ -1,5 +1,6 @@
 package com.sharpcad.ui.workspace
 
+import com.sharpcad.ui.designsystem.tr
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -47,9 +48,9 @@ fun HistoryPanel(
             .padding(8.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        Text("History", color = SharpCadColors.Content, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+        Text(tr("History"), color = SharpCadColors.Content, fontSize = 13.sp, fontWeight = FontWeight.Medium)
         if (items.isEmpty()) {
-            Text("No features yet", color = SharpCadColors.ContentMuted, fontSize = 12.sp)
+            Text(tr("No features yet"), color = SharpCadColors.ContentMuted, fontSize = 12.sp)
         }
         LazyColumn(Modifier.heightIn(max = 360.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             itemsIndexed(items, key = { _, item -> item.id }) { index, item ->
@@ -71,7 +72,7 @@ fun HistoryPanel(
                         modifier = Modifier.width(22.dp),
                     )
                     Column(Modifier.weight(1f)) {
-                        Text(item.label, color = SharpCadColors.Content, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(tr(item.label), color = SharpCadColors.Content, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         item.error?.let {
                             Text(it, color = SharpCadColors.Error, fontSize = 10.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
                         }
@@ -111,7 +112,7 @@ fun ParameterPanel(
         verticalArrangement = Arrangement.spacedBy(8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(title, color = SharpCadColors.Content, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+        Text(tr(title), color = SharpCadColors.Content, fontSize = 13.sp, fontWeight = FontWeight.Medium)
         if (fields.isNotEmpty()) {
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
@@ -128,7 +129,7 @@ fun ParameterPanel(
                 verticalArrangement = Arrangement.spacedBy(6.dp),
                 itemVerticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(choice.label, color = SharpCadColors.ContentMuted, fontSize = 12.sp)
+                Text(tr(choice.label), color = SharpCadColors.ContentMuted, fontSize = 12.sp)
                 choice.options.forEach { option ->
                     Chip(option, selected = option == choice.selected) { onChoice(index, option) }
                 }
@@ -143,7 +144,7 @@ fun ParameterPanel(
             }
         }
         if (message.isNotEmpty()) {
-            Text(message, color = SharpCadColors.ContentMuted, fontSize = 11.sp, fontFamily = FontFamily.Monospace)
+            Text(tr(message), color = SharpCadColors.ContentMuted, fontSize = 11.sp, fontFamily = FontFamily.Monospace)
         }
         Spacer(Modifier.width(1.dp))
     }

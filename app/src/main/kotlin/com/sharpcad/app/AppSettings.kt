@@ -4,7 +4,9 @@ import android.content.Context
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import com.sharpcad.ui.designsystem.Language
 import com.sharpcad.ui.designsystem.SharpCadColors
+import com.sharpcad.ui.designsystem.Tr
 import com.sharpcad.ui.workspace.ChoiceField
 import com.sharpcad.ui.workspace.PanelAction
 import com.sharpcad.viewport.ViewportController
@@ -20,6 +22,10 @@ class AppSettings(context: Context, private val viewport: ViewportController) {
     var open by mutableStateOf(false)
 
     init {
+        // First run follows the device language when it is one we have.
+        val device = java.util.Locale.getDefault().language
+        val saved = prefs.getString(KEY_LANGUAGE, null) ?: Language.entries.firstOrNull { it.code == device }?.code ?: Language.EN.code
+        Tr.language = Language.entries.firstOrNull { it.code == saved } ?: Language.EN
         apply()
     }
 
@@ -33,6 +39,7 @@ class AppSettings(context: Context, private val viewport: ViewportController) {
             ChoiceField("Accent", SharpCadColors.accents.map { it.first }, SharpCadColors.accents.firstOrNull { it.second == accent }?.first ?: ""),
             ChoiceField("Tools", SIDES, if (toolsOnRight) SIDES[1] else SIDES[0]),
             ChoiceField("Labels", LABELS, if (showLabels) LABELS[1] else LABELS[0]),
+            ChoiceField("Language", Language.entries.map { it.label }, Tr.language.label),
         )
 
     val actions: List<PanelAction> get() = listOf(PanelAction("Done", accent = true) { open = false })
@@ -43,9 +50,10 @@ class AppSettings(context: Context, private val viewport: ViewportController) {
             1 -> SharpCadColors.accents.firstOrNull { it.first == option }?.let { accent = it.second }
             2 -> toolsOnRight = option == SIDES[1]
             3 -> showLabels = option == LABELS[1]
+            4 -> Language.entries.firstOrNull { it.label == option }?.let { Tr.language = it }
         }
         prefs.edit().putBoolean(KEY_DARK, dark).putInt(KEY_ACCENT, accent)
-            .putBoolean(KEY_RIGHT, toolsOnRight).putBoolean(KEY_LABELS, showLabels).apply()
+            .putBoolean(KEY_RIGHT, toolsOnRight).putBoolean(KEY_LABELS, showLabels).putString(KEY_LANGUAGE, Tr.language.code).apply()
         apply()
     }
 
@@ -59,6 +67,7 @@ class AppSettings(context: Context, private val viewport: ViewportController) {
         const val KEY_ACCENT = "accent"
         const val KEY_RIGHT = "toolsOnRight"
         const val KEY_LABELS = "labels"
+        const val KEY_LANGUAGE = "language"
         val THEMES = listOf("Dark", "Light")
         val SIDES = listOf("Left", "Right")
         val LABELS = listOf("Hidden", "Shown")

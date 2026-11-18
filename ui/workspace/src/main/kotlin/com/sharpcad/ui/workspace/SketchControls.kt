@@ -1,5 +1,6 @@
 package com.sharpcad.ui.workspace
 
+import com.sharpcad.ui.designsystem.tr
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -109,7 +110,7 @@ fun SketchControls(
         }
         if (message.isNotEmpty()) {
             Text(
-                message,
+                tr(message),
                 color = SharpCadColors.ContentMuted,
                 fontSize = 11.sp,
                 lineHeight = 14.sp,
@@ -143,7 +144,7 @@ internal fun Chip(
             .then(if (enabled) Modifier.clickable(onClick = onClick) else Modifier)
             .padding(horizontal = 12.dp, vertical = 8.dp),
     ) {
-        Text(label, color = content, fontSize = 13.sp)
+        Text(tr(label), color = content, fontSize = 13.sp)
     }
 }
 
@@ -164,7 +165,7 @@ internal fun DimensionInput(field: DimensionField, onCommit: (Double) -> Unit) {
         }
     }
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(field.label, color = SharpCadColors.ContentMuted, fontSize = 12.sp)
+        Text(tr(field.label), color = SharpCadColors.ContentMuted, fontSize = 12.sp)
         BasicTextField(
             value = text,
             onValueChange = { text = it },

@@ -1,5 +1,6 @@
 package com.sharpcad.app
 
+import com.sharpcad.ui.designsystem.tr
 import android.graphics.DashPathEffect
 import android.graphics.Paint
 import android.graphics.pdf.PdfDocument
@@ -33,13 +34,13 @@ import kotlin.math.abs
 fun DrawingScreen(sheet: DrawingSheet, onExport: (String) -> Unit, onClose: () -> Unit) {
     Column(Modifier.fillMaxSize().background(SharpCadColors.Background).padding(12.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("Drawing · scale ${sheet.scaleLabel}", color = SharpCadColors.Content, fontSize = 14.sp, maxLines = 1, modifier = Modifier.weight(1f))
-            TextButton(onClick = onClose) { Text("Close", color = SharpCadColors.Content, maxLines = 1) }
+            Text("${tr("Drawing")} · ${tr("scale")} ${sheet.scaleLabel}", color = SharpCadColors.Content, fontSize = 14.sp, maxLines = 1, modifier = Modifier.weight(1f))
+            TextButton(onClick = onClose) { Text(tr("Close"), color = SharpCadColors.Content, maxLines = 1) }
         }
         // Export buttons on their own scrollable row so narrow (portrait) screens fit.
         Row(Modifier.horizontalScroll(rememberScrollState()), verticalAlignment = Alignment.CenterVertically) {
             for ((label, ext) in listOf("SVG" to "svg", "DXF" to "dxf", "PDF" to "pdf")) {
-                TextButton(onClick = { onExport(ext) }) { Text("Export $label", color = SharpCadColors.Accent, maxLines = 1) }
+                TextButton(onClick = { onExport(ext) }) { Text("${tr("Export")} $label", color = SharpCadColors.Accent, maxLines = 1) }
             }
         }
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {

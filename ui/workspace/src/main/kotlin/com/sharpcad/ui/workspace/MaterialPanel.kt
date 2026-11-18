@@ -1,5 +1,6 @@
 package com.sharpcad.ui.workspace
 
+import com.sharpcad.ui.designsystem.tr
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -60,8 +61,8 @@ fun MaterialPanel(
             .padding(10.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Text("Materials", color = SharpCadColors.Content, fontSize = 13.sp, fontWeight = FontWeight.Medium)
-        Text(subtitle, color = SharpCadColors.ContentMuted, fontSize = 11.sp)
+        Text(tr("Materials"), color = SharpCadColors.Content, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+        Text(tr(subtitle), color = SharpCadColors.ContentMuted, fontSize = 11.sp)
         Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             categories.forEach { Chip(it, selected = it == selectedCategory) { onCategory(it) } }
         }
@@ -88,7 +89,7 @@ fun MaterialPanel(
                             ),
                     )
                     Text(
-                        swatch.name,
+                        tr(swatch.name),
                         color = SharpCadColors.Content,
                         fontSize = 10.sp,
                         lineHeight = 12.sp,
