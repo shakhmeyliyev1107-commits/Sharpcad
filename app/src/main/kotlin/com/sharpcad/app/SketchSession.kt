@@ -39,6 +39,7 @@ enum class SketchTool(val label: String) {
     PATTERN("Pattern"),
     CIRCULAR("Circular pattern"),
     SPLINE("Spline"),
+    TEXT("Text"),
     HORIZONTAL("Horizontal"),
     VERTICAL("Vertical"),
     EQUAL("Equal"),
@@ -81,11 +82,17 @@ class SketchSession(private val viewport: ViewportController) {
     /** Planes that currently hold sketch geometry. */
     val sketchedPlanes: List<SketchPlane>
         get() = PLANES.filter { p ->
-            sketches[p]?.entities()?.isNotEmpty() == true || splines[p]?.isNotEmpty() == true
+            sketches[p]?.entities()?.isNotEmpty() == true || splines[p]?.isNotEmpty() == true || texts[p]?.isNotEmpty() == true
         }
 
     /** Splines per plane as control points (u, v pairs); not part of the constraint solver. */
     private val splines = mutableMapOf<SketchPlane, MutableList<List<Double>>>()
+
+    /** Text outlines per plane: closed polylines (x,y …), outside the solver like splines. */
+    private val texts = mutableMapOf<SketchPlane, MutableList<List<Double>>>()
+
+    /** What the Text tool writes. */
+    var textValue by mutableStateOf("SharpCAD")
     private var splineDraft: MutableList<Double>? = null
 
     /**
@@ -103,6 +110,7 @@ class SketchSession(private val viewport: ViewportController) {
                 is com.sharpcad.sketch.SketchArc -> arcs += listOf(e.cx, e.cy, e.radius, e.startAngle, e.endAngle)
             }
         }
+        texts[plane]?.forEach { lines += TextOutline.segments(it) }
         val curves = mutableListOf<Double>()
         splines[plane]?.forEach { pts -> curves += (pts.size / 2).toDouble(); curves += pts }
         return SketchGeometry(lines, circles, arcs, curves)
@@ -159,6 +167,7 @@ class SketchSession(private val viewport: ViewportController) {
         cancelDraft()
         sketches.remove(plane)?.close()
         splines.remove(plane)
+        texts.remove(plane)
         clearDimensions()
         refresh()
     }
@@ -215,6 +224,7 @@ class SketchSession(private val viewport: ViewportController) {
     fun onTouch(phase: TouchPhase, x: Float, y: Float): Boolean {
         val activeTool = tool ?: return false
         if (activeTool == SketchTool.SPLINE) return splineTouch(phase, x, y)
+        if (activeTool == SketchTool.TEXT) return textTouch(phase, x, y)
         return try {
             when (phase) {
                 TouchPhase.DOWN -> begin(activeTool, x, y)
@@ -305,7 +315,7 @@ class SketchSession(private val viewport: ViewportController) {
             }
             SketchTool.OFFSET -> offsetTo(d, end)
             SketchTool.PATTERN, SketchTool.CIRCULAR -> patternTo(d, end)
-            SketchTool.TRIM, SketchTool.SPLINE, SketchTool.HORIZONTAL, SketchTool.VERTICAL, SketchTool.EQUAL,
+            SketchTool.TRIM, SketchTool.SPLINE, SketchTool.TEXT, SketchTool.HORIZONTAL, SketchTool.VERTICAL, SketchTool.EQUAL,
             SketchTool.PARALLEL, SketchTool.PERPENDICULAR -> Unit
             SketchTool.POLYGON -> {
                 // Regular polygon: start is the centre, end one vertex.
@@ -476,6 +486,31 @@ class SketchSession(private val viewport: ViewportController) {
                 }
             }
             TouchPhase.CANCEL -> splineDraft = null
+        }
+        refresh()
+        return true
+    }
+
+    private var textStart: DoubleArray? = null
+
+    /**
+     * Text tool: press sets the baseline start; dragging up sets the height (a plain tap
+     * uses [DEFAULT_TEXT_MM]). The outlines land on the plane as closed polylines.
+     */
+    private fun textTouch(phase: TouchPhase, x: Float, y: Float): Boolean {
+        val point = planePoint(x, y)
+        when (phase) {
+            TouchPhase.DOWN -> textStart = point ?: return false
+            TouchPhase.MOVE -> Unit
+            TouchPhase.UP -> {
+                val start = textStart ?: return true
+                textStart = null
+                val dragged = point?.let { kotlin.math.abs(it[1] - start[1]) } ?: 0.0
+                val height = if (dragged > viewport.millimetresPerPixel() * SNAP_PIXELS) dragged else DEFAULT_TEXT_MM
+                val contours = TextOutline.contours(textValue, start[0], start[1], height)
+                if (contours.isNotEmpty()) texts.getOrPut(plane) { mutableListOf() } += contours
+            }
+            TouchPhase.CANCEL -> textStart = null
         }
         refresh()
         return true
@@ -691,7 +726,7 @@ class SketchSession(private val viewport: ViewportController) {
     private fun refresh(note: String? = null) {
         revision++
         val entities = sketch?.entities().orEmpty()
-        isEmpty = entities.isEmpty() && splines[plane].isNullOrEmpty()
+        isEmpty = entities.isEmpty() && splines[plane].isNullOrEmpty() && texts[plane].isNullOrEmpty()
 
         // Every plane's sketch is shown, not just the one being edited.
         var segments = sketches.entries.fold(FloatArray(0)) { acc, (p, sk) ->
@@ -707,6 +742,7 @@ class SketchSession(private val viewport: ViewportController) {
             return out
         }
         splines.forEach { (p, list) -> list.forEach { segments += polyline(Spline.segments(it), p) } }
+        texts.forEach { (p, list) -> list.forEach { segments += polyline(TextOutline.segments(it), p) } }
         splineDraft?.let { raw ->
             val segs = (0 until raw.size / 2 - 1).flatMap { listOf(raw[2 * it], raw[2 * it + 1], raw[2 * it + 2], raw[2 * it + 3]) }
             segments += polyline(segs, plane)
@@ -738,6 +774,7 @@ class SketchSession(private val viewport: ViewportController) {
 
         message = note ?: when {
             !active -> ""
+            tool == SketchTool.TEXT -> "Tap to place the text; drag up to set its height"
             draft != null -> snapMarker?.let { "snap: ${it.kind.name.lowercase()}" } ?: ""
             isEmpty -> if (tool == null) "Pick a tool, then drag with one finger" else "Drag with one finger to draw"
             else -> {
@@ -797,6 +834,7 @@ class SketchSession(private val viewport: ViewportController) {
         private const val POLYGON_SIDES = 6
         private const val DEFAULT_PATTERN = 3
         private const val DEFAULT_CIRCULAR = 6
+        const val DEFAULT_TEXT_MM = 10.0
         private const val SPLINE_SPACING_PIXELS = 40.0
         private const val MAX_PATTERN = 50
         private const val UNDER_DEFINED_SRGB = 0x5AA2FF

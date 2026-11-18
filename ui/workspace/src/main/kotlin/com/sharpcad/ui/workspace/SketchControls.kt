@@ -3,6 +3,7 @@ package com.sharpcad.ui.workspace
 import com.sharpcad.ui.designsystem.tr
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -69,6 +70,9 @@ fun SketchControls(
     onDimension: (index: Int, millimetres: Double) -> Unit,
     message: String,
     modifier: Modifier = Modifier,
+    /** Shown as an editable text row (Text tool); `null` hides it. */
+    textValue: String? = null,
+    onText: (String) -> Unit = {},
 ) {
     Column(
         modifier = modifier
@@ -107,6 +111,20 @@ fun SketchControls(
                     }
                 }
             }
+        }
+        if (textValue != null) {
+            androidx.compose.foundation.text.BasicTextField(
+                value = textValue,
+                onValueChange = onText,
+                singleLine = true,
+                textStyle = androidx.compose.ui.text.TextStyle(color = SharpCadColors.Content, fontSize = 14.sp),
+                cursorBrush = androidx.compose.ui.graphics.SolidColor(SharpCadColors.Accent),
+                modifier = Modifier
+                    .widthIn(min = 160.dp, max = 320.dp)
+                    .clip(RoundedCornerShape(SharpCadDimens.ButtonRadius))
+                    .background(SharpCadColors.PanelRaised)
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+            )
         }
         if (message.isNotEmpty()) {
             Text(

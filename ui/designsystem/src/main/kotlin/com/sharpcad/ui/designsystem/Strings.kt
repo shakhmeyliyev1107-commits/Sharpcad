@@ -60,6 +60,8 @@ internal object Strings {
         "Drawn without automatic constraints (they conflicted)" to ("Avtomatik bog'lanishlarsiz chizildi (ziddiyat bor edi)" to "Нарисовано без автоматических связей (был конфликт)"),
         "Ebony" to ("Qora daraxt" to "Эбеновое дерево"),
         "Drag" to ("Sudrash" to "Перетаскивание"),
+        "Text" to ("Matn" to "Текст"),
+        "Tap to place the text; drag up to set its height" to ("Matnni qo'yish uchun bosing; balandlik uchun yuqoriga suring" to "Коснитесь, чтобы разместить текст; тяните вверх для высоты"),
         "Edge" to ("Qirra" to "Ребро"),
         "edge" to ("qirra" to "ребро"),
         "Edit" to ("Tahrir" to "Правка"),

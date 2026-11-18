@@ -153,6 +153,8 @@ private fun WorkspaceScreen() {
                         dimensions = sketch.dimensions,
                         onDimension = sketch::setDimension,
                         message = sketch.message,
+                        textValue = sketch.textValue.takeIf { sketch.tool == SketchTool.TEXT },
+                        onText = { sketch.textValue = it },
                     )
                 }
                 model.sectionPanel?.let { panel ->
