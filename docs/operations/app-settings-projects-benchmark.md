@@ -2,14 +2,14 @@
 title: Loyihalar, sozlamalar va benchmark
 type: operation
 created: 2026-11-17
-updated: 2026-11-17
+updated: 2026-11-18
 sources:
   - code: document/src/main/kotlin/com/sharpcad/document/ProjectStore.kt
   - code: app/src/main/kotlin/com/sharpcad/app/WorkspaceState.kt
   - code: app/src/main/kotlin/com/sharpcad/app/AppSettings.kt
   - code: app/src/main/kotlin/com/sharpcad/app/Benchmark.kt
   - code: ui/designsystem/src/main/kotlin/com/sharpcad/ui/designsystem/Theme.kt
-verified_at: 8011234
+verified_at: b02c6fc
 ---
 
 # Loyihalar, sozlamalar va benchmark
@@ -17,7 +17,7 @@ verified_at: 8011234
 ## Loyihalar
 
 Har bir loyiha `filesDir/projects/<id>/project.json` da: xususiyatlar tarixi
-([[modeling-history]]), nom va jism materiallari. Ilova oxirgi o'zgarishdan 0.8 s keyin
+([[modeling-history]]), nom, jism materiallari, nomlari, yashirinligi va o'lcham maydonlaridagi o'zgaruvchilar (`w=20`). Ilova oxirgi o'zgarishdan 0.8 s keyin
 avtomatik saqlaydi, ochilganda oxirgi loyihani tiklaydi, File menyusida oxirgi 6 loyiha
 ko'rinadi. Import qilingan fayllar `filesDir/imports` da qoladi.
 
