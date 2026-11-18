@@ -18,7 +18,7 @@ sources:
   - code: ui/workspace/src/main/kotlin/com/sharpcad/ui/workspace/SketchControls.kt
   - code: app/build.gradle.kts
   - code: tools/fetch-sketch-deps.sh
-verified_at: ad8edbe
+verified_at: 7485bb4
 ---
 
 # Eskiz dvigateli va eskiz rejimi
@@ -116,6 +116,14 @@ yopiq/davriy) — `kernel/src/main/cpp/src/modeling.cpp` dagi `sketchEdges`.
 > ⚠️ Ekrandagi Catmull-Rom chizig'i va yadrodagi B-spline bir xil nuqtalardan o'tadi, lekin
 > oraliqda biroz farq qiladi; hudud ajratilishi (yadro) chiziqdan sal chetga chiqishi mumkin.
 > Sweep yo'li splaynni hali qabul qilmaydi.
+
+Slot: ikki markaz orasida sudraladi; ikki chiziq va ikki yoy (kenglik uzunlikning 40 %),
+uchlari coincident bilan bog'lanadi, o'lchamlar — markazlar orasidagi uzunlik va radius.
+Ellipse: markazdan burchakka sudraladi; 48 nuqtali yopiq splayn sifatida saqlanadi va
+yadroda davriy B-spline bo'ladi.
+
+> ⚠️ Slot yoylari teng radius va urinish bog'lanishisiz qo'shiladi: radiusni o'zgartirish
+> faqat bitta (uzoq) yoyga ta'sir qiladi. Ellips splayn kabi yechuvchidan tashqarida.
 
 Text: matn eskiz panelidagi maydonga yoziladi; tekislikka bosish asos chizig'i boshini,
 yuqoriga sudrash balandlikni belgilaydi (oddiy bosish — 10 mm). Harf konturlari tizim
