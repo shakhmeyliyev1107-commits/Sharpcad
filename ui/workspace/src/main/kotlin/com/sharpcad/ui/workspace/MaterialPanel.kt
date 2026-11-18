@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -66,7 +67,7 @@ fun MaterialPanel(
         }
         LazyVerticalGrid(
             columns = GridCells.Adaptive(68.dp),
-            modifier = Modifier.heightIn(max = 300.dp),
+            modifier = Modifier.heightIn(max = 300.dp).clipToBounds(),
             verticalArrangement = Arrangement.spacedBy(8.dp),
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {

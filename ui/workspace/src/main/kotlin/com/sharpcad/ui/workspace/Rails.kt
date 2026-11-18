@@ -51,10 +51,10 @@ internal const val SKETCH_ITEM = "Sketch"
 
 /** Label of the rail item that toggles the history panel. */
 internal const val HISTORY_ITEM = "History"
-internal const val VISUALIZATION_ITEM = "Visualization"
+internal const val VISUALIZATION_ITEM = "Visual"
 internal const val DRAWINGS_ITEM = "Drawings"
 internal const val APPEARANCE_ITEM = "Appearance"
-internal const val SECTION_ITEM = "Section view"
+internal const val SECTION_ITEM = "Section"
 internal const val ITEMS_ITEM = "Items"
 internal const val DISPLAY_ITEM = "Display mode"
 

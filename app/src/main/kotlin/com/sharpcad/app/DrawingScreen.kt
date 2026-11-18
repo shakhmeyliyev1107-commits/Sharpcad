@@ -5,6 +5,8 @@ import android.graphics.Paint
 import android.graphics.pdf.PdfDocument
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -30,12 +32,15 @@ import kotlin.math.abs
 @Composable
 fun DrawingScreen(sheet: DrawingSheet, onExport: (String) -> Unit, onClose: () -> Unit) {
     Column(Modifier.fillMaxSize().background(SharpCadColors.Background).padding(12.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text("Drawing · scale ${sheet.scaleLabel}", color = SharpCadColors.Content, fontSize = 14.sp, modifier = Modifier.weight(1f))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("Drawing · scale ${sheet.scaleLabel}", color = SharpCadColors.Content, fontSize = 14.sp, maxLines = 1, modifier = Modifier.weight(1f))
+            TextButton(onClick = onClose) { Text("Close", color = SharpCadColors.Content, maxLines = 1) }
+        }
+        // Export buttons on their own scrollable row so narrow (portrait) screens fit.
+        Row(Modifier.horizontalScroll(rememberScrollState()), verticalAlignment = Alignment.CenterVertically) {
             for ((label, ext) in listOf("SVG" to "svg", "DXF" to "dxf", "PDF" to "pdf")) {
-                TextButton(onClick = { onExport(ext) }) { Text("Export $label", color = SharpCadColors.Accent) }
+                TextButton(onClick = { onExport(ext) }) { Text("Export $label", color = SharpCadColors.Accent, maxLines = 1) }
             }
-            TextButton(onClick = onClose) { Text("Close", color = SharpCadColors.Content) }
         }
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Canvas(Modifier.aspectRatio(sheet.width / sheet.height).background(Color.White)) {

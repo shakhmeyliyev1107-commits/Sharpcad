@@ -96,25 +96,35 @@ private fun WorkspaceScreen() {
     // Reopen the last project; the sample part on first launch.
     LaunchedEffect(Unit) { state.start() }
 
+    // Side panels share the screen: opening one closes the others so they never stack.
+    fun closePanels() {
+        if (model.materialsOpen) model.toggleMaterials()
+        if (model.itemsOpen) model.toggleItems()
+        if (model.historyOpen) model.toggleHistory()
+        if (model.sectionOn) model.toggleSection()
+        if (settings.open) settings.toggle()
+    }
+    fun exclusive(isOpen: Boolean, toggle: () -> Unit): () -> Unit = { if (!isOpen) closePanels(); toggle() }
+    val anyPanel = model.materialsOpen || model.itemsOpen || model.historyOpen || model.sectionOn || settings.open
     Box(Modifier.fillMaxSize()) {
     Workspace(
         projectName = state.projectName,
         actions = actions,
-        status = state.status,
+        status = if (anyPanel) "" else state.status,
         busy = state.busy,
         sketchActive = sketch.active,
         onSketchToggle = sketch::toggle,
         canUndo = model.state.canUndo,
         canRedo = model.state.canRedo,
         historyActive = model.historyOpen,
-        onHistoryToggle = model::toggleHistory,
+        onHistoryToggle = exclusive(model.historyOpen, model::toggleHistory),
         materialsActive = model.materialsOpen,
-        onMaterialsToggle = model::toggleMaterials,
+        onMaterialsToggle = exclusive(model.materialsOpen, model::toggleMaterials),
         onDisplayMode = model::cycleDisplayMode,
         onDrawings = { model.openDrawing(state.projectName) },
-        onAppearance = settings::toggle,
-        onSection = model::toggleSection,
-        onItems = model::toggleItems,
+        onAppearance = exclusive(settings.open, settings::toggle),
+        onSection = exclusive(model.sectionOn, model::toggleSection),
+        onItems = exclusive(model.itemsOpen, model::toggleItems),
         itemsActive = model.itemsOpen,
         sectionActive = model.sectionOn,
         appearanceActive = settings.open,
