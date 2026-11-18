@@ -94,4 +94,58 @@ internal object MeshTools {
         listOf(positions, normals, index).forEach { it.flip() }
         return RenderMesh(positions, normals, index, direct(0), bounds)
     }
+    /**
+     * Nearest ray parameter t where origin + t·direction hits a triangle of [face], or
+     * `null`. Möller–Trumbore on the face's triangles; runs on the caller's thread.
+     */
+    fun rayHitFace(mesh: Mesh, face: Int, origin: DoubleArray, direction: DoubleArray): Double? {
+        val triFaces = mesh.triangleFaces.duplicate().order(ByteOrder.nativeOrder()).asIntBuffer()
+        val idx = mesh.indices.duplicate().order(ByteOrder.nativeOrder()).asIntBuffer()
+        val pos = mesh.positions.duplicate().order(ByteOrder.nativeOrder()).asFloatBuffer()
+        var best: Double? = null
+        val p = Array(3) { DoubleArray(3) }
+        for (t in 0 until triFaces.capacity()) {
+            if (triFaces.get(t) != face) continue
+            for (k in 0 until 3) {
+                val v = idx.get(t * 3 + k)
+                for (c in 0 until 3) p[k][c] = pos.get(v * 3 + c).toDouble()
+            }
+            val e1 = DoubleArray(3) { p[1][it] - p[0][it] }
+            val e2 = DoubleArray(3) { p[2][it] - p[0][it] }
+            val h = cross(direction, e2)
+            val a = dot(e1, h)
+            if (kotlin.math.abs(a) < 1e-12) continue
+            val f = 1.0 / a
+            val s = DoubleArray(3) { origin[it] - p[0][it] }
+            val u = f * dot(s, h)
+            if (u < 0 || u > 1) continue
+            val q = cross(s, e1)
+            val v = f * dot(direction, q)
+            if (v < 0 || u + v > 1) continue
+            val dist = f * dot(e2, q)
+            if (dist > 0 && (best == null || dist < best)) best = dist
+        }
+        return best
+    }
+
+    /** Average vertex normal of [face], normalised; `null` for an unknown face. */
+    fun faceNormal(mesh: Mesh, face: Int): DoubleArray? {
+        val triFaces = mesh.triangleFaces.duplicate().order(ByteOrder.nativeOrder()).asIntBuffer()
+        val idx = mesh.indices.duplicate().order(ByteOrder.nativeOrder()).asIntBuffer()
+        val nor = mesh.normals.duplicate().order(ByteOrder.nativeOrder()).asFloatBuffer()
+        val sum = DoubleArray(3)
+        for (t in 0 until triFaces.capacity()) {
+            if (triFaces.get(t) != face) continue
+            for (k in 0 until 3) {
+                val v = idx.get(t * 3 + k)
+                for (c in 0 until 3) sum[c] += nor.get(v * 3 + c)
+            }
+        }
+        val len = kotlin.math.sqrt(dot(sum, sum))
+        return if (len < 1e-9) null else DoubleArray(3) { sum[it] / len }
+    }
+
+    private fun dot(a: DoubleArray, b: DoubleArray) = a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
+    private fun cross(a: DoubleArray, b: DoubleArray) =
+        doubleArrayOf(a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0])
 }

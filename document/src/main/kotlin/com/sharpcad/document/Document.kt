@@ -57,6 +57,17 @@ class Document(private val dispatcher: CoroutineDispatcher = KernelDispatcher) :
     /** Replaces the feature with the same id (parameter edits). */
     suspend fun update(feature: Feature) = change { list -> list.map { if (it.id == feature.id) feature else it } }
 
+    /**
+     * Replaces the feature with the same id without a new undo step: live updates while
+     * a drag continues the edit that [add] or [update] already recorded.
+     */
+    suspend fun amend(feature: Feature) = lock.withLock {
+        val updated = features.map { if (it.id == feature.id) feature else it }
+        if (updated == features) return@withLock
+        features = updated
+        rebuild()
+    }
+
     /** Removes a feature. Later features that depended on it report errors. */
     suspend fun remove(id: Long) = change { list -> list.filterNot { it.id == id } }
 

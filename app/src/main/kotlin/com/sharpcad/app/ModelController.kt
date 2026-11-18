@@ -315,6 +315,95 @@ class ModelController(
         }
     }
 
+    // ---- Direct manipulation ------------------------------------------------------
+
+    /** A face drag in progress: the face's axis line and the feature it drives. */
+    private class FaceDrag(val bodyId: Long, val face: Int, val anchor: DoubleArray, val normal: DoubleArray, val start: Double, val downX: Float, val downY: Float) {
+        var featureId: Long? = null
+        var pending: Double? = null
+        var running = false
+        var last = 0.0
+    }
+
+    private var faceDrag: FaceDrag? = null
+
+    /** Distance shown while a face is dragged, or `null`. */
+    var dragReadout by mutableStateOf<String?>(null)
+        private set
+
+    /**
+     * One-finger input outside sketching. A drag that starts on the selected face pushes or
+     * pulls it along its normal, live; lifting opens the Push/Pull panel for an exact value.
+     * Returns false (orbit as usual) when the touch is not on the selected face.
+     */
+    fun onDrag(phase: com.sharpcad.viewport.TouchPhase, x: Float, y: Float): Boolean {
+        when (phase) {
+            com.sharpcad.viewport.TouchPhase.DOWN -> {
+                faceDrag = null
+                val s = selection ?: return false
+                if (pendingBoolean != null) return false
+                val body = state.bodies.firstOrNull { it.bodyId == s.bodyId } ?: return false
+                val ray = viewport.screenRay(x, y) ?: return false
+                val o = doubleArrayOf(ray[0], ray[1], ray[2])
+                val d = doubleArrayOf(ray[3], ray[4], ray[5])
+                val t = MeshTools.rayHitFace(body.mesh, s.face, o, d) ?: return false
+                val n = MeshTools.faceNormal(body.mesh, s.face) ?: return false
+                val anchor = DoubleArray(3) { o[it] + t * d[it] }
+                val start = com.sharpcad.viewport.AxisDrag.along(anchor, n, o, d) ?: return false
+                faceDrag = FaceDrag(s.bodyId, s.face, anchor, n, start, x, y)
+                return true
+            }
+            com.sharpcad.viewport.TouchPhase.MOVE -> faceDrag?.let { dragTo(it, x, y) }
+            com.sharpcad.viewport.TouchPhase.UP -> faceDrag?.let { g ->
+                dragTo(g, x, y)
+                faceDrag = null
+                dragReadout = null
+                g.featureId?.let { id -> editingId = id }
+            }
+            com.sharpcad.viewport.TouchPhase.CANCEL -> faceDrag?.let { g ->
+                faceDrag = null
+                dragReadout = null
+                g.featureId?.let { id -> launchEdit { document.remove(id) } }
+            }
+        }
+        return true
+    }
+
+    private fun dragTo(g: FaceDrag, x: Float, y: Float) {
+        if (g.featureId == null && kotlin.math.hypot(x - g.downX, y - g.downY) < DRAG_SLOP_PX) return
+        val ray = viewport.screenRay(x, y) ?: return
+        val s = com.sharpcad.viewport.AxisDrag.along(
+            g.anchor, g.normal, doubleArrayOf(ray[0], ray[1], ray[2]), doubleArrayOf(ray[3], ray[4], ray[5]),
+        ) ?: return
+        val step = if (viewport.millimetresPerPixel() > 0.2) 1.0 else 0.1
+        val distance = com.sharpcad.viewport.AxisDrag.snap(s - g.start, step)
+        dragReadout = "Push/Pull ${formatMm(distance)}"
+        if (kotlin.math.abs(distance) < 1e-6 || distance == g.last) return
+        g.pending = distance
+        if (g.running) return
+        g.running = true
+        launchEdit {
+            try {
+                while (true) {
+                    val next = g.pending ?: break
+                    g.pending = null
+                    g.last = next
+                    val id = g.featureId
+                    if (id == null) {
+                        val f = PushPullFeature(document.newId(), g.bodyId, g.face, next)
+                        clearSelection()
+                        document.add(f)
+                        g.featureId = f.id
+                    } else {
+                        document.amend(PushPullFeature(id, g.bodyId, g.face, next))
+                    }
+                }
+            } finally {
+                g.running = false
+            }
+        }
+    }
+
     fun clearSelection() {
         select(null)
         regionSelection = null
@@ -668,6 +757,7 @@ class ModelController(
 
     companion object {
         const val DEFAULT_DISTANCE = 10.0
+        private const val DRAG_SLOP_PX = 12f
 
         /** A region this close behind a face still wins: sketches drawn on a face lie on it. */
         private const val REGION_PRIORITY_MM = 1e-3

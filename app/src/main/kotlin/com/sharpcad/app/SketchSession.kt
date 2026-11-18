@@ -115,7 +115,6 @@ class SketchSession(private val viewport: ViewportController) {
     fun enter() {
         if (active) return
         active = true
-        viewport.onSingleTouch = ::onTouch
         lookAtPlane()
         refresh()
     }
@@ -126,7 +125,6 @@ class SketchSession(private val viewport: ViewportController) {
         active = false
         tool = null
         clearDimensions()
-        viewport.onSingleTouch = null
         refresh()
     }
 
@@ -212,7 +210,7 @@ class SketchSession(private val viewport: ViewportController) {
 
     // ---- Drawing ------------------------------------------------------------------
 
-    private fun onTouch(phase: TouchPhase, x: Float, y: Float): Boolean {
+    fun onTouch(phase: TouchPhase, x: Float, y: Float): Boolean {
         val activeTool = tool ?: return false
         if (activeTool == SketchTool.SPLINE) return splineTouch(phase, x, y)
         return try {
