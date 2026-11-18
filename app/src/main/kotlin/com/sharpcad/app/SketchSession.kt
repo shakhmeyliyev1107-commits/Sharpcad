@@ -34,6 +34,8 @@ enum class SketchTool(val label: String) {
     CIRCLE("Circle"),
     POLYGON("Hexagon"),
     ARC("Arc"),
+    SLOT("Slot"),
+    ELLIPSE("Ellipse"),
     TRIM("Trim"),
     OFFSET("Offset"),
     PATTERN("Pattern"),
@@ -225,6 +227,7 @@ class SketchSession(private val viewport: ViewportController) {
         val activeTool = tool ?: return false
         if (activeTool == SketchTool.SPLINE) return splineTouch(phase, x, y)
         if (activeTool == SketchTool.TEXT) return textTouch(phase, x, y)
+        if (activeTool == SketchTool.ELLIPSE) return ellipseTouch(phase, x, y)
         return try {
             when (phase) {
                 TouchPhase.DOWN -> begin(activeTool, x, y)
@@ -259,6 +262,13 @@ class SketchSession(private val viewport: ViewportController) {
             SketchTool.POLYGON -> List(POLYGON_SIDES) { s.addLine(start.x, start.y, start.x, start.y) }
             SketchTool.CIRCLE -> listOf(s.addCircle(start.x, start.y, MIN_SIZE))
             SketchTool.ARC -> listOf(s.addArc(start.x, start.y, MIN_SIZE, 0.0, Math.PI))
+            // Bottom line, arc round the far end, top line, arc round the near end.
+            SketchTool.SLOT -> listOf(
+                s.addLine(start.x, start.y, start.x, start.y),
+                s.addArc(start.x, start.y, MIN_SIZE, 0.0, Math.PI),
+                s.addLine(start.x, start.y, start.x, start.y),
+                s.addArc(start.x, start.y, MIN_SIZE, Math.PI, 2 * Math.PI),
+            )
             else -> return false
         }
         draft = Draft(activeTool, ids, start, end = start)
@@ -313,9 +323,10 @@ class SketchSession(private val viewport: ViewportController) {
                 val a0 = kotlin.math.atan2(d.start.y - cy, d.start.x - cx)
                 s.setArc(d.ids[0], cx, cy, r, a0, a0 + Math.PI)
             }
+            SketchTool.SLOT -> slotTo(s, d.ids, d.start.x, d.start.y, end.x, end.y)
             SketchTool.OFFSET -> offsetTo(d, end)
             SketchTool.PATTERN, SketchTool.CIRCULAR -> patternTo(d, end)
-            SketchTool.TRIM, SketchTool.SPLINE, SketchTool.TEXT, SketchTool.HORIZONTAL, SketchTool.VERTICAL, SketchTool.EQUAL,
+            SketchTool.TRIM, SketchTool.SPLINE, SketchTool.TEXT, SketchTool.ELLIPSE, SketchTool.HORIZONTAL, SketchTool.VERTICAL, SketchTool.EQUAL,
             SketchTool.PARALLEL, SketchTool.PERPENDICULAR -> Unit
             SketchTool.POLYGON -> {
                 // Regular polygon: start is the centre, end one vertex.
@@ -390,6 +401,17 @@ class SketchSession(private val viewport: ViewportController) {
                 }
                 dimensionTargets = listOf(
                     DimensionTarget.Distance("Side", PointRef(d.ids[0], PointRole.START), PointRef(d.ids[0], PointRole.END)),
+                )
+            }
+            SketchTool.SLOT -> {
+                val (bottom, far, top, near) = d.ids
+                added += s.addCoincident(PointRef(bottom, PointRole.END), PointRef(far, PointRole.START))
+                added += s.addCoincident(PointRef(far, PointRole.END), PointRef(top, PointRole.START))
+                added += s.addCoincident(PointRef(top, PointRole.END), PointRef(near, PointRole.START))
+                added += s.addCoincident(PointRef(near, PointRole.END), PointRef(bottom, PointRole.START))
+                dimensionTargets = listOf(
+                    DimensionTarget.Distance("Length", PointRef(near, PointRole.CENTER), PointRef(far, PointRole.CENTER)),
+                    DimensionTarget.Radius("Radius", far),
                 )
             }
             SketchTool.CIRCLE -> {
@@ -486,6 +508,56 @@ class SketchSession(private val viewport: ViewportController) {
                 }
             }
             TouchPhase.CANCEL -> splineDraft = null
+        }
+        refresh()
+        return true
+    }
+
+    /** Places the four slot entities for centres ([x1], [y1]) → ([x2], [y2]); width is 40 % of the length. */
+    private fun slotTo(s: Sketch, ids: List<Int>, x1: Double, y1: Double, x2: Double, y2: Double) {
+        val (bottom, far, top, near) = ids
+        val len = hypot(x2 - x1, y2 - y1).coerceAtLeast(MIN_SIZE)
+        val ux = (x2 - x1) / len
+        val uy = (y2 - y1) / len
+        val r = (len * SLOT_WIDTH_RATIO / 2).coerceAtLeast(MIN_SIZE)
+        val nx = -uy * r
+        val ny = ux * r
+        val a = kotlin.math.atan2(-ny, -nx) // direction of −n
+        s.setPoint(PointRef(bottom, PointRole.START), x1 - nx, y1 - ny)
+        s.setPoint(PointRef(bottom, PointRole.END), x2 - nx, y2 - ny)
+        s.setArc(far, x2, y2, r, a, a + Math.PI)
+        s.setPoint(PointRef(top, PointRole.START), x2 + nx, y2 + ny)
+        s.setPoint(PointRef(top, PointRole.END), x1 + nx, y1 + ny)
+        s.setArc(near, x1, y1, r, a + Math.PI, a + 2 * Math.PI)
+    }
+
+    private var ellipseStart: DoubleArray? = null
+
+    /** Ellipse: press at the centre, drag to a corner of its bounding box. Kept as a closed spline. */
+    private fun ellipseTouch(phase: TouchPhase, x: Float, y: Float): Boolean {
+        val point = planePoint(x, y)
+        fun outline(c: DoubleArray, p: DoubleArray): MutableList<Double> {
+            val rx = abs(p[0] - c[0]).coerceAtLeast(MIN_SIZE)
+            val ry = abs(p[1] - c[1]).coerceAtLeast(MIN_SIZE)
+            val pts = mutableListOf<Double>()
+            for (k in 0..ELLIPSE_POINTS) {
+                val t = 2 * Math.PI * k / ELLIPSE_POINTS
+                pts += c[0] + rx * kotlin.math.cos(t); pts += c[1] + ry * kotlin.math.sin(t)
+            }
+            return pts
+        }
+        when (phase) {
+            TouchPhase.DOWN -> ellipseStart = point ?: return false
+            TouchPhase.MOVE -> { val c = ellipseStart; if (c != null && point != null) splineDraft = outline(c, point) }
+            TouchPhase.UP -> {
+                val c = ellipseStart
+                ellipseStart = null
+                splineDraft = null
+                if (c != null && point != null && abs(point[0] - c[0]) > MIN_SIZE * 10 && abs(point[1] - c[1]) > MIN_SIZE * 10) {
+                    splines.getOrPut(plane) { mutableListOf() } += outline(c, point)
+                }
+            }
+            TouchPhase.CANCEL -> { ellipseStart = null; splineDraft = null }
         }
         refresh()
         return true
@@ -843,6 +915,8 @@ class SketchSession(private val viewport: ViewportController) {
         private const val POLYGON_SIDES = 6
         private const val DEFAULT_PATTERN = 3
         private const val DEFAULT_CIRCULAR = 6
+        const val SLOT_WIDTH_RATIO = 0.4
+        const val ELLIPSE_POINTS = 48
         const val DEFAULT_TEXT_MM = 10.0
         private const val SPLINE_SPACING_PIXELS = 40.0
         private const val MAX_PATTERN = 50

@@ -253,6 +253,8 @@ internal object Strings {
         "Tap the face where the hole goes" to ("Teshik bo'ladigan joyni yuzada bosing" to "Коснитесь грани в месте отверстия"),
         "Draft" to ("Qiyalik" to "Уклон"),
         "This face cannot be drafted" to ("Bu yuzani qiyalatib bo'lmaydi" to "Эту грань нельзя наклонить"),
+        "Slot" to ("Paz" to "Паз"),
+        "Ellipse" to ("Ellips" to "Эллипс"),
         "View" to ("Ko'rinish" to "Вид"),
         "Views" to ("Ko'rinishlar" to "Виды"),
         "Visual" to ("Vizual" to "Визуал"),
