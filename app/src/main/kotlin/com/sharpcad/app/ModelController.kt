@@ -330,6 +330,7 @@ class ModelController(
                 return@launch
             }
             pendingBoolean = null
+            lastHitPoint = hit?.let { h -> DoubleArray(3) { origin[it] + h.distance * direction[it] } }
             select(hit?.let { Selection(it.bodyId, it.face) })
         }
     }
@@ -365,6 +366,20 @@ class ModelController(
             )
         }
         addAndEdit(feature)
+    }
+
+    /** Where the last tap hit a face (model space), for placing a hole. */
+    private var lastHitPoint: DoubleArray? = null
+
+    private fun holeAtTap(s: Selection) {
+        val p = lastHitPoint
+        val mesh = state.bodies.firstOrNull { it.bodyId == s.bodyId }?.mesh
+        val n = mesh?.let { MeshTools.faceNormal(it, s.face) }
+        if (p == null || n == null) {
+            note = "Tap the face where the hole goes"
+            return
+        }
+        addAndEdit(com.sharpcad.document.HoleFeature(document.newId(), s.bodyId, p.toList(), n.toList()))
     }
 
     /** Centre of a body's displayed mesh bounds, or null. */
@@ -854,6 +869,7 @@ class ModelController(
             PanelAction("Copy") { addAndEdit(com.sharpcad.document.MoveFeature(document.newId(), s.bodyId, dx = 10.0, copy = true)) },
             PanelAction("Mirror") { addAndEdit(com.sharpcad.document.MirrorFeature(document.newId(), s.bodyId, com.sharpcad.document.WorldAxis.X)) },
             PanelAction("Pattern") { addAndEdit(com.sharpcad.document.PatternFeature(document.newId(), s.bodyId)) },
+            PanelAction("Hole") { holeAtTap(s) },
             PanelAction("Split") { addAndEdit(splitThroughCentre(s.bodyId)) },
             PanelAction("Scale") { addAndEdit(com.sharpcad.document.ScaleFeature(document.newId(), s.bodyId)) },
             PanelAction("Shell (open face)") { addAndEdit(com.sharpcad.document.ShellFeature(document.newId(), s.bodyId, s.face, 1.0)) },
@@ -903,6 +919,11 @@ class ModelController(
                 choices += ChoiceField("Drag", DRAG_MODES, if (dragRotates) DRAG_MODES[1] else DRAG_MODES[0])
             }
             is com.sharpcad.document.ScaleFeature -> fields += DimensionField("Factor", f.factor, unit = "×")
+            is com.sharpcad.document.HoleFeature -> {
+                fields += DimensionField("Diameter", f.diameter)
+                if (!f.through) fields += DimensionField("Depth", f.depth)
+                choices += ChoiceField("Depth", HOLE_DEPTHS, if (f.through) HOLE_DEPTHS[1] else HOLE_DEPTHS[0])
+            }
             is com.sharpcad.document.SplitFeature -> {
                 fields += DimensionField("Offset", f.offset, allowNegative = true)
                 choices += ChoiceField("Plane", MIRROR_PLANES, mirrorLabel(f.plane))
@@ -940,6 +961,7 @@ class ModelController(
             is com.sharpcad.document.MoveFeature -> when (index) {
                 0 -> f.copy(dx = value); 1 -> f.copy(dy = value); 2 -> f.copy(dz = value); else -> f.copy(angleDegrees = value)
             }
+            is com.sharpcad.document.HoleFeature -> if (index == 0) f.copy(diameter = value) else f.copy(depth = value)
             is com.sharpcad.document.PatternFeature -> when (index) {
                 0 -> f.copy(count = value.toInt().coerceIn(2, 200))
                 else -> if (f.circular) f.copy(angleDegrees = value.coerceIn(1.0, 360.0)) else f.copy(spacing = value)
@@ -960,6 +982,7 @@ class ModelController(
             is PushPullFeature -> f.copy(distance = if (f.distance < 0) -value else value)
             is com.sharpcad.document.ShellFeature -> f.copy(thickness = value)
             is com.sharpcad.document.ScaleFeature -> f.copy(factor = value)
+            is com.sharpcad.document.HoleFeature -> f.copy(diameter = value)
             is com.sharpcad.document.SplitFeature -> f.copy(offset = value)
             else -> return
         }
@@ -985,6 +1008,7 @@ class ModelController(
                 dragRotates = option == DRAG_MODES[1]
                 null
             } else axisOf(option)?.let { f.copy(axis = it) }
+            is com.sharpcad.document.HoleFeature -> f.copy(through = option == HOLE_DEPTHS[1])
             is com.sharpcad.document.SplitFeature -> MIRROR_PLANES.indexOf(option).takeIf { it >= 0 }?.let { i ->
                 val axis = com.sharpcad.document.WorldAxis.entries[i]
                 f.copy(plane = axis, offset = bodyCentre(f.body)?.get(i) ?: f.offset)
@@ -1067,6 +1091,7 @@ class ModelController(
         private const val ROTATE_DEG_PER_PX = 0.5
         private const val ROTATE_SNAP_DEG = 5.0
         private val DRAG_MODES = listOf("Move", "Rotate")
+        private val HOLE_DEPTHS = listOf("Blind", "Through all")
         /** A tap this close to an edge (in pixels) picks the edge rather than the face. */
         private const val EDGE_PICK_PX = 10.0
 

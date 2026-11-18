@@ -3,6 +3,7 @@ package com.sharpcad.document
 import com.sharpcad.kernel.BooleanOp
 import com.sharpcad.kernel.Kernel
 import com.sharpcad.kernel.KernelException
+import com.sharpcad.kernel.PlaneFrame
 import com.sharpcad.kernel.Shape
 import kotlin.math.PI
 
@@ -80,6 +81,7 @@ object ModelBuilder {
                 val moved = source.moved(centre, feature.axis.vector, feature.angleDegrees * PI / 180, feature.dx, feature.dy, feature.dz)
                 if (feature.copy) bodies[feature.id] = moved else { bodies[feature.body] = moved; source.close() }
             }
+            is HoleFeature -> replace(feature.body, bodies) { s -> drill(s, feature) }
             is ScaleFeature -> replace(feature.body, bodies) { s ->
                 val b = s.boundingBox()
                 s.scaled(doubleArrayOf((b.minX + b.maxX) / 2, (b.minY + b.maxY) / 2, (b.minZ + b.maxZ) / 2), feature.factor)
@@ -147,6 +149,31 @@ object ModelBuilder {
             }
         }
     }
+
+    /** Subtracts the hole's cylinder, started just outside the face so it cuts cleanly. */
+    private fun drill(body: Shape, hole: HoleFeature): Shape {
+        require(hole.diameter > 0 && (hole.through || hole.depth > 0)) { "Hole size must be positive" }
+        val n = hole.normal.toDoubleArray()
+        val len = kotlin.math.sqrt(n[0] * n[0] + n[1] * n[1] + n[2] * n[2])
+        require(len > 1e-9) { "Hole direction is undefined" }
+        for (i in 0..2) n[i] /= len
+        // Any unit vector perpendicular to the normal, then the third axis.
+        val seed = if (kotlin.math.abs(n[2]) < 0.9) doubleArrayOf(0.0, 0.0, 1.0) else doubleArrayOf(1.0, 0.0, 0.0)
+        val x = cross(seed, n).let { v -> val l = kotlin.math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]); DoubleArray(3) { v[it] / l } }
+        val y = cross(n, x)
+        val lift = 0.1
+        val origin = DoubleArray(3) { hole.point[it] + n[it] * lift }
+        val depth = if (hole.through) {
+            val b = body.boundingBox()
+            kotlin.math.sqrt((b.maxX - b.minX).let { it * it } + (b.maxY - b.minY).let { it * it } + (b.maxZ - b.minZ).let { it * it }) * 2 + lift
+        } else hole.depth + lift
+        val profile = Kernel.profileFromSketch(PlaneFrame(origin, x, y), DoubleArray(0), doubleArrayOf(0.0, 0.0, hole.diameter / 2))
+        val tool = profile.use { it.extrude(-n[0] * depth, -n[1] * depth, -n[2] * depth) }
+        return tool.use { body.booleanWith(it, BooleanOp.SUBTRACT) }
+    }
+
+    private fun cross(a: DoubleArray, b: DoubleArray) =
+        doubleArrayOf(a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0])
 
     private fun profileShape(profile: Profile): Shape {
         val all = Kernel.profileFromSketch(

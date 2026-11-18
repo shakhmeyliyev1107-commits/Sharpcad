@@ -113,6 +113,17 @@ class DocumentTest {
     }
 
     @Test
+    fun holeBlindAndThrough() {
+        val base = box(1, 20.0, 20.0, 10.0)
+        val top = listOf(10.0, 10.0, 10.0)
+        val up = listOf(0.0, 0.0, 1.0)
+        val blind = volumes(listOf(base, HoleFeature(2, 1, top, up, diameter = 4.0, depth = 5.0))).getValue(1)
+        assertEquals(4000.0 - PI * 4.0 * 5.0, blind, 0.05)
+        val through = volumes(listOf(base, HoleFeature(2, 1, top, up, diameter = 4.0, through = true))).getValue(1)
+        assertEquals(4000.0 - PI * 4.0 * 10.0, through, 0.05)
+    }
+
+    @Test
     fun splitAndScale() {
         val base = box(1, 10.0, 10.0, 10.0)
         val split = volumes(listOf(base, SplitFeature(2, 1, WorldAxis.Z, 4.0)))

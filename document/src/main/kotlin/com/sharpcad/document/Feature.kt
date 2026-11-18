@@ -204,6 +204,24 @@ data class MirrorFeature(override val id: Long, val body: Long, val plane: World
     override val label: String get() = "Mirror"
 }
 
+/**
+ * A round hole into [body] at [point] on a face, drilled against the face's outward
+ * [normal]: [diameter] wide, [depth] deep, or all the way through when [through].
+ */
+@Serializable
+@SerialName("hole")
+data class HoleFeature(
+    override val id: Long,
+    val body: Long,
+    val point: List<Double>,
+    val normal: List<Double>,
+    val diameter: Double = 5.0,
+    val depth: Double = 10.0,
+    val through: Boolean = false,
+) : Feature {
+    override val label: String get() = "Hole Ø${formatMm(diameter)}"
+}
+
 /** Scales [body] by [factor] about its bounding-box centre. */
 @Serializable
 @SerialName("scale")
