@@ -326,6 +326,23 @@ TEST(Sweep, SquareAlongStraightPath) {
     EXPECT_NEAR(Shape::profileFromSketch(profile)->sweep(path)->volume(), 40.0, 1e-3);
 }
 
+TEST(Modeling, DraftTiltsASideFace) {
+    const auto box = Shape::makeBox(10, 10, 10);
+    // Side face x = 10: pick it with a ray along -X.
+    const double origin[3] = {100, 5, 5};
+    const double dir[3] = {-1, 0, 0};
+    const int side = box->pick(origin, dir).face;
+    ASSERT_GE(side, 0);
+    const double up[3] = {0, 0, 1};
+    const double base[3] = {0, 0, 0};
+    const auto drafted = box->draft(side, 10.0 * M_PI / 180.0, up, base);
+    EXPECT_LT(drafted->volume(), 1000.0);  // leans inwards going up
+    EXPECT_GT(drafted->volume(), 900.0);
+    const double top[3] = {5, 5, 100};
+    const double down[3] = {0, 0, -1};
+    expectError(ErrorCode::OcctFailure, [&] { box->draft(box->pick(top, down).face, 0.2, up, base); });
+}
+
 TEST(Modeling, ScaledMultipliesVolumeByCube) {
     const auto box = Shape::makeBox(10, 10, 10);
     const double c[3] = {5, 5, 5};

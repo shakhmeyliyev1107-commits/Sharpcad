@@ -371,6 +371,17 @@ Java_com_sharpcad_kernel_KernelNative_nativeMoved(JNIEnv* env, jclass, jlong han
 }
 
 JNIEXPORT jlong JNICALL
+Java_com_sharpcad_kernel_KernelNative_nativeDraft(JNIEnv* env, jclass, jlong handle, jint face, jdouble angle,
+                                                  jdoubleArray direction, jdoubleArray neutral) {
+    return guard<jlong>(env, 0, [&] {
+        double d[3], p[3];
+        toVec3(env, direction, d);
+        toVec3(env, neutral, p);
+        return release(shapeFromHandle(handle).draft(face, angle, d, p));
+    });
+}
+
+JNIEXPORT jlong JNICALL
 Java_com_sharpcad_kernel_KernelNative_nativeScaled(JNIEnv* env, jclass, jlong handle, jdoubleArray center,
                                                    jdouble factor) {
     return guard<jlong>(env, 0, [&] {

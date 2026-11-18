@@ -82,6 +82,11 @@ object ModelBuilder {
                 if (feature.copy) bodies[feature.id] = moved else { bodies[feature.body] = moved; source.close() }
             }
             is HoleFeature -> replace(feature.body, bodies) { s -> drill(s, feature) }
+            is DraftFeature -> replace(feature.body, bodies) { s ->
+                val b = s.boundingBox()
+                val neutral = doubleArrayOf(b.minX, b.minY, b.minZ)
+                s.draft(feature.face, feature.angleDegrees * PI / 180, feature.axis.vector, neutral)
+            }
             is ScaleFeature -> replace(feature.body, bodies) { s ->
                 val b = s.boundingBox()
                 s.scaled(doubleArrayOf((b.minX + b.maxX) / 2, (b.minY + b.maxY) / 2, (b.minZ + b.maxZ) / 2), feature.factor)

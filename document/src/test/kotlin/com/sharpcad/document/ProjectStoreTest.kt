@@ -20,6 +20,8 @@ class ProjectStoreTest {
         PushPullFeature(6, body = 2, face = 1, distance = 2.0),
         FilletFeature(8, body = 2, radius = 1.0, edge = 3),
         ScaleFeature(9, body = 2, factor = 1.5),
+        HoleFeature(11, body = 2, point = listOf(1.0, 2.0, 3.0), normal = listOf(0.0, 0.0, 1.0), through = true),
+        DraftFeature(12, body = 2, face = 1, angleDegrees = 3.0),
         SplitFeature(10, body = 2, plane = WorldAxis.X, offset = 3.0),
         BooleanFeature(7, target = 2, tool = 3, op = BooleanOp.INTERSECT),
     )

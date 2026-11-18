@@ -222,6 +222,16 @@ data class HoleFeature(
     override val label: String get() = "Hole Ø${formatMm(diameter)}"
 }
 
+/**
+ * Tilts [face] of [body] by [angleDegrees], pulling along world [axis]; the neutral plane
+ * is the body's lowest point along that axis, so the face keeps its base and leans.
+ */
+@Serializable
+@SerialName("draft")
+data class DraftFeature(override val id: Long, val body: Long, val face: Int, val angleDegrees: Double = 5.0, val axis: WorldAxis = WorldAxis.Z) : Feature {
+    override val label: String get() = "Draft ${formatMm(angleDegrees)}°"
+}
+
 /** Scales [body] by [factor] about its bounding-box centre. */
 @Serializable
 @SerialName("scale")

@@ -870,6 +870,7 @@ class ModelController(
             PanelAction("Mirror") { addAndEdit(com.sharpcad.document.MirrorFeature(document.newId(), s.bodyId, com.sharpcad.document.WorldAxis.X)) },
             PanelAction("Pattern") { addAndEdit(com.sharpcad.document.PatternFeature(document.newId(), s.bodyId)) },
             PanelAction("Hole") { holeAtTap(s) },
+            PanelAction("Draft") { addAndEdit(com.sharpcad.document.DraftFeature(document.newId(), s.bodyId, s.face)) },
             PanelAction("Split") { addAndEdit(splitThroughCentre(s.bodyId)) },
             PanelAction("Scale") { addAndEdit(com.sharpcad.document.ScaleFeature(document.newId(), s.bodyId)) },
             PanelAction("Shell (open face)") { addAndEdit(com.sharpcad.document.ShellFeature(document.newId(), s.bodyId, s.face, 1.0)) },
@@ -919,6 +920,10 @@ class ModelController(
                 choices += ChoiceField("Drag", DRAG_MODES, if (dragRotates) DRAG_MODES[1] else DRAG_MODES[0])
             }
             is com.sharpcad.document.ScaleFeature -> fields += DimensionField("Factor", f.factor, unit = "×")
+            is com.sharpcad.document.DraftFeature -> {
+                fields += DimensionField("Angle", f.angleDegrees, unit = "°", allowNegative = true)
+                choices += ChoiceField("Axis", AXES, f.axis.label)
+            }
             is com.sharpcad.document.HoleFeature -> {
                 fields += DimensionField("Diameter", f.diameter)
                 if (!f.through) fields += DimensionField("Depth", f.depth)
@@ -982,6 +987,7 @@ class ModelController(
             is PushPullFeature -> f.copy(distance = if (f.distance < 0) -value else value)
             is com.sharpcad.document.ShellFeature -> f.copy(thickness = value)
             is com.sharpcad.document.ScaleFeature -> f.copy(factor = value)
+            is com.sharpcad.document.DraftFeature -> f.copy(angleDegrees = value.coerceIn(-60.0, 60.0))
             is com.sharpcad.document.HoleFeature -> f.copy(diameter = value)
             is com.sharpcad.document.SplitFeature -> f.copy(offset = value)
             else -> return
@@ -1009,6 +1015,7 @@ class ModelController(
                 null
             } else axisOf(option)?.let { f.copy(axis = it) }
             is com.sharpcad.document.HoleFeature -> f.copy(through = option == HOLE_DEPTHS[1])
+            is com.sharpcad.document.DraftFeature -> axisOf(option)?.let { f.copy(axis = it) }
             is com.sharpcad.document.SplitFeature -> MIRROR_PLANES.indexOf(option).takeIf { it >= 0 }?.let { i ->
                 val axis = com.sharpcad.document.WorldAxis.entries[i]
                 f.copy(plane = axis, offset = bodyCentre(f.body)?.get(i) ?: f.offset)

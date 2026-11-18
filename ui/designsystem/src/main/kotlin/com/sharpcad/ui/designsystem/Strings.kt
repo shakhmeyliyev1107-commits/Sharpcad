@@ -251,6 +251,8 @@ internal object Strings {
         "Blind" to ("Berk" to "Глухое"),
         "Through all" to ("Teshib o'tuvchi" to "Насквозь"),
         "Tap the face where the hole goes" to ("Teshik bo'ladigan joyni yuzada bosing" to "Коснитесь грани в месте отверстия"),
+        "Draft" to ("Qiyalik" to "Уклон"),
+        "This face cannot be drafted" to ("Bu yuzani qiyalatib bo'lmaydi" to "Эту грань нельзя наклонить"),
         "View" to ("Ko'rinish" to "Вид"),
         "Views" to ("Ko'rinishlar" to "Виды"),
         "Visual" to ("Vizual" to "Визуал"),

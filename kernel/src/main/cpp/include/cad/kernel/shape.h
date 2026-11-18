@@ -144,6 +144,11 @@ public:
     /// Mirror image across the plane through `origin` with normal `normal`.
     std::unique_ptr<Shape> mirrored(const double origin[3], const double normal[3]) const;
 
+    /// Tilts face `face` by `angle` radians about its line on the neutral plane through
+    /// `neutralPoint` with normal `direction` (the pull direction). Throws OcctFailure
+    /// when the face cannot be drafted (e.g. it is perpendicular to the direction).
+    std::unique_ptr<Shape> draft(int face, double angle, const double direction[3], const double neutralPoint[3]) const;
+
     /// Copy scaled uniformly by `factor` (> 0) about `center`.
     std::unique_ptr<Shape> scaled(const double center[3], double factor) const;
 

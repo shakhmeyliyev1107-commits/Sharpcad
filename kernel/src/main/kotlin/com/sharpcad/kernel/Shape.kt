@@ -140,6 +140,10 @@ class Shape internal constructor(private var handle: Long) : AutoCloseable {
     fun pushPull(face: Int, distance: Double): Shape = Shape(KernelNative.nativePushPull(handle, face, distance))
 
     /** Nearest face hit by a ray, or `null` when it misses. */
+    /** Tilts [face] by [angle] radians, pulling along [direction] from the plane through [neutral]. */
+    fun draft(face: Int, angle: Double, direction: DoubleArray, neutral: DoubleArray): Shape =
+        Shape(KernelNative.nativeDraft(handle, face, angle, direction, neutral))
+
     /** Copy scaled by [factor] about [center]. */
     fun scaled(center: DoubleArray, factor: Double): Shape = Shape(KernelNative.nativeScaled(handle, center, factor))
 

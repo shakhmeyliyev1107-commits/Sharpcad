@@ -27,6 +27,8 @@
 #include <BRepGProp.hxx>
 #include <BRepOffsetAPI_MakeThickSolid.hxx>
 #include <BRepOffsetAPI_ThruSections.hxx>
+#include <BRepOffsetAPI_DraftAngle.hxx>
+#include <gp_Pln.hxx>
 #include <BRepOffsetAPI_MakePipe.hxx>
 #include <TopoDS_Wire.hxx>
 #include <BRepTools.hxx>
@@ -509,6 +511,25 @@ std::unique_ptr<Shape> Shape::mirrored(const double origin[3], const double norm
         gp_Trsf mirror;
         mirror.SetMirror(gp_Ax2(gp_Pnt(origin[0], origin[1], origin[2]), gp_Dir(n)));
         BRepBuilderAPI_Transform algo(impl_->shape, mirror, Standard_True);
+        auto impl = std::make_unique<Impl>();
+        impl->shape = algo.Shape();
+        return std::unique_ptr<Shape>(new Shape(std::move(impl)));
+    });
+}
+
+std::unique_ptr<Shape> Shape::draft(int face, double angle, const double direction[3], const double neutralPoint[3]) const {
+    require(finite3(direction) && finite3(neutralPoint) && std::isfinite(angle), "Draft must be finite");
+    const gp_Vec d(direction[0], direction[1], direction[2]);
+    require(d.Magnitude() > kTiny, "Draft direction must not be zero");
+    return guarded("draft", [&] {
+        const auto faces = facesOf(impl_->shape);
+        const TopoDS_Face& f = faceAt(faces, face);
+        const gp_Dir dir(d);
+        BRepOffsetAPI_DraftAngle algo(impl_->shape);
+        algo.Add(f, dir, angle, gp_Pln(gp_Pnt(neutralPoint[0], neutralPoint[1], neutralPoint[2]), dir));
+        if (!algo.AddDone()) throw KernelError(ErrorCode::OcctFailure, "This face cannot be drafted");
+        algo.Build();
+        if (!algo.IsDone()) throw KernelError(ErrorCode::OcctFailure, "Draft failed");
         auto impl = std::make_unique<Impl>();
         impl->shape = algo.Shape();
         return std::unique_ptr<Shape>(new Shape(std::move(impl)));
