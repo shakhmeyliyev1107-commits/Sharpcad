@@ -15,6 +15,7 @@ import com.sharpcad.sketch.Snap
 import com.sharpcad.sketch.SnapKind
 import com.sharpcad.sketch.Snapper
 import com.sharpcad.sketch.Trim
+import com.sharpcad.sketch.SketchOps
 import com.sharpcad.sketch.Spline
 import com.sharpcad.sketch.SolveStatus
 import com.sharpcad.ui.workspace.DimensionField
@@ -40,6 +41,8 @@ enum class SketchTool(val label: String) {
     OFFSET("Offset"),
     PATTERN("Pattern"),
     CIRCULAR("Circular pattern"),
+    MIRROR("Mirror"),
+    CORNER("Round corner"),
     SPLINE("Spline"),
     TEXT("Text"),
     PROJECT("Project"),
@@ -255,6 +258,8 @@ class SketchSession(private val viewport: ViewportController) {
             SketchTool.PATTERN, SketchTool.CIRCULAR -> return beginPattern(activeTool, point)
             SketchTool.HORIZONTAL, SketchTool.VERTICAL, SketchTool.EQUAL,
             SketchTool.PARALLEL, SketchTool.PERPENDICULAR -> return constrainAt(activeTool, point)
+            SketchTool.MIRROR -> return mirrorAt(point)
+            SketchTool.CORNER -> return roundCornerAt(point)
             else -> Unit
         }
         val s = sketches.getOrPut(plane) { Sketch() }
@@ -331,7 +336,7 @@ class SketchSession(private val viewport: ViewportController) {
             SketchTool.SLOT -> slotTo(s, d.ids, d.start.x, d.start.y, end.x, end.y)
             SketchTool.OFFSET -> offsetTo(d, end)
             SketchTool.PATTERN, SketchTool.CIRCULAR -> patternTo(d, end)
-            SketchTool.TRIM, SketchTool.SPLINE, SketchTool.TEXT, SketchTool.ELLIPSE, SketchTool.PROJECT, SketchTool.HORIZONTAL, SketchTool.VERTICAL, SketchTool.EQUAL,
+            SketchTool.TRIM, SketchTool.SPLINE, SketchTool.TEXT, SketchTool.ELLIPSE, SketchTool.PROJECT, SketchTool.MIRROR, SketchTool.CORNER, SketchTool.HORIZONTAL, SketchTool.VERTICAL, SketchTool.EQUAL,
             SketchTool.PARALLEL, SketchTool.PERPENDICULAR -> Unit
             SketchTool.POLYGON -> {
                 // Regular polygon: start is the centre, end one vertex.
@@ -761,6 +766,64 @@ class SketchSession(private val viewport: ViewportController) {
         } else {
             refresh()
         }
+        return true
+    }
+
+    /** Mirror tool: tap the entity to copy, then the line to mirror it across. */
+    private fun mirrorAt(point: DoubleArray): Boolean {
+        val s = sketch ?: return true
+        val tolerance = viewport.millimetresPerPixel() * SNAP_PIXELS
+        val hit = s.entities().filter { Trim.distance(it, point[0], point[1]) <= tolerance }
+            .minByOrNull { Trim.distance(it, point[0], point[1]) }
+        if (hit == null) return true.also { refresh("Tap a line, arc or circle to mirror") }
+        val first = pendingPair
+        if (first == null || first == hit.id) {
+            pendingPair = hit.id
+            refresh("Now tap the mirror line")
+            return true
+        }
+        pendingPair = null
+        val axis = hit as? SketchLine ?: return true.also { refresh("The mirror must be a line") }
+        val source = s.entities().firstOrNull { it.id == first } ?: return true
+        val out = SketchOps.mirror(source, axis)
+        out.lines.forEach { s.addLine(it[0], it[1], it[2], it[3]) }
+        out.circles.forEach { s.addCircle(it[0], it[1], it[2]) }
+        out.arcs.forEach { s.addArc(it[0], it[1], it[2], it[3], it[4]) }
+        refresh()
+        return true
+    }
+
+    /**
+     * Round corner tool: tap where two lines meet. The corner gets an arc of 20 % of the
+     * shorter line; the two lines are redrawn to the tangent points and joined to the arc.
+     */
+    private fun roundCornerAt(point: DoubleArray): Boolean {
+        val s = sketch ?: return true
+        val tolerance = viewport.millimetresPerPixel() * SNAP_PIXELS * 1.5
+        // Line ends near the tap, nearest first.
+        val ends = s.entities().filterIsInstance<SketchLine>().flatMap { l ->
+            listOf(Triple(l, true, hypot(l.x1 - point[0], l.y1 - point[1])), Triple(l, false, hypot(l.x2 - point[0], l.y2 - point[1])))
+        }.filter { it.third <= tolerance }.sortedBy { it.third }
+        val a = ends.firstOrNull() ?: return true.also { refresh("Tap a corner where two lines meet") }
+        val b = ends.firstOrNull { it.first.id != a.first.id } ?: return true.also { refresh("Tap a corner where two lines meet") }
+        fun corner(t: Triple<SketchLine, Boolean, Double>) = if (t.second) t.first.x1 to t.first.y1 else t.first.x2 to t.first.y2
+        fun far(t: Triple<SketchLine, Boolean, Double>) = if (t.second) t.first.x2 to t.first.y2 else t.first.x1 to t.first.y1
+        val (px, py) = corner(a)
+        val (ax, ay) = far(a)
+        val (bx, by) = far(b)
+        val r = minOf(hypot(ax - px, ay - py), hypot(bx - px, by - py)) * 0.2
+        val (pts, arc) = SketchOps.fillet(px, py, ax, ay, bx, by, r) ?: return true.also { refresh("These lines cannot be rounded") }
+        s.removeEntity(a.first.id)
+        s.removeEntity(b.first.id)
+        val la = s.addLine(ax, ay, pts[0], pts[1])
+        val lb = s.addLine(pts[2], pts[3], bx, by)
+        val c = s.addArc(arc[0], arc[1], arc[2], arc[3], arc[4])
+        // Arc start lies at whichever tangent point it was oriented from.
+        val startAtA = hypot(arc[0] + arc[2] * kotlin.math.cos(arc[3]) - pts[0], arc[1] + arc[2] * kotlin.math.sin(arc[3]) - pts[1]) < 1e-6
+        s.addCoincident(PointRef(la, PointRole.END), PointRef(c, if (startAtA) PointRole.START else PointRole.END))
+        s.addCoincident(PointRef(lb, PointRole.START), PointRef(c, if (startAtA) PointRole.END else PointRole.START))
+        dimensionTargets = emptyList()
+        refresh()
         return true
     }
 
