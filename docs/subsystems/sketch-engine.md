@@ -4,6 +4,7 @@ type: subsystem
 created: 2026-11-17
 updated: 2026-11-18
 sources:
+  - code: sketch/src/main/kotlin/com/sharpcad/sketch/SketchOps.kt
   - code: app/src/main/kotlin/com/sharpcad/app/TextOutline.kt
   - code: sketch/src/main/cpp/src/sketch.cpp
   - code: sketch/src/main/cpp/include/cad/sketch/sketch.h
@@ -18,7 +19,7 @@ sources:
   - code: ui/workspace/src/main/kotlin/com/sharpcad/ui/workspace/SketchControls.kt
   - code: app/build.gradle.kts
   - code: tools/fetch-sketch-deps.sh
-verified_at: bf03536
+verified_at: 3ea3761
 ---
 
 # Eskiz dvigateli va eskiz rejimi
@@ -124,6 +125,15 @@ yadroda davriy B-spline bo'ladi.
 
 > ⚠️ Slot yoylari teng radius va urinish bog'lanishisiz qo'shiladi: radiusni o'zgartirish
 > faqat bitta (uzoq) yoyga ta'sir qiladi. Ellips splayn kabi yechuvchidan tashqarida.
+
+Mirror: avval nusxalanadigan obyekt, keyin ko'zgu chizig'i bosiladi; nusxa
+`SketchOps.mirror` bilan aks ettiriladi (yoyda boshi va oxiri almashadi). Round corner:
+ikki chiziq uchrashgan burchak bosilsa, qisqaroq chiziqning 20 % radiusli yoy qo'yiladi
+(`SketchOps.fillet`).
+
+> ⚠️ Round corner ikki chiziqni o'chirib qayta chizadi: ularga bog'langan boshqa cheklovlar
+> (gorizontal, qo'shni chiziqlar bilan coincident) yo'qoladi; faqat yoy bilan ulanishlar
+> qayta qo'shiladi. Mirror nusxasi asl obyektga bog'lanmaydi.
 
 Project: eskiz rejimida jism qirrasini bosish uni joriy tekislikka proyeksiyalaydi —
 `ModelController.projectEdgeAt` qirrani tanlaydi (`Document.pickEdge`), `SketchSession.addProjected`
